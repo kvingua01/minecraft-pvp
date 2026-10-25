@@ -1,0 +1,14 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101b19; color: #edf6ec; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 32px 20px; }
+main { max-width: 800px; margin: auto; }
+.eyebrow { color: #a6e078; font-weight: 800; letter-spacing: .2em; }
+h1 { font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1.1; }
+p { color: #bed0c5; line-height: 1.6; }
+.stats { display: flex; justify-content: space-between; margin: 24px 0 12px; font-weight: bold; }
+#arena { position: relative; height: 340px; border: 2px solid #486148; overflow: hidden; background: repeating-linear-gradient(0deg, transparent 0 39px, #ffffff08 39px 40px), repeating-linear-gradient(90deg, #1d3027 0 39px, #ffffff08 39px 40px); }
+#message { text-align: center; margin-top: 145px; pointer-events: none; }
+button { cursor: pointer; font: inherit; font-weight: 700; border: 0; background: #a6e078; color: #172514; padding: 14px 24px; }
+button:focus-visible { outline: 3px solid white; outline-offset: 3px; }
+#start { margin-top: 20px; }
+#target { position: absolute; width: 52px; height: 52px; padding: 0; border: 5px outset #91c95c; box-shadow: 4px 4px 0 #0006; }

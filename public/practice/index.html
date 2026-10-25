@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Block Arena</title>
+  <link rel="stylesheet" href="/practice/style.css">
+  <script src="/practice/game.js" defer></script>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">BLOCK ARENA</p>
+    <h1>Train for your next battle.</h1>
+    <p>A small block-style target practice game. Click or tap the green block before time runs out.</p>
+    <div class="stats" aria-live="polite"><span id="score">Score: 0</span><span id="time">Time: 30s</span></div>
+    <div id="arena" aria-label="Target practice arena"><button id="target" aria-label="Hit the target" hidden></button><p id="message">Ready to play?</p></div>
+    <button id="start">Start game</button>
+  </main>
+</body>
+</html>
