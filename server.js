@@ -6,6 +6,8 @@ const crypto = require('node:crypto');
 const { Combat } = require('./lib/combat');
 const World = require('./shared/world');
 const {Objective}=require('./lib/objective');
+const {Heroes}=require('./lib/heroes');
+const HeroRules=require('./shared/heroes');
 function createGameServer() {
   const app=express(), server=http.createServer(app), io=new Server(server,{maxHttpBufferSize:4096});
   const rooms=new Map(), combats=new Map(),matches=new Map();
@@ -34,8 +36,8 @@ function createGameServer() {
       leave(socket);
       const used=new Set([...room.values()].map(p=>p.spawnIndex));
       let spawnIndex=team==='red'?1:0;while(used.has(spawnIndex))spawnIndex+=2;
-      const player={id:socket.id,name:(typeof data.name==='string'?data.name:'Player').trim().slice(0,20)||'Player',...World.spawn(spawnIndex),team,input:{},lastInput:0,life:0};
-      if(!combats.has(code))combats.set(code,new Combat((event,data)=>io.to(code).emit(event,data)));
+      const player={id:socket.id,name:(typeof data.name==='string'?data.name:'Player').trim().slice(0,20)||'Player',...World.spawn(spawnIndex),hero:HeroRules.has(data.hero)?data.hero:'knight',team,input:{},lastInput:0,life:0};
+      if(!combats.has(code)){const combat=new Combat((event,data)=>io.to(code).emit(event,data));combat.heroes=new Heroes(combat);combats.set(code,combat);}
       combats.get(code).init(player,spawnIndex,Date.now());
       matches.set(code,match);
       room.set(socket.id,player);rooms.set(code,room);socket.data.room=code;socket.join(code);
@@ -52,12 +54,20 @@ function createGameServer() {
     });
     socket.on('equip',key=>{const p=rooms.get(socket.data.room)?.get(socket.id);if(p)combats.get(socket.data.room).select(p,key);});
     socket.on('action',data=>{const room=rooms.get(socket.data.room),p=room?.get(socket.id);if(p&&data&&typeof data==='object')combats.get(socket.data.room).attack(room,p,data.kind,Date.now(),data.time);});
+    socket.on('ability',(key,ack=()=>{})=>{
+      if(typeof ack!=='function')return;const code=socket.data.room,room=rooms.get(code),p=room?.get(socket.id);
+      if(!p)return ack({error:'Join a room first.'});ack(combats.get(code).heroes.use(room,p,key,Date.now()));
+    });
+    socket.on('hero-select',(hero,ack=()=>{})=>{
+      if(typeof ack!=='function')return;const p=rooms.get(socket.data.room)?.get(socket.id);
+      if(!p||!HeroRules.has(hero))return ack({error:'Select one of the eight heroes.'});p.pendingHero=hero;ack({ok:true});
+    });
     socket.on('restart',(_data,ack=()=>{})=>{
       if(typeof ack!=='function')return;
       const code=socket.data.room,room=rooms.get(code),match=matches.get(code),combat=combats.get(code);
       if(!room||!match||match.host!==socket.id)return ack({error:'Only the current room host can start a rematch.'});
       if(!match.winner)return ack({error:'This match is still running.'});
-      match.reset();combat.matchOver=false;combat.projectiles=[];combat.history=[];
+      match.reset();combat.matchOver=false;combat.projectiles=[];combat.history=[];combat.heroes.clear();
       for(const p of room.values()){
         Object.assign(p,World.spawn(p.spawnIndex),{input:{},lastInput:0,life:p.life+1});combat.init(p,p.spawnIndex,Date.now());
       }
@@ -66,12 +76,14 @@ function createGameServer() {
     socket.on('leave',()=>leave(socket));
     socket.on('disconnect',()=>leave(socket));
   });
-  function pack(p) {return {id:p.id,name:p.name,team:p.team,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,vy:p.vy,grounded:p.grounded,hp:p.hp,armor:p.armor,weapon:p.weapon,blocking:p.blocking,shieldUntil:p.shieldUntil,nextAttack:p.nextAttack,drawAt:p.drawAt,attackAt:p.attackAt,attackSerial:p.attackSerial,deadUntil:p.deadUntil,protectedUntil:p.protectedUntil,kills:p.kills,deaths:p.deaths,kx:p.kx,kz:p.kz,life:p.life};}
+  function pack(p) {return {id:p.id,name:p.name,team:p.team,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,vy:p.vy,grounded:p.grounded,hp:p.hp,maxHp:p.maxHp,hero:p.hero,pendingHero:p.pendingHero,canShield:p.canShield,abilityReady:p.abilityReady,ult:p.ult,status:p.status,speedScale:p.speedScale,attackSpeed:p.attackSpeed,motionSerial:p.motionSerial,armor:p.armor,weapon:p.weapon,blocking:p.blocking,shieldUntil:p.shieldUntil,nextAttack:p.nextAttack,drawAt:p.drawAt,attackAt:p.attackAt,attackSerial:p.attackSerial,deadUntil:p.deadUntil,protectedUntil:p.protectedUntil,kills:p.kills,deaths:p.deaths,kx:p.kx,kz:p.kz,life:p.life};}
   let ticks=0;
   const timer=setInterval(()=> {
     for(const [code,room] of rooms) {
-      const now=Date.now(),combat=combats.get(code),match=matches.get(code);combat.tick(room,now,1/60);match.tick(room,1/60);combat.matchOver=!!match.winner;
-      if(ticks%3===0) io.to(code).emit('state',{serverTime:now,players:[...room.values()].map(pack),projectiles:combat.snapshot(now),match:match.snapshot()});
+      const now=Date.now(),combat=combats.get(code),match=matches.get(code);combat.tick(room,now,1/60);match.tick(room,1/60);
+      if(!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.hp>0&&p.y>=.19&&p.y<=.65&&p.x*p.x+p.z*p.z<=16)combat.heroes.charge(p,3/60,now);
+      combat.matchOver=!!match.winner;
+      if(ticks%3===0) io.to(code).emit('state',{serverTime:now,players:[...room.values()].map(pack),projectiles:combat.snapshot(now),effects:combat.heroes.snapshot(),match:match.snapshot()});
     }
     ticks++;
   },1000/60);

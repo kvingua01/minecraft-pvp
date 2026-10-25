@@ -4,10 +4,12 @@
     axe:{name:'Axe',damage:32,cooldown:950,range:3.1},
     mace:{name:'Mace',damage:28,cooldown:1150,range:3.1},
     bow:{name:'Bow',damage:32,cooldown:400,charge:1000},
-    crossbow:{name:'Crossbow',damage:38,cooldown:1800}
+    crossbow:{name:'Crossbow',damage:38,cooldown:1800},
+    launcher:{name:'Potion Launcher',damage:16,cooldown:750},
+    staff:{name:'Frost Staff',damage:16,cooldown:650}
   };
   const equipment={helmet:.04,chestplate:.08,leggings:.05,boots:.03};
-  const slots=Object.keys(weapons), maxHealth=100,armor=Object.values(equipment).reduce((a,b)=>a+b,0),respawnDelay=4000;
+  const slots=['sword','axe','mace','bow','crossbow'], maxHealth=100,armor=Object.values(equipment).reduce((a,b)=>a+b,0),respawnDelay=4000;
   function direction(yaw,pitch=0){return {x:-Math.sin(yaw)*Math.cos(pitch),y:Math.sin(pitch),z:-Math.cos(yaw)*Math.cos(pitch)};}
   // Slab intersection returns the distance along a normalized ray, including starting inside.
   function rayBox(origin,dir,min,max,limit=Infinity){

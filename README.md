@@ -1,4 +1,4 @@
-# Blockward — Phase 3
+# Blockward — Phase 4
 
 An original first-person multiplayer voxel arena, built with Three.js, Express,
 and Socket.io. The original click-target game remains available at `/practice/`.
@@ -27,6 +27,7 @@ bots: at least one real player on each team is required to advance the match.
 | Left click | Melee attack or fire crossbow |
 | Hold and release left click | Draw and fire bow |
 | Hold right click | Raise offhand shield with a melee weapon |
+| Q / E / R | Class abilities / earned ultimate |
 | Tab / Escape | Player scores / unlock mouse and pause your input |
 
 Walk out of the colored spawn sanctuary to fight. Spawn sanctuaries protect
@@ -63,10 +64,11 @@ player eliminations by team. There are no fake participants or simulated scores.
 
 ## Combat rules
 
-All players currently share a 100-health training loadout with four armor pieces:
-helmet (4%), chestplate (8%), leggings (5%), boots (3%), totaling 20% damage
-reduction. Armor does not reduce fall damage. Class-specific equipment arrives
-with the hero phase. Friendly fire is disabled for both melee and projectiles.
+Heroes have different maximum health, armor, movement speed, primary weapons,
+and shield availability. Armor reduces direct and area damage but not fall damage.
+All classes retain backup weapons in their five-slot hotbar; slot 1 is always the
+class primary. Only Knight, Paladin, and Mace Warrior can raise shields. Friendly
+fire is disabled, including abilities; support effects heal or protect allies.
 
 | Weapon | Base damage before armor | Cooldown | Mechanic |
 | --- | --- | --- | --- |
@@ -95,6 +97,59 @@ Client damage and target claims are ignored. Switching weapons cannot reset atta
 cooldowns. Melee uses authoritative pose history with at most 150ms of rewind;
 static cover is checked on the server. Projectiles use current server positions.
 
+## Heroes and abilities
+
+Choose a hero before joining. To queue another class, press Escape and change
+**Next respawn hero**. The change applies on your next respawn or rematch, never
+restoring health in the middle of a fight. Maximum health and the health bar adjust
+to the chosen class. All balance values are provisional for real-player testing.
+
+| Hero | HP / armor | Primary | Q | E | R ultimate |
+| --- | --- | --- | --- | --- | --- |
+| Knight | 180 / 35% | Sword + shield | Shield Charge | Battle Cry | Fortress |
+| Berserker | 130 / 20% | Axe | Rage | Leap | Rampage |
+| Assassin | 95 / 10% | Dual swords | Directional Dash | Vanish | Shadow Strike |
+| Archer | 110 / 12% | Bow; crossbow backup | Grappling Arrow | Explosive Arrow | Arrow Storm |
+| Paladin | 160 / 30% | Sword + shield | Healing Aura | Holy Shield | Divine Protection |
+| Alchemist | 120 / 20% | Potion launcher | Healing Splash | Poison Cloud | Mega Potion |
+| Mace Warrior | 160 / 30% | Mace + shield | Rocket Jump | Ground Slam | Meteor Strike |
+| Frost Mage | 105 / 12% | Frost staff; sword backup | Ice Bolt | Ice Wall | Blizzard |
+
+The class menu describes each ability. The HUD shows Q/E cooldowns, active status
+effects, and ultimate charge. Mouse aim selects a target; ground zones project to
+the aimed surface (up to 16 units). Grappling Arrow needs a block within 22 units.
+Walls require clear space three units ahead and cannot trap players or intersect
+terrain. Temporary walls block movement and shots on both server and client, then
+expire. Poison, storm and healing zones check distance and line of sight. Area
+damage bypasses directional shields; direct ice bolts can be blocked.
+
+Ultimates start at 0% and require 100%. Actual enemy damage and actual healing of
+other teammates grant 0.15% charge per health point. Standing on the live objective
+grants 3% per second, including contesting it. Empty-team matches, overhealing,
+self-healing, and ultimate damage do not create free charge. Charge is capped at
+100%, spent on successful use, reset on death/respawn, and does not accumulate for
+eight seconds after activating an ultimate. Invalid casts keep their charge.
+
+Battle Cry gives nearby allies 25% resistance for 5s. Holy Shield protects an aimed
+ally (or yourself if none is aimed at) for 4s; Divine Protection buffs nearby allies
+for 5s. Healing Aura follows its caster. Assassin movement remains collision-safe;
+Vanish renders the actual remote avatar at 15% opacity and breaks on attacking or
+receiving damage. Rage speeds up attacks; Rampage boosts damage, speed and knockback.
+Mace launch abilities prevent their landing damage; slam effects trigger on landing.
+Alchemist's primary projectiles heal allies and damage enemies in a small splash.
+Frost's basic staff bolts briefly slow, with Q applying a longer slow.
+
+```sh
+npm run test:heroes-browser
+```
+
+This second two-browser test checks class descriptions, Frost abilities and solid
+ice walls, charge validation, Blizzard, queued respawn class changes, real remote
+invisibility, Assassin dashes, healing feedback, and Mace launch/slam landings.
+Deterministic server-side fixtures shorten respawns and supply a full ultimate for
+the ultimate UI check. Production clients cannot set health, class stats, cooldowns,
+or charge; unit/network tests independently verify how charge is earned.
+
 ## Foundation and performance
 
 The symmetric arena includes keeps, gate tunnels, cover, stairs, elevated terraces,
@@ -105,8 +160,9 @@ snapshots at 20 Hz. Clients predict local movement and interpolate remote avatar
 Rooms support up to ten players and are removed when empty. All room state lives
 in memory; restarting the server ends active rooms.
 
-Not yet implemented: hero classes, class abilities, ultimates, and potions.
-These are scheduled for subsequent phases; all players share the training loadout.
+Not yet implemented: consumable potion inventory, potion charges, additional
+sound design, and final deployment/performance polish. Alchemist abilities and
+the potion launcher work now; these are separate from the Phase 5 potion items.
 The initial combat values are provisional and need real-player balance testing.
 
 ## Validation
