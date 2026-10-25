@@ -20,8 +20,8 @@ const assert=require('node:assert/strict');
  await a.keyboard.press('2');await a.waitForFunction(()=>window.arenaDiagnostics().weapon==='axe');await a.keyboard.press('3');await a.waitForFunction(()=>window.arenaDiagnostics().weapon==='mace');await a.keyboard.press('4');await a.waitForFunction(()=>window.arenaDiagnostics().weapon==='bow');
  place();await a.waitForTimeout(400);await a.mouse.down();await a.waitForTimeout(1100);assert.match(await a.locator('#weapon-status').textContent(),/DRAW/);await a.mouse.up();await b.waitForFunction(()=>window.arenaDiagnostics().hp<84);console.log('Bow draws, releases a server projectile and damages the other browser');
  await a.keyboard.press('5');await a.waitForFunction(()=>window.arenaDiagnostics().weapon==='crossbow');place();await a.waitForTimeout(250);await a.mouse.down();await a.mouse.up();await a.waitForFunction(()=>document.querySelector('#weapon-status').textContent.startsWith('RELOADING'));assert.match(await a.locator('#weapon-status').textContent(),/RELOADING/);console.log('Crossbow shows reload cooldown');
- await a.keyboard.press('1');await a.waitForFunction(()=>window.arenaDiagnostics().weapon==='sword');place();pb.hp=16;await a.waitForTimeout(300);await a.mouse.down();await a.mouse.up();await b.waitForFunction(()=>window.arenaDiagnostics().hp===0);assert.equal(await b.locator('#death').isVisible(),true);await a.waitForFunction(()=>window.arenaDiagnostics().kills===1);assert.ok((await a.locator('#kill-feed').textContent()).includes('Bravo'));console.log('Elimination, kill feed, scores, and first-person death countdown passed');
- await b.waitForFunction(()=>window.arenaDiagnostics().hp===100,{},{timeout:8000});assert.equal(await b.locator('#death').isVisible(),false);console.log('Automatic 4-second respawn passed');
+ await a.keyboard.press('1');await a.waitForFunction(()=>window.arenaDiagnostics().weapon==='sword');place();pb.hp=16;await a.waitForTimeout(300);await a.mouse.down();await a.mouse.up();await b.waitForFunction(()=>window.arenaDiagnostics().hp===0);await b.locator('#death').waitFor({state:'visible'});await a.waitForFunction(()=>window.arenaDiagnostics().kills===1);assert.ok((await a.locator('#kill-feed').textContent()).includes('Bravo'));console.log('Elimination, kill feed, scores, and first-person death countdown passed');
+ await b.waitForFunction(()=>window.arenaDiagnostics().hp===100,{},{timeout:8000});await b.locator('#death').waitFor({state:'hidden'});console.log('Automatic 4-second respawn passed');
  await a.screenshot({path:'/tmp/blockward-phase2.png'});
  await a.keyboard.press('Escape');await a.waitForFunction(()=>!window.arenaDiagnostics().locked);await a.click('#resume');await a.waitForFunction(()=>window.arenaDiagnostics().locked);console.log('Escape/resume regression passed');
  // Cancel a draw when pointer lock is lost; resuming must not fire an old arrow.
@@ -31,6 +31,16 @@ const assert=require('node:assert/strict');
  await a.keyboard.down('KeyW');await a.waitForFunction(origin=>{const p=window.arenaDiagnostics().position;return Math.hypot(p.x-origin.x,p.z-origin.z)>1.5;},before);await a.keyboard.up('KeyW');
  const after=(await a.evaluate(()=>window.arenaDiagnostics())).position;assert.ok(Math.hypot(pa.x-before.x,pa.z-before.z)>.5);
  await a.keyboard.down('Space');await a.waitForFunction(y=>window.arenaDiagnostics().position.y>y+.3,after.y);await a.keyboard.up('Space');await a.waitForFunction(y=>window.arenaDiagnostics().position.y<y+.1,after.y);console.log('Movement, jump, and gravity regression passed');
+ // Hold against a real map wall while snapshots and prediction keep running.
+ Object.assign(pa,{x:31.18,y:0,z:10,vy:0,kx:0,kz:0,fallPeak:0});
+ await a.waitForFunction(()=>Math.abs(window.arenaDiagnostics().position.x-31.18)<.001);
+ await a.evaluate(()=>{const d=window.arenaDiagnostics();document.dispatchEvent(new MouseEvent('mousemove',{movementX:d.yaw/.002,movementY:d.pitch/.002}));});
+ await a.keyboard.down('KeyD');
+ async function sampleWall(frames){return a.evaluate(count=>new Promise(resolve=>{const samples=[];function sample(){samples.push(window.arenaDiagnostics().position);if(samples.length>=count)resolve(samples);else requestAnimationFrame(sample);}requestAnimationFrame(sample);}),frames);}
+ const contact=await sampleWall(45);
+ await a.keyboard.down('KeyW');const sliding=await sampleWall(60);await a.keyboard.up('KeyD');await a.keyboard.up('KeyW');
+ for(const p of [...contact,...sliding]){assert.ok(Math.abs(p.x-31.18)<.001,'wall contact must stay steady');assert.ok(Math.abs(p.y)<.001,'camera must stay above the floor');}
+ assert.ok(sliding.at(-1).z<sliding[0].z-.5,'must still slide along the wall');console.log('Sustained wall contact and diagonal sliding stay stable across snapshots');
  await a.keyboard.down('Tab');assert.equal(await a.locator('#roster').isVisible(),true);assert.match(await a.locator('#roster').textContent(),/1 K/);await a.keyboard.up('Tab');
  await a.keyboard.press('Escape');await a.click('#leave');await b.waitForFunction(()=>window.arenaDiagnostics().remotes.length===0);console.log('Leave removes remote combat avatar');
  await a.goto(url+'/practice/');await a.click('#start');await a.click('#target');assert.equal(await a.locator('#score').textContent(),'Score: 1');console.log('Original practice game regression passed');

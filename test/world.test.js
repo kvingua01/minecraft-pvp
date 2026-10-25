@@ -18,3 +18,27 @@ test('walls stop movement and roofs stop upward motion',()=>{
 test('map and spawns remain inside bounds with no spawn collision',()=>{
  for(let i=0;i<10;i++){const p=W.spawn(i);simulate(p,{},60);assert.ok(Math.abs(p.x)<=31);assert.ok(p.y>=0&&p.y<1);}
 });
+test('network corrections cannot push the player into a floor or wall',()=>{
+ const p={...W.spawn(),x:31.18,z:10,y:0};
+ for(let i=0;i<240;i++){
+  // Delayed snapshots can point slightly below the floor or beyond a wall.
+  W.move(p,{x:.01,y:-.005,z:0});
+  W.step(p,{right:true,yaw:0},1/60);
+  assert.ok(Math.abs(p.x-31.18)<1e-7);
+  assert.equal(p.y,0);assert.equal(p.z,10);
+ }
+});
+test('diagonal pressure slides along a wall without jitter or sideways teleportation',()=>{
+ const p={...W.spawn(),x:31.18,y:0,z:10};
+ for(let i=0;i<120;i++){
+  W.step(p,{right:true,forward:true,yaw:0},1/60);
+  W.move(p,{x:.02,y:-.001,z:.001});
+  assert.ok(Math.abs(p.x-31.18)<1e-7);assert.equal(p.y,0);
+ }
+ assert.ok(p.z<4);assert.ok(p.z>0);
+});
+test('sweeps stop at the nearest wall even for a large displacement',()=>{
+ const p={...W.spawn(),x:0,y:0,z:25};
+ W.move(p,{x:100,y:0,z:0});assert.ok(Math.abs(p.x-31.18)<1e-7);
+ W.move(p,{x:0,y:-100,z:0});assert.equal(p.y,0);
+});

@@ -32,10 +32,32 @@
   for(const z of [-32,32]) box(0,2,z,65,4,1,0x687e76);
   for(const x of [-32,32]) box(x,2,0,1,4,65,0x687e76);
   const radius=.32, height=1.8;
-  function overlaps(p,b) {
-    return p.x+radius>b.x-b.w/2 && p.x-radius<b.x+b.w/2 &&
-      p.y+height>b.y-b.h/2+.00001 && p.y<b.y+b.h/2-.00001 &&
-      p.z+radius>b.z-b.d/2 && p.z-radius<b.z+b.d/2;
+  const epsilon=1e-7;
+  function bounds(p,axis) {
+    return axis==='y'?[p.y,p.y+height]:[p[axis]-radius,p[axis]+radius];
+  }
+  // Sweep each axis against faces, keeping the other axes free to slide.
+  // Never resolve a floor overlap by teleporting sideways to the floor's edge.
+  function move(p,delta) {
+    const moved={x:0,y:0,z:0},size={x:'w',y:'h',z:'d'};
+    for(const axis of ['x','z','y']) {
+      let distance=delta[axis]||0;
+      if(!distance)continue;
+      const [low,high]=bounds(p,axis),other=['x','y','z'].filter(a=>a!==axis);
+      for(const b of boxes) {
+        if(!b.solid)continue;
+        if(!other.every(a=>{const [lo,hi]=bounds(p,a);return hi>b[a]-b[size[a]]/2+epsilon&&lo<b[a]+b[size[a]]/2-epsilon;}))continue;
+        if(distance>0) {
+          const gap=b[axis]-b[size[axis]]/2-high;
+          if(gap>=-epsilon)distance=Math.min(distance,Math.max(0,gap));
+        }else {
+          const gap=b[axis]+b[size[axis]]/2-low;
+          if(gap<=epsilon)distance=Math.max(distance,Math.min(0,gap));
+        }
+      }
+      p[axis]+=distance;moved[axis]=distance;
+    }
+    return moved;
   }
   function spawn(index=0) { return {x:index%2?-25:25,y:.61,z:(Math.floor(index/2)%5-2)*1.4,vy:0,yaw:index%2?-Math.PI/2:Math.PI/2,pitch:0,grounded:false}; }
   function step(p,input,dt) {
@@ -48,16 +70,14 @@
     p.kx=(p.kx||0)*Math.exp(-8*dt);p.kz=(p.kz||0)*Math.exp(-8*dt);
     if(input.jump && p.grounded) {p.vy=8;p.grounded=false;}
     p.vy=Math.max(-30,p.vy-23*dt);
-    for(const [axis,delta] of [['x',dx],['z',dz],['y',p.vy*dt]]) {
-      p[axis]+=delta;
-      for(const b of boxes) if(b.solid && overlaps(p,b)) {
-        p[axis]=delta>0?b[axis]-b[{x:'w',y:'h',z:'d'}[axis]]/2-(axis==='y'?height:radius):b[axis]+b[{x:'w',y:'h',z:'d'}[axis]]/2+(axis==='y'?0:radius);
-        if(axis==='y') { p.grounded=delta<0;p.vy=0; }
-      }
-    }
+    const dy=p.vy*dt,moved=move(p,{x:dx,y:dy,z:dz});
+    p.grounded=dy<0&&Math.abs(moved.y-dy)>epsilon;
+    if(Math.abs(moved.y-dy)>epsilon)p.vy=0;
+    if(Math.abs(moved.x-dx)>epsilon)p.kx=0;
+    if(Math.abs(moved.z-dz)>epsilon)p.kz=0;
     if(p.y < -20) Object.assign(p,spawn());
     return p;
   }
-  const api={boxes,spawn,step,radius,height};
+  const api={boxes,spawn,step,move,radius,height};
   if(typeof module!=='undefined') module.exports=api; else root.VoxelWorld=api;
 })(globalThis);

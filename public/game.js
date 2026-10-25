@@ -87,7 +87,12 @@ function frame(now){
  requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.1);last=now;
  if(self){
   accumulator+=dt;const input=controls();while(accumulator>=1/60){if(self.hp>0)World.step(self,self.blocking?{...input,sprint:false}:input,1/60);accumulator-=1/60;}
-  const factor=1-Math.exp(-8*dt);self.x+=correction.x*factor;self.y+=correction.y*factor;self.z+=correction.z*factor;correction.multiplyScalar(1-factor);
+  const factor=1-Math.exp(-8*dt);
+  // Network smoothing must obey the same collisions as normal movement.
+  const adjustment={x:correction.x*factor,y:correction.y*factor,z:correction.z*factor};
+  const moved=World.move(self,adjustment);
+  correction.multiplyScalar(1-factor);
+  for(const axis of ['x','y','z'])if(Math.abs(moved[axis]-adjustment[axis])>1e-7)correction[axis]=0;
   if(now-sendTime>1000/30){socket.emit('input',input);sendTime=now;}
   camera.position.set(self.x,self.y+1.62,self.z);camera.rotation.set(pitch,yaw,0,'YXZ');
   const moving=input.forward||input.back||input.left||input.right;walkTime+=dt*(input.sprint?13:9);hand.position.y=-.36+(moving&&self.grounded?Math.sin(walkTime)*.025:0);
