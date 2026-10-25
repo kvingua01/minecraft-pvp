@@ -10,27 +10,30 @@
 <body>
 <canvas id="world" aria-label="First-person multiplayer voxel arena"></canvas>
 <div id="hud" hidden>
-  <header><strong>BLOCKWARD <small>COMBAT / 02</small></strong><span id="room-label"></span></header>
+  <header><strong>BLOCKWARD <small>CONTROL / 03</small></strong><span id="room-label"></span></header>
   <div id="crosshair">+</div><div id="hit-marker">×</div><div id="damage"></div><div id="combat-note"></div><div id="kill-feed"></div>
+  <div id="objective-hud" hidden><div class="team-scores"><div class="red">RED <strong id="red-score">0%</strong><progress id="red-bar" max="100" value="0"></progress></div><div class="point-title"><b id="point-status">CAPTURE THE POINT</b><p id="capture-status">NEUTRAL</p></div><div class="blue">BLUE <strong id="blue-score">0%</strong><progress id="blue-bar" max="100" value="0"></progress></div></div><progress id="capture-bar" max="100" value="0"></progress><p id="my-team"></p></div>
   <div id="roster"></div>
   <footer><div><b id="health-label">100 / 100</b><progress id="health" max="100" value="100"></progress><div id="armor-label">ARMOR 20% · 4 PIECES</div><p>WASD · SPACE jump · SHIFT sprint</p></div><div class="combat-hud"><div id="weapon-status">READY</div><progress id="attack-ready" max="1" value="1"></progress><div class="hotbar"><span data-weapon="sword">1 Sword</span><span data-weapon="axe">2 Axe</span><span data-weapon="mace">3 Mace</span><span data-weapon="bow">4 Bow</span><span data-weapon="crossbow">5 Crossbow</span></div><div id="shield-status"></div></div><div id="connection">Connected</div></footer>
 </div>
 <section id="menu" class="overlay">
  <div class="panel">
-  <p class="eyebrow">A NEW FRONTIER · MULTIPLAYER COMBAT</p><h1>BLOCK<span>WARD</span></h1>
+  <p class="eyebrow">A NEW FRONTIER · CAPTURE THE POINT</p><h1>BLOCK<span>WARD</span></h1>
   <p class="intro">Meet in the courtyard. Take the high ground.<br>Your arena starts here.</p>
   <form id="join-form">
    <label>CALLSIGN<input id="name" maxlength="20" placeholder="Explorer" autocomplete="nickname"></label>
+   <label class="team-choice">YOUR TEAM<select id="team"><option value="auto">Auto balance</option><option value="red">Red team</option><option value="blue">Blue team</option></select></label>
    <button id="create" type="button">Create arena <span>↗</span></button>
    <div class="join-row"><input id="code" placeholder="ROOM CODE" maxlength="6" aria-label="Room code"><button type="submit">Join friend</button></div>
   </form>
   <p id="error" role="alert"></p>
   <div class="settings"><label>Look sensitivity <input id="sensitivity" type="range" min="1" max="10" value="4"></label><label>Graphics <select id="quality"><option value="1">Balanced</option><option value="0.75">Performance</option><option value="1.5">High</option></select></label></div>
-  <p class="fine">Desktop + mouse required. First-person only.<br>Phase 2: duel real players. Protected spawns · 4s respawn.</p>
+  <p class="fine">Desktop + mouse required. First-person only.<br>Phase 3: Red vs Blue · capture the center · first to 100% wins.</p>
   <a href="/practice/">Open the original target practice game →</a>
  </div>
 </section>
 <section id="pause" class="overlay" hidden><div class="panel compact"><p class="eyebrow">TAKE A BREATHER</p><h2>Arena paused locally</h2><p>Other players can still move.</p><button id="resume">Click to resume</button><button id="leave" class="secondary">Leave arena</button><p id="pause-error" role="alert"></p><p class="fine">WASD · Mouse look · Space jump · Shift sprint<br>LMB: attack / hold bow · RMB: shield · 1–5: weapons<br>Tab: scores · Esc: release mouse</p></div></section>
 <section id="death" hidden><p>YOU WERE ELIMINATED</p><h2>Back in <span id="respawn-time">4s</span></h2><p>Your view stays first-person. Prepare for your next duel.</p></section>
+<section id="results" class="overlay" hidden><div class="panel compact"><p class="eyebrow">MATCH COMPLETE</p><h2 id="result-title">VICTORY</h2><p id="result-score"></p><div id="result-players"></div><p>Hold the courtyard. Win together.</p><button id="restart">Start rematch</button><p id="host-message">Waiting for the room host to start a rematch.</p><button id="results-leave" class="secondary">Leave arena</button><p id="results-error" role="alert"></p></div></section>
 <div id="loading">Preparing arena…</div>
 </body></html>

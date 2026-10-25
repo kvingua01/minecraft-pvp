@@ -1,4 +1,4 @@
-# Blockward — Phase 2
+# Blockward — Phase 3
 
 An original first-person multiplayer voxel arena, built with Three.js, Express,
 and Socket.io. The original click-target game remains available at `/practice/`.
@@ -15,7 +15,8 @@ npm start
 
 Open the server on port 3000 in a desktop browser. Create an arena and share its
 six-character room code with another player. Click **Resume** if mouse capture
-requires a second click. There are no bots: two real players are needed to duel.
+requires a second click. Select Red, Blue, or Auto balance before creating or joining a room. There are no
+bots: at least one real player on each team is required to advance the match.
 
 | Control | Action |
 | --- | --- |
@@ -32,12 +33,40 @@ Walk out of the colored spawn sanctuary to fight. Spawn sanctuaries protect
 players and prevent attacks from inside. There is also a two-second grace period
 after spawning. Pause is local: other players can still attack you outside spawn.
 
+## Capture the point
+
+Each room supports up to five Red players and five Blue players. Auto balance
+chooses the smaller team; explicit team selection is honored unless that team is
+full. Red spawns in the western keep, Blue in the eastern keep. Enemies cannot
+enter your spawn sanctuary. Return to your own sanctuary for protection, but you
+cannot attack from inside it.
+
+The center courtyard's raised square is the objective. Jump onto the platform
+and stay within its marked area. A living player standing on the point advances
+capture by 20% per second, reaching full ownership in five seconds. Airborne
+players above the objective do not capture it. With both teams present the point
+is contested: capture and score freeze. An enemy must neutralize existing capture
+progress before taking full ownership. Partial capture persists when abandoned.
+
+The owner earns 2% score per second, including while the point is empty. An enemy
+standing on the point pauses that income while recapturing it. Scores do not fall
+when ownership changes. The first team to 100% wins; movement and combat stop,
+and everyone sees victory or defeat plus real scores and eliminations. The host
+can start a rematch, resetting health, spawns, point ownership, score, projectiles,
+and eliminations. The host transfers automatically if the previous host leaves.
+If either team has no connected players, scoring and capturing pause until both
+teams have players again. Dead players still count as connected team members.
+
+The HUD shows team scores, capture progress, ownership, contested/waiting state,
+and your team. The center ring and flag change color with ownership. Tab groups
+player eliminations by team. There are no fake participants or simulated scores.
+
 ## Combat rules
 
 All players currently share a 100-health training loadout with four armor pieces:
 helmet (4%), chestplate (8%), leggings (5%), boots (3%), totaling 20% damage
 reduction. Armor does not reduce fall damage. Class-specific equipment arrives
-with the hero phase. Combat is free-for-all until teams arrive in Phase 3.
+with the hero phase. Friendly fire is disabled for both melee and projectiles.
 
 | Weapon | Base damage before armor | Cooldown | Mechanic |
 | --- | --- | --- | --- |
@@ -76,8 +105,8 @@ snapshots at 20 Hz. Clients predict local movement and interpolate remote avatar
 Rooms support up to ten players and are removed when empty. All room state lives
 in memory; restarting the server ends active rooms.
 
-Not yet implemented: teams, capture objectives, team scoring, hero classes,
-abilities, potions, and match results. The center platform is scenery until Phase 3.
+Not yet implemented: hero classes, class abilities, ultimates, and potions.
+These are scheduled for subsequent phases; all players share the training loadout.
 The initial combat values are provisional and need real-player balance testing.
 
 ## Validation
@@ -85,7 +114,9 @@ The initial combat values are provisional and need real-player balance testing.
 `npm test` runs physics, combat, and real Socket.io integration tests, including
 cooldowns, armor, shields, axe shield disable, blocked line of sight, ranged
 collisions, draw/reload timing, falling/critical damage, knockback, spawn safety,
-room isolation, death, respawning, and rejection of client damage claims.
+room isolation, death, respawning, and rejection of client damage claims. Match
+tests also cover capture/contest/recapture, full scoring to 100%, friendly fire,
+team caps, enemy spawn restrictions, host transfer, and rematch authorization.
 
 For an automated two-browser combat check:
 

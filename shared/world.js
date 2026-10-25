@@ -32,6 +32,8 @@
   for(const z of [-32,32]) box(0,2,z,65,4,1,0x687e76);
   for(const x of [-32,32]) box(x,2,0,1,4,65,0x687e76);
   const radius=.32, height=1.8;
+  // Enemy spawn rooms are solid to players; allies can leave and return freely.
+  const enemySpawns={red:{x:27,y:32,z:0,w:10,h:64,d:12,solid:true},blue:{x:-27,y:32,z:0,w:10,h:64,d:12,solid:true}};
   const epsilon=1e-7;
   function bounds(p,axis) {
     return axis==='y'?[p.y,p.y+height]:[p[axis]-radius,p[axis]+radius];
@@ -40,11 +42,12 @@
   // Never resolve a floor overlap by teleporting sideways to the floor's edge.
   function move(p,delta) {
     const moved={x:0,y:0,z:0},size={x:'w',y:'h',z:'d'};
+    const solids=enemySpawns[p.team]?[...boxes,enemySpawns[p.team]]:boxes;
     for(const axis of ['x','z','y']) {
       let distance=delta[axis]||0;
       if(!distance)continue;
       const [low,high]=bounds(p,axis),other=['x','y','z'].filter(a=>a!==axis);
-      for(const b of boxes) {
+      for(const b of solids) {
         if(!b.solid)continue;
         if(!other.every(a=>{const [lo,hi]=bounds(p,a);return hi>b[a]-b[size[a]]/2+epsilon&&lo<b[a]+b[size[a]]/2-epsilon;}))continue;
         if(distance>0) {
