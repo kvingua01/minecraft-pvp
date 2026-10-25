@@ -1,4 +1,5 @@
 import * as THREE from '/vendor/three.module.js';
+import {createCombatView} from '/combat-view.js';
 const $=s=>document.querySelector(s), World=window.VoxelWorld;
 const menu=$('#menu'), pause=$('#pause'), canvas=$('#world'), loading=$('#loading');
 let renderer;
@@ -17,13 +18,12 @@ for(const color of new Set(World.boxes.map(b=>b.color))) {
  blocks.forEach((b,i)=>{dummy.position.set(b.x,b.y,b.z);dummy.scale.set(b.w,b.h,b.d);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);});scene.add(mesh);
 }
 function cube(parent,w,h,d,color,x,y,z) {const m=new THREE.Mesh(geometry,material(color));m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
-// The local avatar is never rendered: only a camera-mounted hand and blade.
-const hand=new THREE.Group();camera.add(hand);hand.position.set(.4,-.36,-.65);hand.scale.setScalar(.65);
-cube(hand,.16,.34,.18,0xc8916e,0,-.12,0);cube(hand,.11,.23,.11,0x65523d,0,.12,-.02);cube(hand,.38,.055,.13,0xd6b66b,0,.24,-.02);cube(hand,.12,.66,.055,0xd8e2d7,0,.59,-.02);hand.rotation.z=-.22;
 const socket=io({autoConnect:false}), remotes=new Map(),keys=new Set();
 let self=null, ownId=null,roomCode='',yaw=0,pitch=0,locked=false,tab=false,accumulator=0,last=performance.now(),sendTime=0;
 let correction=new THREE.Vector3(),walkTime=0;
-function controls(){return {forward:locked&&keys.has('KeyW'),back:locked&&keys.has('KeyS'),left:locked&&keys.has('KeyA'),right:locked&&keys.has('KeyD'),jump:locked&&keys.has('Space'),sprint:locked&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch};}
+const combat=createCombatView({camera,scene,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked});
+const hand=combat.hand;
+function controls(){return {forward:locked&&self?.hp>0&&keys.has('KeyW'),back:locked&&self?.hp>0&&keys.has('KeyS'),left:locked&&self?.hp>0&&keys.has('KeyA'),right:locked&&self?.hp>0&&keys.has('KeyD'),jump:locked&&keys.has('Space'),sprint:locked&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:locked&&self?.hp>0&&combat.isBlocking()};}
 function setButtons(disabled){document.querySelectorAll('#join-form button').forEach(b=>b.disabled=disabled);}
 function join(create) {
  if(!create&&!$('#code').value.trim()) {$('#error').textContent='Enter your friend’s room code.';return;}
@@ -46,7 +46,7 @@ window.addEventListener('keydown',e=>{if(!self)return;if(e.code==='Escape'){docu
 window.addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='Tab'){tab=false;updateRoster();}});
 window.addEventListener('blur',()=>{keys.clear();tab=false;updateRoster();if(self)socket.emit('input',controls());});
 canvas.oncontextmenu=e=>e.preventDefault();
-function clearPlayers(){for(const remote of remotes.values())scene.remove(remote.group);remotes.clear();}
+function clearPlayers(){combat.clear();for(const remote of remotes.values())scene.remove(remote.group);remotes.clear();}
 $('#leave').onclick=()=>{socket.emit('leave');self=null;ownId=null;keys.clear();clearPlayers();document.exitPointerLock();pause.hidden=true;$('#hud').hidden=true;menu.hidden=false;$('#error').textContent='';};
 socket.on('disconnect',()=>{if(!self)return;self=null;clearPlayers();document.exitPointerLock();pause.hidden=true;$('#hud').hidden=true;menu.hidden=false;$('#error').textContent='Connection lost. Create an arena or rejoin with your room code.';setButtons(false);});
 socket.on('connect_error',()=>{$('#error').textContent='Server unavailable. Check your connection and retry.';setButtons(false);});
@@ -56,17 +56,24 @@ function makeAvatar(p) {
  cube(head,.12,.1,.025,0x253c3d,-.22,.05,-.51);cube(head,.12,.1,.025,0x253c3d,.22,.05,-.51);
  const legs=[cube(group,.23,.7,.26,0x344d52,-.17,.35,0),cube(group,.23,.7,.26,0x344d52,.17,.35,0)];
  cube(group,.17,.65,.2,color,-.44,1,0);cube(group,.17,.65,.2,color,.44,1,0);
- cube(group,.08,.65,.06,0xd8e2d7,.48,.9,-.3);
- group.position.set(p.x,p.y,p.z);group.rotation.y=p.yaw;scene.add(group);return {group,head,legs,target:p,stamp:performance.now(),previous:p};
+ const weapon=new THREE.Group();weapon.position.set(.48,.9,-.3);group.add(weapon);combat.buildWeapon(weapon,p.weapon,true);
+ const shield=new THREE.Group();shield.position.set(-.5,1,-.15);group.add(shield);cube(shield,.4,.6,.12,0x849ba5,0,0,0);
+ // Four original armor pieces: helmet, chestplate, leggings, and boots.
+ cube(group,.53,.18,.53,0x8da4ad,0,1.83,0);cube(group,.65,.4,.38,0x8da4ad,0,1.15,0);cube(group,.49,.18,.3,0x687e8b,0,.67,0);for(const x of [-.17,.17])cube(group,.26,.16,.32,0x687e8b,x,.08,0);
+ group.position.set(p.x,p.y,p.z);group.rotation.y=p.yaw;scene.add(group);return {group,head,legs,weapon,shield,weaponKey:p.weapon,target:p,stamp:performance.now(),previous:p};
 }
-function updateRoster(){const roster=$('#roster');roster.hidden=!tab;roster.textContent=`ARENA · ${remotes.size+1}/10\n${$('#name').value.trim()||'Explorer'} (you)\n`+[...remotes.values()].map(r=>r.target.name).join('\n');$('#connection').textContent=`${remotes.size+1} player${remotes.size?'s':''} connected`;}
+function updateRoster(){const roster=$('#roster');roster.hidden=!tab;roster.textContent=`ARENA · ${remotes.size+1}/10\n${$('#name').value.trim()||'Explorer'} (you) · ${self?.kills||0} K / ${self?.deaths||0} D\n`+[...remotes.values()].map(r=>`${r.target.name} · ${r.target.kills} K / ${r.target.deaths} D`).join('\n');$('#connection').textContent=`${remotes.size+1} player${remotes.size?'s':''} connected`;}
 socket.on('state',state=>{
- if(!self)return;const ids=new Set();
+ if(!self)return;combat.snapshot(state);const ids=new Set();
  for(const p of state.players){
   if(p.id===ownId){
    const error=Math.hypot(p.x-self.x,p.y-self.y,p.z-self.z);
    // Soft reconciliation of local prediction to authoritative positions.
-   if(error>3){Object.assign(self,p);correction.set(0,0,0);}else correction.set(p.x-self.x,p.y-self.y,p.z-self.z);
+   if(error>3||p.life!==self.life){Object.assign(self,p);correction.set(0,0,0);}else {
+    correction.set(p.x-self.x,p.y-self.y,p.z-self.z);
+    const {x,y,z,yaw:remoteYaw,pitch:remotePitch,vy,grounded,...stats}=p;Object.assign(self,stats);
+    if(Math.hypot(p.kx,p.kz)>.5)self.vy=Math.max(self.vy,vy);
+   }
    continue;
   }
   ids.add(p.id);let remote=remotes.get(p.id);
@@ -79,19 +86,29 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 function frame(now){
  requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.1);last=now;
  if(self){
-  accumulator+=dt;const input=controls();while(accumulator>=1/60){World.step(self,input,1/60);accumulator-=1/60;}
+  accumulator+=dt;const input=controls();while(accumulator>=1/60){if(self.hp>0)World.step(self,self.blocking?{...input,sprint:false}:input,1/60);accumulator-=1/60;}
   const factor=1-Math.exp(-8*dt);self.x+=correction.x*factor;self.y+=correction.y*factor;self.z+=correction.z*factor;correction.multiplyScalar(1-factor);
   if(now-sendTime>1000/30){socket.emit('input',input);sendTime=now;}
   camera.position.set(self.x,self.y+1.62,self.z);camera.rotation.set(pitch,yaw,0,'YXZ');
   const moving=input.forward||input.back||input.left||input.right;walkTime+=dt*(input.sprint?13:9);hand.position.y=-.36+(moving&&self.grounded?Math.sin(walkTime)*.025:0);
  }else {camera.position.set(13,8,24);camera.lookAt(0,1,0);}
  for(const r of remotes.values()) {
+  r.group.visible=r.target.hp>0;if(!r.group.visible)continue;
+  if(r.weaponKey!==r.target.weapon){r.weaponKey=r.target.weapon;combat.buildWeapon(r.weapon,r.weaponKey,true);}
+  r.weapon.position.y=.9;
+  const cooldown=window.CombatRules.weapons[r.weaponKey].cooldown,duration=r.weaponKey==='crossbow'?cooldown:Math.min(cooldown,800);
+  const phase=Math.min(1,Math.max(0,(combat.serverNow()-(r.target.attackAt||0))/duration));combat.animateWeapon(r.weapon,r.weaponKey,phase);
+  if(r.weaponKey==='bow'){
+   const charge=r.target.drawAt?Math.min(1,(combat.serverNow()-r.target.drawAt)/1000):0;
+   r.weapon.userData.string.position.z=charge*.2;r.weapon.userData.arrow.position.z=charge*.2;r.weapon.rotation.y=-charge*.2;
+  }
+  r.shield.visible=['sword','axe','mace'].includes(r.weaponKey);r.shield.position.y=r.target.blocking?1.35:.95;
   const t=Math.min(1,(now-r.stamp)/50);r.group.position.set(THREE.MathUtils.lerp(r.previous.x,r.target.x,t),THREE.MathUtils.lerp(r.previous.y,r.target.y,t),THREE.MathUtils.lerp(r.previous.z,r.target.z,t));
   const turn=Math.atan2(Math.sin(r.target.yaw-r.previous.yaw),Math.cos(r.target.yaw-r.previous.yaw));r.group.rotation.y=r.previous.yaw+turn*t;r.head.rotation.x=r.target.pitch;
   const moving=Math.hypot(r.target.x-r.previous.x,r.target.z-r.previous.z)>.02;r.legs[0].rotation.x=moving?Math.sin(now*.012)*.4:0;r.legs[1].rotation.x=-r.legs[0].rotation.x;
  }
- renderer.render(scene,camera);
+ combat.frame(now);renderer.render(scene,camera);
 }
 loading.hidden=true;requestAnimationFrame(frame);
 // Read-only diagnostics for smoke tests; no client state can override the server.
-window.arenaDiagnostics=()=>({joined:!!self,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],locked,drawCalls:renderer.info.render.calls});
+window.arenaDiagnostics=()=>({joined:!!self,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,drawCalls:renderer.info.render.calls});

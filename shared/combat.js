@@ -1,0 +1,32 @@
+(function(root){
+  const weapons={
+    sword:{name:'Sword',damage:20,cooldown:450,range:3.2},
+    axe:{name:'Axe',damage:32,cooldown:950,range:3.1},
+    mace:{name:'Mace',damage:28,cooldown:1150,range:3.1},
+    bow:{name:'Bow',damage:32,cooldown:400,charge:1000},
+    crossbow:{name:'Crossbow',damage:38,cooldown:1800}
+  };
+  const equipment={helmet:.04,chestplate:.08,leggings:.05,boots:.03};
+  const slots=Object.keys(weapons), maxHealth=100,armor=Object.values(equipment).reduce((a,b)=>a+b,0),respawnDelay=4000;
+  function direction(yaw,pitch=0){return {x:-Math.sin(yaw)*Math.cos(pitch),y:Math.sin(pitch),z:-Math.cos(yaw)*Math.cos(pitch)};}
+  // Slab intersection returns the distance along a normalized ray, including starting inside.
+  function rayBox(origin,dir,min,max,limit=Infinity){
+    let near=0,far=limit;
+    for(const axis of ['x','y','z']){
+      if(Math.abs(dir[axis])<1e-8){if(origin[axis]<min[axis]||origin[axis]>max[axis])return null;continue;}
+      let a=(min[axis]-origin[axis])/dir[axis],b=(max[axis]-origin[axis])/dir[axis];
+      if(a>b)[a,b]=[b,a];near=Math.max(near,a);far=Math.min(far,b);if(near>far)return null;
+    }
+    return near;
+  }
+  function wallDistance(origin,dir,limit,boxes){
+    let nearest=limit;
+    for(const b of boxes)if(b.solid){const distance=rayBox(origin,dir,{x:b.x-b.w/2,y:b.y-b.h/2,z:b.z-b.d/2},{x:b.x+b.w/2,y:b.y+b.h/2,z:b.z+b.d/2},nearest);if(distance!==null)nearest=distance;}
+    return nearest;
+  }
+  function playerDistance(origin,dir,p,limit,padding=0){return rayBox(origin,dir,{x:p.x-.32-padding,y:p.y,z:p.z-.32-padding},{x:p.x+.32+padding,y:p.y+1.8,z:p.z+.32+padding},limit);}
+  function inSpawn(p){return Math.abs(p.x)>22&&Math.abs(p.z)<6;}
+  function shieldFaces(p,source){const dx=source.x-p.x,dz=source.z-p.z,length=Math.hypot(dx,dz);return length>0&&(-Math.sin(p.yaw)*dx-Math.cos(p.yaw)*dz)/length>=Math.cos(Math.PI/3);}
+  const api={weapons,equipment,slots,maxHealth,armor,respawnDelay,direction,rayBox,wallDistance,playerDistance,inSpawn,shieldFaces};
+  if(typeof module!=='undefined')module.exports=api;else root.CombatRules=api;
+})(globalThis);

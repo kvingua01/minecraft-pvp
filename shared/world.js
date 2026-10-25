@@ -43,8 +43,9 @@
     p.pitch=Math.max(-1.5,Math.min(1.5,Number.isFinite(input.pitch)?input.pitch:p.pitch));
     const f=(input.forward?1:0)-(input.back?1:0), s=(input.right?1:0)-(input.left?1:0);
     const norm=Math.hypot(f,s)||1, speed=input.sprint?8:5;
-    const dx=(s*Math.cos(p.yaw)-f*Math.sin(p.yaw))/norm*speed*dt;
-    const dz=(-s*Math.sin(p.yaw)-f*Math.cos(p.yaw))/norm*speed*dt;
+    const dx=((s*Math.cos(p.yaw)-f*Math.sin(p.yaw))/norm*speed+(p.kx||0))*dt;
+    const dz=((-s*Math.sin(p.yaw)-f*Math.cos(p.yaw))/norm*speed+(p.kz||0))*dt;
+    p.kx=(p.kx||0)*Math.exp(-8*dt);p.kz=(p.kz||0)*Math.exp(-8*dt);
     if(input.jump && p.grounded) {p.vy=8;p.grounded=false;}
     p.vy=Math.max(-30,p.vy-23*dt);
     for(const [axis,delta] of [['x',dx],['z',dz],['y',p.vy*dt]]) {
