@@ -19,7 +19,9 @@ DOCKER_CONFIG=/workspace/.docker-build npm run build:production -- --environment
 DOCKER_CONFIG=/workspace/.docker-build npm run test:production
 ```
 
-The optional build helper resolves the supplied proxy hostname for BuildKit,
+The committed Railway Dockerfile uses standard Docker instructions without secret mounts.
+The optional local build helper generates a temporary Dockerfile with a CA secret
+mount only for this managed proxy machine. It resolves the supplied proxy hostname for BuildKit,
 passes proxy arguments by environment variable name, and mounts provided public
 CA certificates as a temporary build secret. It retains TLS verification and
 removes its temporary bundle afterward. Ordinary Railway builds do not need this
