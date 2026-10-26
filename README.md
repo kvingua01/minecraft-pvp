@@ -189,6 +189,31 @@ It uses system Chromium when available, or Playwright's installed Chromium.
 Set `BROWSER_EXECUTABLE_PATH` to select another Chromium executable. Browser
 installation is unnecessary on Railway; it is only needed to run browser tests.
 
+## Connection recovery
+
+Short transport interruptions automatically reconnect to the same player for up
+to 30 seconds. A visible reconnect banner replaces the old immediate return to the
+main menu. Once restored, click Resume to capture the mouse again. Class, health,
+ultimate charge, eliminations and room membership are retained. Disconnected
+players do not move, cast, or contribute to capture/scoring; their bodies remain
+vulnerable. Unsent movement is dropped rather than replayed after reconnecting.
+Reserved players are removed after the grace period, freeing their team slots.
+Explicitly leaving a room still removes the player immediately.
+
+Fast world snapshots are sent without a reliable replay backlog; the latest
+snapshot replaces older ones. A private per-player resume credential, never
+included in public snapshots, also handles reconnects with a new socket identity.
+A deployment or process restart still clears all in-memory rooms. In that case
+the menu explains that the previous match ended instead of claiming recovery.
+
+```sh
+npm run test:reconnect-browser
+```
+
+This two-browser test interrupts a real socket transport, verifies recovery and
+state preservation without returning to the menu, checks that held keys/abilities
+do not replay, and simulates room-state loss to verify the restart message.
+
 ## Railway
 
 Deploy this repository as a Node.js service. Use `npm ci` to install and `npm start`

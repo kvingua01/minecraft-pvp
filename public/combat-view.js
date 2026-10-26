@@ -25,15 +25,15 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     if(remote)group.scale.setScalar(scale);
   }
   function action(kind){const p=getSelf();if(!p||p.hp<=0||!isLocked())return;socket.emit('input',getInput());socket.emit('action',{kind,time:Date.now()+clockOffset});}
-  function release(){if(drawHeld&&getSelf())socket.emit('action',{kind:'cancel'});drawHeld=false;blocking=false;}
+  function release(){if(drawHeld&&getSelf())socket.volatile.emit('action',{kind:'cancel'});drawHeld=false;blocking=false;}
   window.addEventListener('mousedown',e=>{
     if(!isLocked()||!getSelf()||getSelf().hp<=0)return;
-    if(e.button===2){blocking=true;socket.emit('input',getInput());}
+    if(e.button===2){blocking=true;socket.volatile.emit('input',getInput());}
     if(e.button===0){if(getSelf().weapon==='bow'){drawHeld=true;action('draw');}else action('attack');}
   });
-  window.addEventListener('mouseup',e=>{if(e.button===0&&drawHeld){action('release');drawHeld=false;}if(e.button===2){blocking=false;if(getSelf())socket.emit('input',getInput());}});
+  window.addEventListener('mouseup',e=>{if(e.button===0&&drawHeld){action('release');drawHeld=false;}if(e.button===2){blocking=false;if(getSelf())socket.volatile.emit('input',getInput());}});
   window.addEventListener('blur',release);
-  document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement){release();if(getSelf())socket.emit('input',{...getInput(),block:false});}});
+  document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement){release();if(getSelf())socket.volatile.emit('input',{...getInput(),block:false});}});
   window.addEventListener('keydown',e=>{if(!isLocked()||e.repeat)return;const index=Number(e.key)-1;if(index>=0&&index<5){drawHeld=false;blocking=false;socket.emit('equip',window.HeroRules.loadout(getSelf().hero)[index]);}});
   socket.on('combat',event=>{
     const p=getSelf();if(!p)return;

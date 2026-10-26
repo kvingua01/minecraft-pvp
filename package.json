@@ -6,7 +6,8 @@
     "start": "node server.js",
     "test": "node --test",
     "test:browser": "node scripts/browser-smoke.cjs",
-    "test:heroes-browser": "node scripts/heroes-smoke.cjs"
+    "test:heroes-browser": "node scripts/heroes-smoke.cjs",
+    "test:reconnect-browser": "node scripts/reconnect-smoke.cjs"
   },
   "engines": {
     "node": ">=20"

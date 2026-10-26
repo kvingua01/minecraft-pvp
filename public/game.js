@@ -27,12 +27,33 @@ for(const color of new Set(World.boxes.map(b=>b.color))) {
 function cube(parent,w,h,d,color,x,y,z) {const m=new THREE.Mesh(geometry,material(color));m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
 const socket=io({autoConnect:false}), remotes=new Map(),keys=new Set();
 let self=null, ownId=null,roomCode='',yaw=0,pitch=0,locked=false,tab=false,accumulator=0,last=performance.now(),sendTime=0;
-let correction=new THREE.Vector3(),walkTime=0;
-const combat=createCombatView({camera:viewCamera,scene,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!objective.finished});
+let correction=new THREE.Vector3(),walkTime=0,reconnecting=false,resumeToken='';
+const combat=createCombatView({camera:viewCamera,scene,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished});
 const hand=combat.hand;
-const heroView=createHeroView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!objective.finished,serverNow:combat.serverNow});
+const heroView=createHeroView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished,serverNow:combat.serverNow});
 const objective=createObjectiveView({scene,socket,getSelf:()=>self,clearKeys:()=>keys.clear()});
-function controls(){return {forward:locked&&self?.hp>0&&keys.has('KeyW'),back:locked&&self?.hp>0&&keys.has('KeyS'),left:locked&&self?.hp>0&&keys.has('KeyA'),right:locked&&self?.hp>0&&keys.has('KeyD'),jump:locked&&keys.has('Space'),sprint:locked&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:locked&&self?.hp>0&&combat.isBlocking()};}
+function controls(){const active=locked&&!reconnecting&&socket.connected&&self?.hp>0;return {forward:active&&keys.has('KeyW'),back:active&&keys.has('KeyS'),left:active&&keys.has('KeyA'),right:active&&keys.has('KeyD'),jump:active&&keys.has('Space'),sprint:active&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:active&&combat.isBlocking()};}
+function acceptSession(result,recovered=false){
+ ownId=result.id;roomCode=result.code;resumeToken=result.resumeToken;self={...result.player};yaw=self.yaw;pitch=self.pitch||0;keys.clear();correction.set(0,0,0);reconnecting=false;
+ for(const selector of ['#resume','#next-hero','#restart'])$(selector).disabled=false;
+ $('#resume').textContent='Click to resume';$('#network-banner').hidden=true;menu.hidden=true;$('#hud').hidden=false;$('#room-label').textContent=`ROOM ${roomCode}`;loading.hidden=true;
+ pause.hidden=false;objective.update(result.match,[result.player]);
+ if(recovered){pause.hidden=objective.finished;$('#pause-error').textContent='Reconnected. Click resume to continue.';}
+ else if(!objective.finished)requestLock();
+}
+function endSession(message=''){
+ self=null;ownId=null;resumeToken='';reconnecting=false;keys.clear();clearPlayers();document.exitPointerLock();pause.hidden=true;$('#hud').hidden=true;menu.hidden=false;$('#network-banner').hidden=true;$('#error').textContent=message;setButtons(false);
+ for(const selector of ['#resume','#next-hero','#restart'])$(selector).disabled=false;$('#resume').textContent='Click to resume';
+}
+function resumeSession(attempt=0){
+ if(!self||!resumeToken||!socket.connected)return;
+ const token=resumeToken;
+ socket.timeout(5000).emit('resume',{code:roomCode,token},(error,result)=>{
+  if(!self||token!==resumeToken)return;
+  if(error){if(attempt<3&&socket.connected)setTimeout(()=>{if(token===resumeToken&&reconnecting)resumeSession(attempt+1);},1000);else if(socket.connected)endSession('Could not restore the connection. Please join your room again.');return;}
+  if(result?.error){endSession(result.error);return;}acceptSession(result,true);
+ });
+}
 function setButtons(disabled){document.querySelectorAll('#join-form button').forEach(b=>b.disabled=disabled);}
 function join(create) {
  if(!create&&!$('#code').value.trim()) {$('#error').textContent='Enter your friend’s room code.';return;}
@@ -40,26 +61,36 @@ function join(create) {
  socket.timeout(6000).emit('join',{create,code:$('#code').value,name:$('#name').value,team:$('#team').value,hero:$('#hero').value},(err,result)=>{
   setButtons(false);
   if(err||result?.error){$('#error').textContent=result?.error||'Could not connect. Please retry.';return;}
-  ownId=result.id;roomCode=result.code;self={...result.player};yaw=self.yaw;pitch=0;correction.set(0,0,0);
-  menu.hidden=true;$('#hud').hidden=false;$('#room-label').textContent=`ROOM ${roomCode}`;loading.hidden=true;
-  pause.hidden=false;objective.update(result.match,[result.player]);if(!objective.finished)requestLock();
+  acceptSession(result);
  });
 }
 $('#create').onclick=()=>join(true);$('#join-form').onsubmit=e=>{e.preventDefault();join(false);};
-function requestLock(){ $('#pause-error').textContent='';try{const promise=canvas.requestPointerLock();promise?.catch(()=>{$('#pause-error').textContent='Click resume to allow mouse capture.';});}catch{$('#pause-error').textContent='Mouse capture unavailable. Use a desktop browser.';}}
+function requestLock(){ if(!socket.connected||reconnecting)return;$('#pause-error').textContent='';try{const promise=canvas.requestPointerLock();promise?.catch(()=>{$('#pause-error').textContent='Click resume to allow mouse capture.';});}catch{$('#pause-error').textContent='Mouse capture unavailable. Use a desktop browser.';}}
 $('#resume').onclick=requestLock;canvas.onclick=()=>{if(self&&!locked)requestLock();};
-document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;keys.clear();pause.hidden=!self||locked||objective.finished;if(self)socket.emit('input',controls());});
+document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;keys.clear();pause.hidden=!self||locked||objective.finished;if(self)socket.volatile.emit('input',controls());});
 document.addEventListener('pointerlockerror',()=>{$('#pause-error').textContent='Mouse capture was denied. Click resume and allow it in your browser.';});
 document.addEventListener('mousemove',e=>{if(locked){const sensitivity=Number($('#sensitivity').value)*.0005;yaw-=e.movementX*sensitivity;pitch=THREE.MathUtils.clamp(pitch-e.movementY*sensitivity,-1.5,1.5);}});
 window.addEventListener('keydown',e=>{if(!self)return;if(e.code==='Escape'){document.exitPointerLock();return;}if(['Tab','Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code))e.preventDefault();if(e.code==='Tab'){tab=true;updateRoster();}if(locked)keys.add(e.code);});
 window.addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='Tab'){tab=false;updateRoster();}});
-window.addEventListener('blur',()=>{keys.clear();tab=false;updateRoster();if(self)socket.emit('input',controls());});
+window.addEventListener('blur',()=>{keys.clear();tab=false;updateRoster();if(self)socket.volatile.emit('input',controls());});
 canvas.oncontextmenu=e=>e.preventDefault();
 function removeRemote(remote){scene.remove(remote.group);remote.group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});}
 function clearPlayers(){heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
-$('#leave').onclick=()=>{socket.emit('leave');self=null;ownId=null;keys.clear();clearPlayers();document.exitPointerLock();pause.hidden=true;$('#hud').hidden=true;menu.hidden=false;$('#error').textContent='';};
-socket.on('disconnect',()=>{if(!self)return;self=null;clearPlayers();document.exitPointerLock();pause.hidden=true;$('#hud').hidden=true;menu.hidden=false;$('#error').textContent='Connection lost. Create an arena or rejoin with your room code.';setButtons(false);});
-socket.on('connect_error',()=>{$('#error').textContent='Server unavailable. Check your connection and retry.';setButtons(false);});
+$('#leave').onclick=()=>{if(socket.connected)socket.emit('leave');endSession();};
+socket.on('connect',()=>{if(self&&resumeToken)resumeSession();});
+socket.on('disconnect',reason=>{
+ if(!self)return;
+ if(reason==='io server disconnect'){endSession('The server closed your session. Please rejoin your arena.');return;}
+ reconnecting=true;keys.clear();correction.set(0,0,0);document.exitPointerLock();pause.hidden=objective.finished;
+ $('#network-banner').hidden=false;$('#network-banner').textContent='Connection interrupted. Reconnecting to your match…';
+ $('#pause-error').textContent='Your player is reserved for 30 seconds.';$('#resume').textContent='Reconnecting…';
+ for(const selector of ['#resume','#next-hero','#restart'])$(selector).disabled=true;
+ console.warn('Arena connection interrupted:',reason);
+});
+socket.on('connect_error',()=>{
+ if(self){$('#network-banner').hidden=false;$('#network-banner').textContent='Connection interrupted. Still trying to reconnect…';}
+ else{$('#error').textContent='Server unavailable. Check your connection and retry.';setButtons(false);}
+});
 function makeAvatar(p) {
  const group=new THREE.Group(),color=p.team==='red'?0xdd8d73:0x70a9bd;
  cube(group,.62,.65,.34,color,0,1.04,0);const head=cube(group,.48,.48,.48,0xd4a181,0,1.61,0);
@@ -75,11 +106,11 @@ function makeAvatar(p) {
 function updateRoster(){
  const roster=$('#roster');roster.hidden=!tab;
  const players=self?[self,...[...remotes.values()].map(r=>r.target)]:[];
- roster.textContent=['red','blue'].map(team=>`${team.toUpperCase()} TEAM\n`+players.filter(p=>p.team===team).map(p=>`${p.name} [${window.HeroRules.heroes[p.hero]?.name||'Hero'}]${p.id===ownId?' (you)':''} · ${p.kills} K / ${p.deaths} D`).join('\n')).join('\n\n');
- $('#connection').textContent=`${players.length}/10 players connected`;
+ roster.textContent=['red','blue'].map(team=>`${team.toUpperCase()} TEAM\n`+players.filter(p=>p.team===team).map(p=>`${p.name} [${window.HeroRules.heroes[p.hero]?.name||'Hero'}]${p.id===ownId?' (you)':p.connected===false?' (reconnecting)':''} · ${p.kills} K / ${p.deaths} D`).join('\n')).join('\n\n');
+ $('#connection').textContent=`${players.filter(p=>p.connected!==false).length}/10 players connected`;
 }
 socket.on('state',state=>{
- if(!self)return;combat.snapshot(state);const ids=new Set();
+ if(!self||reconnecting)return;combat.snapshot(state);const ids=new Set();
  for(const p of state.players){
   if(p.id===ownId){
    const error=Math.hypot(p.x-self.x,p.y-self.y,p.z-self.z);
@@ -101,14 +132,14 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 function frame(now){
  requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.1);last=now;
  if(self){
-  accumulator+=dt;const input=controls();while(accumulator>=1/60){if(self.hp>0&&!objective.finished)World.step(self,self.blocking?{...input,sprint:false}:input,1/60);accumulator-=1/60;}
+  accumulator+=dt;const input=controls();while(accumulator>=1/60){if(self.hp>0&&!objective.finished&&!reconnecting)World.step(self,self.blocking?{...input,sprint:false}:input,1/60);accumulator-=1/60;}
   const factor=1-Math.exp(-8*dt);
   // Network smoothing must obey the same collisions as normal movement.
   const adjustment={x:correction.x*factor,y:correction.y*factor,z:correction.z*factor};
   const moved=World.move(self,adjustment);
   correction.multiplyScalar(1-factor);
   for(const axis of ['x','y','z'])if(Math.abs(moved[axis]-adjustment[axis])>1e-7)correction[axis]=0;
-  if(now-sendTime>1000/30){socket.emit('input',input);sendTime=now;}
+  if(now-sendTime>1000/30){socket.volatile.emit('input',input);sendTime=now;}
   camera.position.set(self.x,self.y+1.62,self.z);camera.rotation.set(pitch,yaw,0,'YXZ');
   const moving=input.forward||input.back||input.left||input.right;walkTime+=dt*(input.sprint?13:9);hand.position.y=-.36+(moving&&self.grounded?Math.sin(walkTime)*.025:0);
  }else {camera.position.set(13,8,24);camera.lookAt(0,1,0);}
@@ -132,4 +163,4 @@ function frame(now){
 }
 loading.hidden=true;requestAnimationFrame(frame);
 // Read-only diagnostics for smoke tests; no client state can override the server.
-window.arenaDiagnostics=()=>({joined:!!self,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,drawCalls:renderer.info.render.calls});
+window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,drawCalls:renderer.info.render.calls});
