@@ -22,7 +22,7 @@ export function createPotionView({scene,camera,cube,socket,getSelf,getInput,isLo
   const entries=p&&p.hp>0?[
    ['speed','Speed',p.status?.speed],['strength','Strength',p.status?.strength],['regeneration','Regeneration',p.status?.regeneration],
    ['slowness','Slowness',Math.max(p.status?.slowPotion||0,p.status?.slow||0)],['fireResistance','Fire Resistance',p.status?.fireResistance],
-   ['damage','Poison',p.status?.poisoned],['fireResistance','Burning',p.status?.burning]
+   ['damage','Wither',p.status?.withered],['damage','Poison',p.status?.poisoned],['fireResistance','Burning',p.status?.burning]
   ].filter(([, ,end])=>Number.isFinite(end)&&end>time).map(([id,name,end])=>({id,name,seconds:Math.ceil((end-time)/1000)})):[];
   const stamp=JSON.stringify(entries);if(stamp===effectStamp)return;effectStamp=stamp;
   const root=$('#potion-effects');root.hidden=!entries.length;root.replaceChildren();

@@ -1,5 +1,6 @@
 import * as THREE from '/vendor/three.module.js';
 import {portrait} from '/skins.js';
+import {buildKitEffect,updateKitEffect} from '/extra-kit-view.js';
 const H=window.HeroRules;
 export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLocked,serverNow}){
  const blockGeometry=new THREE.BoxGeometry(1,1,1),rainDummy=new THREE.Object3D();
@@ -38,7 +39,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   if(e.source===getSelf()?.id&&(e.type==='ability'||e.type==='slam')){flashedAt=performance.now();$('#ability-message').textContent=e.name||'GROUND SLAM';flash.style.background=e.hero==='frost'?'#83cfff22':'#d5e58a22';}
  });
  function build(e){const group=new THREE.Group();group.position.set(e.x,e.y,e.z);
-  const color=e.kind==='wall'?e.color:['inferno','firetrail'].includes(e.kind)?0xf59a42:['plague','vines'].includes(e.kind)?0x78a63b:e.kind==='splash'?window.PotionRules.items[e.potionKind].color:e.kind==='poison'?0x94c661:e.kind==='blizzard'?0x9cdbff:e.kind==='storm'?0xe1bb8d:0x9ce4bd;
+  const color=e.extra?(['tnt-barrage','fused-tnt'].includes(e.kind)?0xee7148:['wither-barrage','soul-flight'].includes(e.kind)?0x8c74a5:['wave','riptide'].includes(e.kind)?0x72bfe4:e.kind==='fang'?0xe4d7b3:['fire-spin','flame-rise','blaze-trail'].includes(e.kind)?0xf9ad40:0x87c463):e.kind==='wall'?e.color:['inferno','firetrail'].includes(e.kind)?0xf59a42:['plague','vines'].includes(e.kind)?0x78a63b:e.kind==='splash'?window.PotionRules.items[e.potionKind].color:e.kind==='poison'?0x94c661:e.kind==='blizzard'?0x9cdbff:e.kind==='storm'?0xe1bb8d:0x9ce4bd;
   if(e.kind==='wall'){
    const alongX=e.w>e.d,cols=Math.round(alongX?e.w:e.d),rows=Math.round(e.h),mesh=new THREE.InstancedMesh(blockGeometry,new THREE.MeshLambertMaterial({color}),cols*rows),dummy=new THREE.Object3D();
    mesh.userData.ownedMaterial=true;
@@ -52,10 +53,10 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
    const column=new THREE.Mesh(new THREE.CylinderGeometry(e.radius,e.radius,1.5,20,1,true),mat.clone());column.material.opacity=.07;column.position.y=.75;group.add(column);
    if(['storm','blizzard','inferno','plague','roots','firetrail','vines'].includes(e.kind)){const rain=new THREE.InstancedMesh(blockGeometry,new THREE.MeshLambertMaterial({color}),12);rain.userData.ownedMaterial=true;rain.userData.radius=e.radius;rain.instanceMatrix.setUsage(THREE.DynamicDrawUsage);group.userData.rain=rain;group.add(rain);}
   }
-  scene.add(group);return {group,kind:e.kind};
+  buildKitEffect(e,group,cube);scene.add(group);return {group,kind:e.kind,state:e};
  }
  function remove(effect){scene.remove(effect.group);effect.group.traverse(m=>{if(m.userData.ownedMaterial)m.material.dispose();if(m.isMesh&&m.geometry!==undefined&&!m.isInstancedMesh){if(m.geometry.type!=='BoxGeometry')m.geometry.dispose();if(['RingGeometry','CylinderGeometry'].includes(m.geometry.type))m.material.dispose();}});}
- function snapshot(state){const ids=new Set();for(const e of state.effects||[]){ids.add(e.id);let effect=effects.get(e.id);if(!effect){effect=build(e);effects.set(e.id,effect);}effect.group.position.set(e.x,e.y,e.z);}
+ function snapshot(state){const ids=new Set();for(const e of state.effects||[]){ids.add(e.id);let effect=effects.get(e.id);if(!effect){effect=build(e);effects.set(e.id,effect);}effect.group.position.set(e.x,e.y,e.z);effect.state=e;}
   for(const [id,e]of effects)if(!ids.has(id)){remove(e);effects.delete(id);}
   const walls=(state.effects||[]).filter(e=>e.kind==='wall'),key=JSON.stringify(walls.map(e=>[e.id,e.x,e.y,e.z,e.w,e.h,e.d]));if(key!==solidsKey){solidsKey=key;cachedSolids=walls.map(e=>({...e,solid:true}));}const p=getSelf();if(p)p.solids=cachedSolids;
  }
@@ -66,8 +67,8 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   $('#ultimate').value=p.ult||0;$('#ability-r').textContent=`R · ${h.r.name} · ${Math.floor(p.ult||0)}%`;
   const active=Object.entries(p.status||{}).filter(([_,end])=>end>time).map(([name])=>({slowPotion:'SLOWED',fireResistance:'FIRE RESISTANCE',regeneration:'REGENERATION'}[name]||name.toUpperCase()));$('#hero-status').textContent=active.join(' · ');
   if(queuedHero===p.pendingHero)queuedHero=null;paintPicker('#next-hero',queuedHero||p.pendingHero||p.hero);
-  for(const e of effects.values()){const rain=e.group.userData.rain;if(!rain)continue;for(let i=0;i<12;i++){rainDummy.position.set(Math.sin(i*2.4)*rain.userData.radius*.8,1+((now*.004+i*.5)%5),Math.cos(i*2.4)*rain.userData.radius*.8);rainDummy.scale.set(.05,e.kind==='storm'?.65:.15,.05);rainDummy.updateMatrix();rain.setMatrixAt(i,rainDummy.matrix);}rain.instanceMatrix.needsUpdate=true;}
+  for(const e of effects.values()){updateKitEffect(e.state,e,now,time);const rain=e.group.userData.rain;if(!rain)continue;for(let i=0;i<12;i++){rainDummy.position.set(Math.sin(i*2.4)*rain.userData.radius*.8,1+((now*.004+i*.5)%5),Math.cos(i*2.4)*rain.userData.radius*.8);rainDummy.scale.set(.05,e.kind==='storm'?.65:.15,.05);rainDummy.updateMatrix();rain.setMatrixAt(i,rainDummy.matrix);}rain.instanceMatrix.needsUpdate=true;}
  }
  function clear(){queuedHero=null;solidsKey='';cachedSolids=[];for(const e of effects.values())remove(e);effects.clear();dagger.visible=false;burst.visible=false;$('#hero-hud').hidden=true;$('#class-note').textContent='';flashedAt=0;}
- return {snapshot,frame,clear};
+ return {snapshot,frame,clear,diagnostics:()=>[...effects.values()].map(e=>e.kind)};
 }

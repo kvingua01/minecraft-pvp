@@ -20,6 +20,7 @@
     "test:lobby-browser": "node scripts/lobby-smoke.cjs",
     "test:loadouts-browser": "node scripts/loadouts-smoke.cjs",
     "test:inventory-browser": "node scripts/inventory-smoke.cjs",
+    "test:seven-kits-browser": "node scripts/seven-kits-smoke.cjs",
     "test:bots-browser": "node scripts/bots-smoke.cjs"
   },
   "engines": {

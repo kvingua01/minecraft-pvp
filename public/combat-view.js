@@ -19,10 +19,14 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     }else if(['sword','axe','mace','katana','dagger','pickaxe'].includes(key)){
       pixelTool(group,key);
 
-    }else if(key==='bow'){
+    }else if(key==='trident'){cube(group,.07,1.2,.07,0x438b8f,0,.3,0);cube(group,.42,.07,.08,0x9ce0dc,0,.83,0);for(const x of [-.18,0,.18])cube(group,.06,.3,.07,0x9ce0dc,x,.97,0);
+    }else if(key==='slimefists'){for(const x of [-.23,.12])cube(group,.32,.32,.32,0x7bc15c,x,.25,0);
+    }else if(key==='tntlauncher'){cube(group,.3,.3,.65,0x59575a,0,.16,0);cube(group,.25,.25,.25,0xc14d3e,0,.35,-.18);cube(group,.26,.08,.26,0xf1dcc4,0,.35,-.18);
+    }else if(key==='blazerods'){for(const x of [-.16,0,.16])cube(group,.09,.7,.09,0xffbe48,x,.35,0);
+    }else if(key==='bow'||key==='enchantedbow'){
       for(const side of [-1,1]){const limb=cube(group,.07,.42,.09,0xb98a4f,0,side*.23+.15,0);limb.rotation.z=side*-.3;}
       group.userData.string=cube(group,.02,.77,.02,0xebe1c3,.1,.15,0);group.userData.arrow=cube(group,.035,.035,.6,0xc7bea1,.08,.15,0);
-    }else if(['staff','darkstaff','firestaff','naturestaff'].includes(key)){cube(group,.09,.9,.09,0x767e94,0,.22,0);cube(group,.25,.25,.25,({darkstaff:0x9b74ce,firestaff:0xf6a34c,naturestaff:0x8ecb65}[key]||0xa0e5f7),0,.75,0);
+    }else if(['staff','darkstaff','firestaff','naturestaff','witherstaff','totemstaff'].includes(key)){cube(group,.09,.9,.09,0x767e94,0,.22,0);cube(group,.25,.25,.25,({witherstaff:0x635a77,totemstaff:0x8db279,darkstaff:0x9b74ce,firestaff:0xf6a34c,naturestaff:0x8ecb65}[key]||0xa0e5f7),0,.75,0);
     }else if(key==='launcher'){cube(group,.25,.25,.55,0x799b88,0,.15,0);cube(group,.15,.24,.17,0xbcdf9a,0,.34,.05);
     }else {
       cube(group,.12,.16,.6,0x805e3c,0,.18,0);cube(group,.65,.08,.12,0xc6c7ac,0,.22,-.18);cube(group,.4,.025,.025,0xd7d7bd,0,.22,.05);if(key==='toxicbow')cube(group,.12,.2,.12,0x8cc667,.12,.32,0);
@@ -66,10 +70,14 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
       seen.add(a.id);let m=arrows.get(a.id);
       if(!m){
         m=new THREE.Group();const flask=a.kind==='wind'||a.kind==='potion'||a.kind?.startsWith('flask:'),size=flask ? .22 : .06;
-        const color=a.kind==='wind'?0xe6fbff:['ember','fireball'].includes(a.kind)?0xf59a3c:['toxic','dart','nature'].includes(a.kind)?0x8cc965:a.kind==='dark'?0xa87bd4:a.kind?.startsWith('flask:')?window.PotionRules.items[a.kind.slice(6)].color:a.kind==='ice'||a.kind==='frost'?0x9ee6ff:a.kind==='potion'?0xa9e5a1:a.kind==='explosive'?0xf4b273:0xe8d2a2;
-        cube(m,size,size,flask ? .22 : .65,color,0,0,0);scene.add(m);arrows.set(a.id,m);
+        const color=a.kind==='wind'?0xe6fbff:['ember','fireball'].includes(a.kind)?0xf59a3c:['toxic','dart','nature'].includes(a.kind)?0x8cc965:a.kind==='enchanted'?0xb188d9:a.kind==='dark'?0xa87bd4:a.kind?.startsWith('flask:')?window.PotionRules.items[a.kind.slice(6)].color:a.kind==='ice'||a.kind==='frost'?0x9ee6ff:a.kind==='potion'?0xa9e5a1:a.kind==='explosive'?0xf4b273:0xe8d2a2;
+        if(['tnt','tnt-toss','barrage-tnt'].includes(a.kind)){cube(m,.3,.3,.3,0xc74b39,0,0,0);cube(m,.31,.08,.31,0xeadbc6,0,0,0);cube(m,.03,.1,.03,0x332f2a,0,.2,0);}
+        else if(a.kind==='trident'){cube(m,.05,.05,.9,0x62bcb8,0,0,0);cube(m,.4,.05,.06,0x9be5df,0,0,.4);for(const x of [-.17,0,.17])cube(m,.05,.05,.22,0x9be5df,x,0,.52);}
+        else if(['skull','barrage-skull'].includes(a.kind)){cube(m,.28,.26,.25,0x45414f,0,0,0);for(const x of [-.07,.07])cube(m,.05,.04,.02,0xb7a1d7,x,.04,.13);}
+        else if(['blazefire','witherbolt','sticky','totem'].includes(a.kind))cube(m,.2,.2,.2,({blazefire:0xffa736,witherbolt:0x675a7d,sticky:0x88cb5b,totem:0xb5ce88})[a.kind],0,0,0);
+        else cube(m,size,size,flask ? .22 : .65,color,0,0,0);scene.add(m);arrows.set(a.id,m);
       }
-      m.position.set(a.x,a.y,a.z);m.lookAt(a.x+a.vx,a.y+a.vy,a.z+a.vz);
+      m.userData.projectileKind=a.kind;m.position.set(a.x,a.y,a.z);m.lookAt(a.x+a.vx,a.y+a.vy,a.z+a.vz);
     }
     for(const [id,m]of arrows)if(!seen.has(id)){scene.remove(m);arrows.delete(id);}
   }
@@ -81,7 +89,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     if(key==='axe'){group.rotation.z=-.22+a*.9;group.rotation.x=-a*1.1;}
     if(key==='mace'){group.rotation.x=-a*1.6;group.position.y-=a*.08;}
     if(['crossbow','toxicbow'].includes(key))group.rotation.x=-a*.55;
-    if(['staff','darkstaff','firestaff','naturestaff'].includes(key)||key==='launcher')group.rotation.x=-a*.3;
+    if(['staff','darkstaff','firestaff','naturestaff','witherstaff','totemstaff'].includes(key)||key==='launcher')group.rotation.x=-a*.3;
   }
   function frame(now){
     for(const b of bursts){const age=(now-b.start)/500;b.mesh.scale.setScalar(1+age*3);b.mesh.material.opacity=Math.max(0,.8*(1-age));if(age>=1){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();bursts.delete(b);}}
@@ -89,13 +97,13 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     const time=Date.now()+clockOffset,w=C.weapons[p.weapon];
     if(weapon!==p.weapon){weapon=p.weapon;buildWeapon(hand,weapon);}
     const duration=['crossbow','toxicbow'].includes(weapon)?w.cooldown:Math.min(w.cooldown,800),phase=Math.min(1,(now-swing)/duration);
-    animateWeapon(hand,weapon,swing?phase:0);
+    animateWeapon(hand,weapon,swing?phase:0);if(weapon==='trident'&&p.status?.riptide>time)hand.rotation.z=now*.04;
     if(p.drawAt&&weapon==='bow'){const charge=Math.min(1,(time-p.drawAt)/1000);hand.position.z=-.65+charge*.12;hand.rotation.y=-charge*.2;hand.userData.string.position.z=charge*.2;hand.userData.arrow.position.z=charge*.2;}else {hand.position.z=-.65;if(hand.userData.string){hand.userData.string.position.z=0;hand.userData.arrow.position.z=0;}}
     wind.visible=p.hp>0;wind.rotation.y=now*.002;
     const throwAge=now-windThrownAt;wind.position.y=-.23-(throwAge<300?Math.sin(throwAge/300*Math.PI)*.16:0);
     wind.scale.setScalar(p.windReady>time?.9:1);
     if(windNoticeAt&&now-windNoticeAt>2400){document.querySelector('#combat-note').textContent='';windNoticeAt=0;}
-    hand.visible=p.hp>0&&(!p.hasItemSlots||p.heldItem?.kind==='weapon');
+    hand.visible=!(p.weapon==='trident'&&p.status?.tridentOut>time)&&p.hp>0&&(!p.hasItemSlots||p.heldItem?.kind==='weapon');
     paintVitals(p);
     document.querySelector('#health').max=p.maxHp||100;document.querySelector('#health').value=p.hp;document.querySelector('#health-label').textContent=`${Math.ceil(p.hp)} / ${p.maxHp||100}`;
     document.querySelector('#armor-label').textContent=`ARMOR ${Math.round(p.armor*100)}% · 4 PIECES`;
@@ -106,5 +114,5 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     document.querySelector('#damage').style.opacity=now-flash<400?1:0;document.querySelector('#hit-marker').style.opacity=now-hit<250?1:0;
     document.querySelector('#death').hidden=p.hp>0;document.querySelector('#respawn-time').textContent=`${Math.max(0,Math.ceil((p.deadUntil-time)/1000))}s`;
   }
-  return {syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},cancelInput:release,hand,offhand:()=>({wind:wind.visible,shield:false}),buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>false};
+  return {projectileKinds:()=>[...arrows.values()].map(m=>m.userData.projectileKind),syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},cancelInput:release,hand,offhand:()=>({wind:wind.visible,shield:false}),buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>false};
 }

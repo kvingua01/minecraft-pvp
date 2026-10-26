@@ -1,4 +1,4 @@
-# Blockward — fourteen-hero control-point arena
+# Blockward — twenty-one-hero control-point arena
 
 First-person multiplayer voxel combat for desktop browsers, built on Three.js,
 Express and Socket.io. All pixel artwork and procedural audio are original.
@@ -43,7 +43,7 @@ seats, so bot additions never overfill a team. Bots cannot become host, and room
 are removed when their last human leaves. The lobby, roster and connection display
 clearly label bots separately from humans.
 
-These are server-controlled players choosing from all 14 class kits, not decorative/fake participants.
+These are server-controlled players choosing from all 21 class kits, not decorative/fake participants.
 They navigate shared map collisions, move to objectives, fight using ordinary
 melee/bow rules, take damage, die and respawn normally. Bot pathfinding covers all
 six maps and avoids lava/void routes. They do not currently cast hero abilities.
@@ -217,3 +217,39 @@ blocked by this environment's egress policy and was not verified here.
 
 Rollback: `rollback/before-master-upgrade-eccabc2` preserves the previous game.
 Phase checkpoints and test evidence are in [master-upgrade.md](docs/master-upgrade.md).
+
+
+## Seven additional kits
+
+The original 14 classes are preserved. Selection now includes 21 classes, using
+exactly the existing selection cards, lobby, controls, 9-slot hotbar and inventory.
+
+| New kit | Personal weapon | Q / E / R |
+| --- | --- | --- |
+| Demolitionist | TNT Launcher | TNT Toss / Blast Jump / TNT Barrage |
+| Trident Warrior | Trident | Riptide / Trident Throw / Tidal Wave |
+| Illusionist | Enchanted Bow | Decoy / Mirror Swap / Hall of Mirrors |
+| Wither Mage | Wither Staff | Wither Skull / Soul Flight / Wither Barrage |
+| Blaze | Blaze Rods | Fire Spin / Flame Rise / Blaze Storm |
+| Slime | Slime Fists | Bounce / Sticky Splash / Slime Split |
+| Evoker | Totem Staff | Fangs / Vex / Fang Circle |
+
+Damage, cooldowns, ultimate charge, projectiles, flight, teleportation and summons
+remain server-owned. TNT and fang ultimates have replicated advance warnings;
+explosions respect cover and do not destroy terrain or hurt teammates. Soul Flight
+ends after 4 seconds and Flame Rise after 3 seconds, with swept ceiling collisions
+and arena bounds. Trident Throw prevents another throw or personal-weapon attack
+until its visible return completes. Decoys are attackable, harmless summon entities;
+they never count as players, capture or contest points. Mirror Swap requires a live
+decoy and two clear, visible destinations. Wither has a single non-stacking damage
+timer. Slime Bounce grants one additional bounce; Slime Split keeps the original
+player, inventory and health, with three temporary summons returning at expiry.
+Summons expire and are removed on their owner's death. Bots can select the new
+kits too; their existing AI uses weapons, not Q/E/R abilities.
+
+`npm test` covers the new kit mechanics and existing game regressions.
+`npm run test:seven-kits-browser` uses two real browser clients to check all seven
+primary inputs, all 21 Q/E/R activations, selection entries and replicated effects
+and summons. Production checks remain `npm run build:production` followed by
+`npm run test:production`. No map, capture, scoring, team-size, HUD-layout,
+texture-resolution or Railway configuration changes are part of this addition.

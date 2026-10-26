@@ -106,7 +106,9 @@
     p.kx=(p.kx||0)*Math.exp(-(onIce?3:8)*dt);p.kz=(p.kz||0)*Math.exp(-(onIce?3:8)*dt);
     if((input.jump||p.jumpQueued) && p.grounded) {p.vy=8;p.grounded=false;}
     p.jumpQueued=false;
-    p.vy=Math.max(-30,p.vy-23*dt);
+    // Only the new timed flight abilities set flightLift; normal movement is unchanged.
+    if(p.flightLift!==undefined&&p.flightLift!==null){dx=Math.max(-30.6-p.x,Math.min(30.6-p.x,dx));dz=Math.max(-30.6-p.z,Math.min(30.6-p.z,dz));}
+    p.vy=p.flightLift!==undefined&&p.flightLift!==null?p.flightLift:Math.max(-30,p.vy-23*dt);
     const dy=p.vy*dt,moved=move(p,{x:dx,y:dy,z:dz});
     // Minecraft-like half-block stepping, still swept against walls and ceilings.
     if(p.grounded&&(Math.abs(moved.x-dx)>epsilon||Math.abs(moved.z-dz)>epsilon)){

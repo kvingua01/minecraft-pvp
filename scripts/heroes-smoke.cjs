@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),{createGameServer}=require('../server'),a
  try{
   const a=await browser.newPage({viewport:{width:1280,height:800}}),b=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];
   for(const p of [a,b]){p.setDefaultTimeout(15000);p.on('pageerror',e=>errors.push(e.message));await p.goto(url);await p.waitForFunction(()=>window.arenaDiagnostics);}
-  assert.equal(await a.locator('#hero option').count(),14);await a.locator('#hero-options [data-hero="frost"]').click();assert.match(await a.locator('#hero-description').textContent(),/Ice Bolt/);
+  assert.equal(await a.locator('#hero option').count(),21);await a.locator('#hero-options [data-hero="frost"]').click();assert.match(await a.locator('#hero-description').textContent(),/Ice Bolt/);
   await a.fill('#name','Frost tester');await a.selectOption('#team','red');await a.click('#create');await a.waitForFunction(()=>window.arenaDiagnostics().joined);
   const info=await a.evaluate(()=>window.arenaDiagnostics());await b.fill('#name','Target');await b.selectOption('#team','blue');await b.fill('#code',info.room);await b.click('.join-row button');await b.waitForFunction(()=>window.arenaDiagnostics().remotes.length===1);
   const room=game.rooms.get(info.room),pa=room.get(info.id),pb=room.get((await b.evaluate(()=>window.arenaDiagnostics())).id);

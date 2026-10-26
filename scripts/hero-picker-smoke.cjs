@@ -13,9 +13,9 @@ const {chromium}=require('playwright'),{createGameServer}=require('../server'),H
   await page.click('#create');await page.waitForFunction(id=>window.arenaDiagnostics().joined&&window.arenaDiagnostics().hero===id,id);
   const info=await page.evaluate(()=>window.arenaDiagnostics()),player=game.rooms.get(info.room).get(info.id);assert.equal(player.hero,id);assert.equal(player.hp,h.health);assert.equal(player.weapon,h.weapon);
   await page.waitForFunction(()=>window.arenaDiagnostics().locked||document.querySelector('#pause-error').textContent.length>0);if(await page.evaluate(()=>window.arenaDiagnostics().locked))await page.keyboard.press('Escape');await page.locator('#pause').waitFor({state:'visible'});
-  assert.equal(await page.locator('#next-hero-options button').count(),14);
+  assert.equal(await page.locator('#next-hero-options button').count(),21);
   await page.click('#leave');await page.locator('#menu').waitFor({state:'visible'});console.log(`${h.name}: visible card joins with the correct playable class`);
  }
- assert.deepEqual(errors,[]);console.log('All fourteen hero choices work through real clicks; no browser errors');
+ assert.deepEqual(errors,[]);console.log('All twenty-one hero choices work through real clicks; no browser errors');
  }finally{await browser.close();await new Promise(r=>game.io.close(r));}
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -1,5 +1,12 @@
 (function(root){
   const weapons={
+    tntlauncher:{name:'TNT Launcher',damage:26,cooldown:1000,projectile:'tnt'},
+    trident:{name:'Trident',damage:24,cooldown:650,range:3.6},
+    enchantedbow:{name:'Enchanted Bow',damage:23,cooldown:750,projectile:'enchanted'},
+    witherstaff:{name:'Wither Staff',damage:18,cooldown:750,projectile:'witherbolt'},
+    blazerods:{name:'Blaze Rods',damage:16,cooldown:700,projectile:'blazefire'},
+    slimefists:{name:'Slime Fists',damage:21,cooldown:600,range:2.8},
+    totemstaff:{name:'Totem Staff',damage:19,cooldown:650,projectile:'totem'},
     darkstaff:{name:'Dark Staff',damage:18,cooldown:700,projectile:'dark'},
     firestaff:{name:'Fire Staff',damage:16,cooldown:700,projectile:'ember'},
     naturestaff:{name:'Nature Staff',damage:15,cooldown:700,projectile:'nature'},

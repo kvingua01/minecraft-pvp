@@ -5,8 +5,8 @@ function setup(hero='knight'){
  function player(id,team,x,z,cls='knight'){const p={id,name:id,team,hero:cls,life:0,...W.spawn(),x,y:0,z,yaw:0,pitch:0,input:{},lastInput:10000};combat.init(p,room.size,10000);p.protectedUntil=0;room.set(id,p);return p;}
  const a=player('a','red',0,10,hero),b=player('b','blue',0,7),ally=player('ally','red',2,10);return {combat,h:combat.heroes,room,a,b,ally,events};
 }
-test('all fourteen heroes spawn with distinct, authoritative class stats and an empty ultimate',()=>{
- assert.equal(Object.keys(H.heroes).length,14);for(const [id,def]of Object.entries(H.heroes)){const {a}=setup(id);assert.equal(a.hp,def.health);assert.equal(a.weapon,def.weapon);assert.equal(a.armor,def.armor);assert.equal(a.ult,0);assert.ok(def.q.name&&def.e.name&&def.r.name);}
+test('all twenty-one heroes spawn with distinct, authoritative class stats and an empty ultimate',()=>{
+ assert.equal(Object.keys(H.heroes).length,21);for(const [id,def]of Object.entries(H.heroes)){const {a}=setup(id);assert.equal(a.hp,def.health);assert.equal(a.weapon,def.weapon);assert.equal(a.armor,def.armor);assert.equal(a.ult,0);assert.ok(def.q.name&&def.e.name&&def.r.name);}
 });
 test('server rejects cooldown spam, invalid keys, unearned ultimates, death and spawn casts',()=>{
  const {h,room,a}=setup('berserker');assert.ok(h.use(room,a,'r',10000).error);assert.ok(h.use(room,a,'hack',10000).error);assert.ok(h.use(room,a,'q',10000).ok);assert.ok(h.use(room,a,'q',10001).error);a.hp=0;assert.ok(h.use(room,a,'e',11000).error);a.hp=130;a.x=25;a.z=0;assert.ok(h.use(room,a,'e',11000).error);
