@@ -17,7 +17,8 @@
     "test:wind-browser": "node scripts/wind-smoke.cjs",
     "test:new-heroes-browser": "node scripts/new-heroes-smoke.cjs",
     "test:maps-browser": "node scripts/maps-smoke.cjs",
-    "test:lobby-browser": "node scripts/lobby-smoke.cjs"
+    "test:lobby-browser": "node scripts/lobby-smoke.cjs",
+    "test:loadouts-browser": "node scripts/loadouts-smoke.cjs"
   },
   "engines": {
     "node": ">=20"

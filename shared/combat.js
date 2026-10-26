@@ -9,7 +9,7 @@
     pickaxe:{name:'Iron Pickaxe',damage:23,cooldown:750,range:3},
     sword:{name:'Sword',damage:20,cooldown:450,range:3.2},
     axe:{name:'Axe',damage:32,cooldown:950,range:3.1},
-    mace:{name:'Mace',damage:28,cooldown:1150,range:3.1},
+    mace:{name:'Mace',damage:28,fallDamagePerBlock:10,cooldown:1150,range:3.1},
     bow:{name:'Bow',damage:32,cooldown:400,charge:1000},
     crossbow:{name:'Crossbow',damage:38,cooldown:1800},
     launcher:{name:'Potion Launcher',damage:16,cooldown:750},

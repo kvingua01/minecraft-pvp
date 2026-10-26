@@ -17,7 +17,10 @@
   plague:{name:'Plague Doctor',role:'Damage / support',health:120,armor:.2,speed:1,weapon:'toxicbow',q:ability('Toxic Dart',7500,'Fire a dart that poisons over 5s.'),e:ability('Antidote',10000,'Cleanse an aimed ally and restore 30 health.'),r:ability('Plague Cloud',0,'Create an 8s poison cloud that halves enemy healing.')}
 
  };
+ // Three distinct weapons: personal weapon, a melee backup, and a ranged backup.
+ const kits={knight:['axe','bow'],berserker:['sword','crossbow'],assassin:['dagger','crossbow'],archer:['dagger','crossbow'],paladin:['mace','bow'],alchemist:['dagger','crossbow'],mace:['sword','crossbow'],frost:['sword','bow'],necromancer:['sword','crossbow'],engineer:['pickaxe','bow'],pyromancer:['sword','bow'],samurai:['dagger','bow'],druid:['axe','bow'],plague:['dagger','bow']};
+ for(const [id,[melee,ranged]]of Object.entries(kits))Object.assign(heroes[id],{melee,ranged});
  const has=id=>typeof id==='string'&&Object.hasOwn(heroes,id);
- const loadout=id=>{const primary=heroes[has(id)?id:'knight'].weapon;const backup=heroes[has(id)?id:'knight'].backup;return [primary,...(backup?[backup]:[]),...['sword','axe','mace','bow','crossbow','katana','dagger','pickaxe','staff'].filter(w=>w!==primary&&w!==backup)].slice(0,9);};
+ const loadout=id=>{const hero=heroes[has(id)?id:'knight'];return [hero.weapon,hero.melee,hero.ranged];};
  const api={heroes,has,loadout};if(typeof module!=='undefined')module.exports=api;else root.HeroRules=api;
 })(globalThis);

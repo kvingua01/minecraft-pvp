@@ -35,7 +35,7 @@ test('critical and falling mace attacks add damage; sprint increases knockback',
  const normal=setup();normal.engine.attack(normal.room,normal.a,'attack',10000);const knock=normal.b.kz;
  const sprint=setup();sprint.a.input.sprint=true;sprint.a.input.forward=true;sprint.engine.attack(sprint.room,sprint.a,'attack',10000);assert.ok(Math.abs(sprint.b.kz)>Math.abs(knock));
  const critical=setup();critical.a.vy=-2;critical.engine.attack(critical.room,critical.a,'attack',10000);assert.equal(critical.b.hp,76);
- const mace=setup();mace.a.fallPeak=5;mace.a.vy=-2;mace.engine.select(mace.a,'mace');mace.engine.attack(mace.room,mace.a,'attack',10000);assert.equal(mace.b.hp,38);
+ const mace=setup();mace.a.fallPeak=5;mace.a.vy=-2;mace.engine.select(mace.a,'mace');mace.engine.attack(mace.room,mace.a,'attack',10000);assert.equal(mace.b.hp,26);
 });
 test('spawn protection, death, score, and delayed respawn are authoritative',()=>{
  const {engine,room,a,b,events}=setup();b.protectedUntil=11000;engine.attack(room,a,'attack',10000);assert.equal(b.hp,100);

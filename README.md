@@ -30,7 +30,7 @@ healing and time on objectives; Return to Lobby lets the room choose another map
 | --- | --- |
 | WASD / mouse | Move / look, always first-person |
 | Space / Shift | Jump / sprint |
-| 1–9 | Select an actual hotbar weapon |
+| 1 / 2 / 3 | Personal weapon / melee backup / ranged backup |
 | Left click | Attack; hold/release to draw/fire a bow |
 | Right click | Throw offhand wind charge, with any weapon |
 | Q / E / R | Two class abilities / earned ultimate |
@@ -40,7 +40,7 @@ healing and time on objectives; Return to Lobby lets the room choose another map
 Aim wind charges at your feet outside spawn to launch yourself. They have a
 three-second cooldown and protect the next landing. The offhand remains visible
 while cooling down; failed throws explain spawn protection or cooldown. Mace
-hits made while descending gain seven raw damage per block fallen without the
+hits made while descending gain ten raw damage per block fallen without the
 old bonus cap. Successful descending hits reset accumulated fall and protect the
 landing. Armor/resistance still reduce damage. Ordinary misses do not reset falls.
 
@@ -53,7 +53,7 @@ take six seconds. Spawn sanctuaries protect players and prevent attacks inside.
 
 ## Heroes
 
-Stats, primary weapons, abilities, cooldowns and nine-slot loadouts live in
+Stats, primary weapons, abilities, cooldowns and three-weapon kits live in
 [shared/heroes.js](shared/heroes.js). Ultimates start at zero and are earned by
 real damage, healing allies and objective participation. Death resets charge.
 Changing class during a match queues it for respawn; lobby changes apply at once.
@@ -126,6 +126,7 @@ npm run test:browser
 npm run test:heroes-browser
 npm run test:new-heroes-browser
 npm run test:hero-picker-browser
+npm run test:loadouts-browser
 npm run test:potions-browser
 npm run test:wind-browser
 npm run test:reconnect-browser

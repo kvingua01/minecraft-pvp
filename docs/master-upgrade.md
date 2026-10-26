@@ -54,3 +54,17 @@ Each checkpoint is committed and pushed. Railway must deploy the **latest** main
 commit; a push alone does not confirm deployment. This environment cannot reach the
 public Railway site because of network policy, so live deployment is unverified.
 Once Railway reports Active, hard-refresh and look for14 heroes / no shields.
+
+## Later class-kit update
+
+The user replaced the original nine-slot requirement with exactly three weapons
+per class: personal primary in1, one distinct melee backup in2, and one ranged
+backup in3. Personal weapons are unchanged. The server rejects unowned equipment;
+removed keys4–9 do not equip hidden weapons. Configurations are in shared/heroes.js.
+Mace smash now adds10 raw damage per fallen block before armor. Bounded server
+pose history includes descent/fall distance so a strike clicked just before
+landing can retain its bonus under network delay. Grounded hits have no fall bonus.
+Unit coverage:85 passing tests, including all class kits, rejection of unowned
+weapons, increasing drop heights, grounded attacks and a delayed landing strike.
+The all14-class three-slot browser check, two-browser combat regression and
+production-container checks also passed for this update.

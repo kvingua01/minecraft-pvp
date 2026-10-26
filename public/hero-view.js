@@ -10,7 +10,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   $(selector).value=value;grid.dataset.selected=value;
   for(const button of $(selector+'-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.hero===value));
  }
- function describe(){const h=H.heroes[$('#hero').value];$('#hero-description').textContent=`${h.health} HP · ${Math.round(h.armor*100)}% armor · ${h.weapon}\nQ — ${h.q.name}: ${h.q.description}\nE — ${h.e.name}: ${h.e.description}\nR — ${h.r.name}: ${h.r.description}`;}
+ function describe(){const h=H.heroes[$('#hero').value];$('#hero-description').textContent=`${h.health} HP · ${Math.round(h.armor*100)}% armor · ${h.weapon} · backups: ${h.melee} / ${h.ranged}\nQ — ${h.q.name}: ${h.q.description}\nE — ${h.e.name}: ${h.e.description}\nR — ${h.r.name}: ${h.r.description}`;}
  function queueHero(id){
   if(!socket.connected||!getSelf()){$('#class-note').textContent='Reconnect before choosing your next hero.';return;}
   queuedHero=id;paintPicker('#next-hero',id);$('#class-note').textContent=`${H.heroes[id].name} selected for your next respawn.`;
