@@ -18,11 +18,35 @@ npm start
 
 The server binds `0.0.0.0` and `PORT` (default 3000). `/health` reports readiness,
 version and revision. Create Lobby, share the six-character code, and choose a
-team and class. The host selects a map and starts once each team has a connected
-player. Other players click Resume after starting to capture the mouse. Lobbies
+team and class. The host selects a map and starts once each team has an active
+participant. The optional balancing-bot setting lets a solo host start against a bot. Other players click Resume after starting to capture the mouse. Lobbies
 allow five players per team. The host transfers immediately on disconnect.
 Only the host can select a map or start. Results include eliminations, deaths,
 healing and time on objectives; Return to Lobby lets the room choose another map.
+
+## Host-controlled balancing bots
+
+Before Start Match, the host can enable **Automatically balance teams with bots**.
+Only the host can change this setting, and only in the lobby. It starts disabled.
+Bots fill only the smaller connected-human team, up to the five-per-team limit:
+
+| Human teams | Bots added |
+| --- | --- |
+| 1 Red / 0 Blue | 1 Blue bot |
+| 2 Red / 1 Blue | 1 Blue bot |
+| 3 Red / 1 Blue | 2 Blue bots |
+| 2 Red / 2 Blue | None |
+
+Counts update after human joins, departures, team changes and reconnects. Humans
+replace bot seats, including in a full room. Reconnecting humans keep their reserved
+seats, so bot additions never overfill a team. Bots cannot become host, and rooms
+are removed when their last human leaves. The lobby, roster and connection display
+clearly label bots separately from humans.
+
+These are server-controlled Knight players, not decorative/fake participants.
+They navigate shared map collisions, move to objectives, fight using ordinary
+melee/bow rules, take damage, die and respawn normally. Bot pathfinding covers all
+six maps and avoids lava/void routes. They do not currently cast hero abilities.
 
 ## Controls
 
@@ -160,6 +184,7 @@ npm run test:wind-browser
 npm run test:reconnect-browser
 npm run test:maps-browser
 npm run test:lobby-browser
+npm run test:bots-browser
 npm run test:network-browser
 ```
 

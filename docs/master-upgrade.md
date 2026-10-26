@@ -81,3 +81,18 @@ weapon. Same-class layouts are retained while potion charges refill on respawn.
 no-loss closing, no hidden attacks, private replication and reconnect preservation.
 The real-browser inventory, all14 class-kit, combat, potion/audio and reconnect
 regressions passed; the production image built and passed its smoke checks.
+
+## Later host-balancing bot update
+
+The host can enable automatic team-balancing bots in the lobby. Bots fill only
+the smaller connected-human team and are removed when human teams become equal.
+Human joins replace bot seats. Team caps and reconnect reservations are respected.
+Only humans can host; last-human departure removes the room and all its bots.
+Bots are explicitly labeled Knight AI players with server-owned navigation, actual
+melee/bow combat, capture, health, deaths and six-second respawns. They cannot
+teleport or deal unvalidated damage. Nav routes and physical capture are tested
+on all six maps; bots currently use weapons rather than class ability casts.
+105 server tests, the two-browser bot/lobby checks, and the production image
+passed. Coverage includes team-size differences, even-team removal, replacing
+bots with humans in full rooms, host authority, sanctuary exit, normal combat/
+respawn, physical capture on six maps, reconnect reservations and room cleanup.
