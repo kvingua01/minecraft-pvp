@@ -43,7 +43,7 @@ seats, so bot additions never overfill a team. Bots cannot become host, and room
 are removed when their last human leaves. The lobby, roster and connection display
 clearly label bots separately from humans.
 
-These are server-controlled Knight players, not decorative/fake participants.
+These are server-controlled players choosing from all 14 class kits, not decorative/fake participants.
 They navigate shared map collisions, move to objectives, fight using ordinary
 melee/bow rules, take damage, die and respawn normally. Bot pathfinding covers all
 six maps and avoids lava/void routes. They do not currently cast hero abilities.

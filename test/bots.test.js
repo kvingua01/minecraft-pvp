@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),{Combat}=require('../lib/combat'),{Heroes}=require('../lib/heroes'),{Potions}=require('../lib/potions'),{Objective}=require('../lib/objective'),{BalanceBots}=require('../lib/bots'),W=require('../shared/world'),Nav=require('../lib/bot-navigation');
-function fixture(red=1,blue=0,map='castle'){const c=new Combat(()=>{});c.heroes=new Heroes(c);c.potions=new Potions(c);c.bots=new BalanceBots(c);c.map=map;const room=new Map(),match=new Objective('human-red-0');match.mapId=map;match.locations=W.getMap(map).points;match.reset();match.phase='lobby';match.balanceBots=true;for(const [team,count]of [['red',red],['blue',blue]])for(let i=0;i<count;i++){const index=team==='red'?1+i*2:i*2,p={...W.spawn(index),id:'human-'+team+'-'+i,name:'Human '+i,hero:'knight',team,map,connected:true,life:0,input:{},lastInput:0};c.init(p,index,10000);room.set(p.id,p);}return {c,room,match};}
+function fixture(red=1,blue=0,map='castle'){const c=new Combat(()=>{});c.heroes=new Heroes(c);c.potions=new Potions(c);c.bots=new BalanceBots(c,()=>0);c.map=map;const room=new Map(),match=new Objective('human-red-0');match.mapId=map;match.locations=W.getMap(map).points;match.reset();match.phase='lobby';match.balanceBots=true;for(const [team,count]of [['red',red],['blue',blue]])for(let i=0;i<count;i++){const index=team==='red'?1+i*2:i*2,p={...W.spawn(index),id:'human-'+team+'-'+i,name:'Human '+i,hero:'knight',team,map,connected:true,life:0,input:{},lastInput:0};c.init(p,index,10000);room.set(p.id,p);}return {c,room,match};}
 const bots=room=>[...room.values()].filter(p=>p.isBot);
 test('balancing adds only the difference on the smaller human team and none for equal teams',()=>{for(const [r,b,n,team]of [[1,0,1,'blue'],[2,1,1,'blue'],[1,3,2,'red'],[3,1,2,'blue'],[2,2,0,null],[0,0,0,null],[5,0,5,'blue']]){const {c,room,match}=fixture(r,b);c.bots.reconcile(room,match,10000);assert.equal(bots(room).length,n);assert.ok(bots(room).every(p=>p.team===team));assert.ok(room.size<=10);for(const t of ['red','blue'])assert.ok([...room.values()].filter(p=>p.team===t).length<=5);c.bots.reconcile(room,match,10001);assert.equal(bots(room).length,n);}});
 test('joining humans replace bots, equal human teams remove them, and disabling clears bot-owned combat state',()=>{const {c,room,match}=fixture(2,1);c.bots.reconcile(room,match,10000);const bot=bots(room)[0];c.projectiles.push({owner:bot.id});c.heroes.effects.push({owner:bot.id});room.set('new-human',{id:'new-human',team:'blue',connected:true});c.bots.reconcile(room,match,10001);assert.equal(bots(room).length,0);assert.equal(c.projectiles.length,0);assert.equal(c.heroes.effects.length,0);room.delete('new-human');c.bots.reconcile(room,match,10002);assert.equal(bots(room).length,1);match.balanceBots=false;c.bots.reconcile(room,match,10003);assert.equal(bots(room).length,0);});
@@ -12,3 +12,25 @@ test('bots physically reach and capture an objective on every selectable map',()
 
 test('enemies near the sanctuary cannot make a bot stop inside spawn',()=>{const {c,room,match}=fixture();c.bots.reconcile(room,match,10000);match.phase='playing';const bot=bots(room)[0],human=room.get('human-red-0');Object.assign(bot,{x:25,y:.61,z:0,protectedUntil:0});Object.assign(human,{x:21,y:.61,z:0,protectedUntil:0});c.bots.tick(room,match,15000);assert.equal(bot.input.forward,true);for(let i=0;i<120;i++){c.bots.tick(room,match,15000+i*1000/60);c.tick(room,15000+i*1000/60,1/60);}assert.ok(bot.x<22,'bot must exit sanctuary before firing');});
 test('temporary disconnects fill active-team gaps without stealing reserved human seats',()=>{const one=fixture(1,1);[...one.room.values()].find(p=>p.team==='blue').connected=false;one.c.bots.reconcile(one.room,one.match,10000);assert.equal(bots(one.room).length,1);assert.deepEqual(one.match.humanCounts,{red:1,blue:0});const full=fixture(5,5);for(const p of full.room.values())if(p.team==='blue')p.connected=false;full.c.bots.reconcile(full.room,full.match,10000);assert.equal(full.room.size,10);assert.equal(bots(full.room).length,0);});
+
+
+test('bots choose every available kit before repeating and retain their kit after respawn',()=>{
+ const {c,room,match}=fixture(),H=require('../shared/heroes'),chosen=[];
+ for(let i=0;i<Object.keys(H.heroes).length;i++){
+  c.bots.reconcile(room,match,10000);const bot=bots(room)[0];chosen.push(bot.hero);
+  assert.ok(bot.name.includes(H.heroes[bot.hero].name));assert.equal(bot.maxHp,H.heroes[bot.hero].health);
+  const hero=bot.hero;bot.hp=0;bot.deadUntil=11000;c.tick(room,11000,1/60);assert.equal(bot.hero,hero);
+  c.bots.remove(room,bot);
+ }
+ assert.deepEqual(chosen,Object.keys(H.heroes));
+});
+test('every bot kit uses its personal weapon at the correct distance and its own backup otherwise',()=>{
+ const H=require('../shared/heroes'),C=require('../shared/combat');
+ for(const hero of Object.keys(H.heroes))for(const distance of [1.8,8]){
+  const {c,room,match}=fixture();c.bots.kits=[hero];c.bots.reconcile(room,match,10000);match.phase='playing';
+  const bot=bots(room)[0],human=room.get('human-red-0');Object.assign(bot,{x:0,y:0,z:10,protectedUntil:0});Object.assign(human,{x:0,y:0,z:10-distance,protectedUntil:0});
+  const attacks=[];c.attack=(room,p,kind)=>attacks.push(kind);c.bots.tick(room,match,15000);
+  const h=H.heroes[hero],expected=distance<2?(C.weapons[h.weapon].range?h.weapon:h.melee):(C.weapons[h.weapon].range?h.ranged:h.weapon);
+  assert.equal(bot.weapon,expected,hero+' distance '+distance);assert.deepEqual(attacks,[expected==='bow'?'draw':'attack']);
+ }
+});

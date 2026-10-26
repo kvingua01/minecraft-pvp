@@ -88,7 +88,7 @@ The host can enable automatic team-balancing bots in the lobby. Bots fill only
 the smaller connected-human team and are removed when human teams become equal.
 Human joins replace bot seats. Team caps and reconnect reservations are respected.
 Only humans can host; last-human departure removes the room and all its bots.
-Bots are explicitly labeled Knight AI players with server-owned navigation, actual
+Bots are explicitly labeled AI players choosing from all 14 class kits with server-owned navigation, actual
 melee/bow combat, capture, health, deaths and six-second respawns. They cannot
 teleport or deal unvalidated damage. Nav routes and physical capture are tested
 on all six maps; bots currently use weapons rather than class ability casts.
