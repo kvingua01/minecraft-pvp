@@ -24,3 +24,5 @@
 .map-choice{grid-column:1;grid-row:4}.map-choice select{width:100%;display:block;padding:7px;margin-top:5px}#create{grid-row:5}.join-row{grid-row:6}#join-form>.hero-picker{grid-row:1/7}
 
 #lobby .panel{width:760px}#lobby select{display:block;width:100%;padding:8px;margin:6px 0 15px}#lobby-players{text-align:left;white-space:pre-wrap;background:#1118;border:2px solid #777;padding:15px;line-height:1.8;font-size:12px;max-height:230px;overflow:auto}#lobby-class-info{font-size:11px;white-space:pre-line;line-height:1.8}#lobby-error{color:#ffae93;min-height:18px}
+
+#hearts canvas,#armor-icons canvas{width:24px;height:24px;image-rendering:pixelated;vertical-align:middle;margin-right:-3px}#armor-icons canvas{width:20px;height:20px}#hearts{display:flex;flex-wrap:wrap;max-width:220px}#armor-icons{display:flex;max-width:210px}

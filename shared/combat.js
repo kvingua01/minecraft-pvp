@@ -16,7 +16,7 @@
     staff:{name:'Frost Staff',damage:16,cooldown:650}
   };
   const equipment={helmet:.04,chestplate:.08,leggings:.05,boots:.03};
-  const slots=['sword','axe','mace','bow','crossbow','katana','dagger','pickaxe'], maxHealth=100,armor=Object.values(equipment).reduce((a,b)=>a+b,0),respawnDelay=6000;
+  const slots=['sword','axe','mace','bow','crossbow','katana','dagger','pickaxe','staff'], maxHealth=100,armor=Object.values(equipment).reduce((a,b)=>a+b,0),respawnDelay=6000;
   function direction(yaw,pitch=0){return {x:-Math.sin(yaw)*Math.cos(pitch),y:Math.sin(pitch),z:-Math.cos(yaw)*Math.cos(pitch)};}
   // Slab intersection returns the distance along a normalized ray, including starting inside.
   function rayBox(origin,dir,min,max,limit=Infinity){

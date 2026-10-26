@@ -40,3 +40,16 @@ rejection of forged damage, real ping/FPS display and graphics controls. Chromiu
 uses SwiftShader in this environment: those frame times do not establish hardware
 or Chromebook performance. Run on an actual Chromebook with ten players before
 claiming a target FPS. Hero balance still needs real-player playtesting.
+
+## Fourteen-hero master upgrade
+
+The expanded world now shares a512px atlas of original16px tiles and a single
+merged world mesh. Pixel tools and summon bodies use merged geometry; summoned
+units are capped40 per room and pixel particles160. Hidden tabs stop rendering.
+
+Final ten-client jitter run:217ms RTT,173 maximum sampled draw calls,83.3ms median
+and383.4ms p95 frame intervals in headless SwiftShader. These are functional smoke
+measurements from this cloud host, not a hardware FPS target or Chromebook result.
+The expanded collision benchmark reported130.55ms median per30,000 steps, with10
+actors; terrain and movement complexity differ from the old baseline above.
+Hardware frame rates, human balance and crowded summon movement remain unverified.

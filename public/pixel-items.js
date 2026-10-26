@@ -9,6 +9,8 @@ export function itemPixels(key){const grid=Array.from({length:16},()=>Array(16).
   if(key==='axe')for(let y=5;y<9;y++)for(let x=8;x<13;x++)put(x,y,x===12?'H':'I');else {put(3,4,'I');put(2,5,'I');put(13,5,'I');put(13,6,'#');}
  }else if(key==='mace'){
   for(let y=6;y<16;y++){put(7,y,'B');put(8,y,'#');}for(let y=2;y<8;y++)for(let x=4;x<12;x++)put(x,y,x===4||x===11||y===2||y===7?'#':y===4?'G':'P');
+ }else if(key==='bow'){for(let y=1;y<15;y++){const x=Math.round(10-Math.sin(y/15*Math.PI)*5);put(x,y,'B');put(11,y,'H');}for(let x=4;x<14;x++)put(x,8,'G');
+ }else if(key==='crossbow'||key==='toxicbow'){for(let y=4;y<15;y++)put(8,y,'B');for(let x=2;x<14;x++){put(x,5,'#');put(x,6,'I');}for(let x=3;x<13;x++)put(x,9,'H');
  }else {for(let y=3;y<16;y++)put(7,y,'B');for(let y=0;y<5;y++)for(let x=5;x<10;x++)put(x,y,x===5||x===9?'#':'P');}
  return grid;
 }
@@ -17,4 +19,4 @@ export function pixelTool(group,key){if(!cache.has(key)){
  for(let y=0;y<16;y++)for(let x=0;x<16;x++){const char=pixels[y][x];if(char==='.')continue;if(!batches.has(char))batches.set(char,{p:[],n:[]});const b=batches.get(char);for(let j=0;j<36;j++){const i=template.index.getX(j),p=template.attributes.position,n=template.attributes.normal;b.p.push((p.getX(i)+x-7.5)*.055,(p.getY(i)+15-y)*.055,p.getZ(i)*.055);b.n.push(n.getX(i),n.getY(i),n.getZ(i));}}
  const parts=[];for(const [char,b]of batches){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(b.p,3));geometry.setAttribute('normal',new THREE.Float32BufferAttribute(b.n,3));parts.push({geometry,material:new THREE.MeshLambertMaterial({color:colors[char]})});}cache.set(key,parts);template.dispose();
  }for(const part of cache.get(key))group.add(new THREE.Mesh(part.geometry,part.material));}
-export function itemIcon(key){const canvas=document.createElement('canvas');canvas.width=canvas.height=16;const ctx=canvas.getContext('2d');const grid=itemPixels(['bow','crossbow','staff','launcher'].includes(key)?'staff':key);for(let y=0;y<16;y++)for(let x=0;x<16;x++){const c=colors[grid[y][x]];if(c){ctx.fillStyle='#'+c.toString(16).padStart(6,'0');ctx.fillRect(x,y,1,1);}}return canvas.toDataURL();}
+export function itemIcon(key){const canvas=document.createElement('canvas');canvas.width=canvas.height=16;const ctx=canvas.getContext('2d');const grid=itemPixels(key);for(let y=0;y<16;y++)for(let x=0;x<16;x++){const c=colors[grid[y][x]];if(c){ctx.fillStyle='#'+c.toString(16).padStart(6,'0');ctx.fillRect(x,y,1,1);}}return canvas.toDataURL();}

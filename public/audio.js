@@ -10,12 +10,13 @@ export function createAudio({socket,getSelf,getPlayers,isActive}){
  socket.on('combat',e=>{if(!getSelf())return;const volume=e.target===getSelf().id?1:level(e.source||e.target);if(!volume)return;
   if(e.type==='attack')tone(e.weapon==='bow'||e.weapon==='crossbow'?420:e.weapon==='mace'?90:e.weapon==='axe'?130:210,.11,'triangle',volume);
 
+  if(e.type==='wind-throw'||e.type==='wind-burst')tone(520,.13,'sine',volume*.4);
   if(e.type==='hit'&&performance.now()-lastTone>60){lastTone=performance.now();tone(e.target===getSelf().id?95:e.critical?1100:740,.09,'triangle',e.target===getSelf().id ? .8 : volume);}
   if(e.type==='kill'&&e.source===getSelf().id){tone(660,.12);tone(990,.15,'triangle',1,.12);}
  });
  socket.on('hero',e=>{if(!getSelf())return;if(e.type==='ability')tone(e.key==='r'?220:520,.2,'sine',level(e.source));if(e.type==='heal'&&e.target===getSelf().id&&performance.now()-lastTone>180){lastTone=performance.now();tone(880,.1,'sine',.6);}});
  socket.on('potion',e=>{if(!getSelf())return;const self=getSelf(),volume=e.type==='splash'?Math.max(0,1-Math.hypot(e.x-self.x,e.y-self.y,e.z-self.z)/18)*.7:level(e.source);tone(e.type==='splash'?330:e.type==='drink'?720:470,.15,'sine',volume);});
- function snapshot(state){if(!getSelf()||!state.match)return;const m=state.match;if(m.control&&m.control!==control){tone(m.control===getSelf().team?660:180,.2);tone(m.control===getSelf().team?880:140,.2,'triangle',1,.15);}control=m.control;if(m.winner&&m.winner!==winner){for(let i=0;i<3;i++)tone((m.winner===getSelf().team?440:220)*[1,1.25,1.5][i],.25,'sine',1,i*.18);}winner=m.winner;}
+ function snapshot(state){if(!getSelf()||!state.match)return;const m=state.match;const ownership=(m.points||[]).map(p=>p.control||'neutral').join(':');if(control&&ownership!==control){tone(660,.15,'sine',.6);}control=ownership;if(m.winner&&m.winner!==winner){for(let i=0;i<3;i++)tone((m.winner===getSelf().team?440:220)*[1,1.25,1.5][i],.25,'sine',1,i*.18);}winner=m.winner;}
  function frame(now){const p=getSelf();if(!p||!isActive()||p.hp<=0){previous=null;return;}if(owner!==p.id){owner=p.id;previous=null;walked=0;}if(previous){const delta=Math.hypot(p.x-previous.x,p.z-previous.z);if(delta<.7&&p.grounded)walked+=delta;else walked=0;}previous={x:p.x,z:p.z};if(walked>1.5&&now-lastStep>160){walked=0;lastStep=now;tone(85,.045,'triangle',.22);}}
  function clear(){previous=null;walked=0;control=null;winner=null;}
  return {snapshot,frame,clear,diagnostics:()=>({state:context?.state||'unstarted',tones,volume:Number(slider.value)})};

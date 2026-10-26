@@ -11,13 +11,14 @@
  if(id==='castle'){
  hazards.push({x:-10,y:0,z:20,radius:.95},{x:10,y:0,z:-20,radius:.95});
  boxes.push(...base.filter(b=>!(b.w===64&&b.d===64)&&!(b.x===0&&Math.abs(b.z)===19)));
- add(-18,-1,0,28,2,64,'grass');add(18,-1,0,28,2,64,'grass');add(0,-1,-10,8,2,44,'grass');add(0,-1,28,8,2,8,'grass');add(0,-4.1,18,8,.2,12,'cracked');
+ add(-18,-1,0,28,2,64,'grass');add(18,-1,0,28,2,64,'grass');add(0,-1,-10,8,2,44,'grass');add(0,-1,28,8,2,8,'grass');add(0,-4.1,18,8,.2,12,'cracked');add(0,.12,18.5,8,.24,5,'bricks');
  for(let i=0;i<8;i++){const top=-.5*(i+1);if(top>-4)add(0,(-4+top)/2,12.25+i*.5,3,top+4,.5,'cracked');}
+ for(let i=0;i<7;i++){const top=-.5*(i+1);add(0,(-4+top)/2,23.75-i*.5,3,top+4,.5,'cracked');}
  for(const side of [-1,1]){add(side*3.8,-2,18,.4,4,12,'cracked');add(side*3.5,-1.6,20,.15,.7,.15,'torch',false);}
  tower(0,-18,3);stairs(0,-10,3,'z',-1);points[0].y=3;points[2].y=-4;points[0].name='Castle Tower';points[1].name='Central Courtyard';points[2].name='Underground Dungeon';
  }else if(id==='sky'){
  for(const [x,z,w,d]of [[-25,0,14,18],[25,0,14,18],[0,0,18,18],[0,-18,14,14],[0,18,14,14]]){add(x,-1,z,w,2,d,'grass');add(x,-3,z,w-3,2,d-3,'stone');add(x,-5,z,w-6,2,d-6,'stone');}
- for(const side of [-1,1]){platform(side*13,0,0,10,3,'oak');platform(0,0,side*10,3,6,'oak');tree(side*25,5);add(side*27,-6,4,1,12,1,'water',false);for(let n=-4;n<=4;n+=2){add(side*13+n,1,1.6,.12,1.8,.12,'fence');add(side*13+n,1,-1.6,.12,1.8,.12,'fence');}}
+ for(const side of [-1,1]){for(const lane of [-5,5]){platform(side*13,.35,lane,10,2,'oak');platform(lane,.35,side*10,2,8,'oak');}platform(side*13,0,0,10,3,'oak');platform(0,0,side*10,3,6,'oak');tree(side*25,5);add(side*27,-6,4,1,12,1,'water',false);for(let n=-4;n<=4;n+=2){add(side*13+n,1,1.6,.12,1.8,.12,'fence');add(side*13+n,1,-1.6,.12,1.8,.12,'fence');}}
  for(const z of [-18,18]){platform(0,.24,z);for(const x of [-4,4])add(x,1.5,z+3,1,3,1,'cracked');}platform(0,.24,0);points[0].name='Northern Island';points[1].name='Main Central Island';points[2].name='Southern Island';
  }else{
  const floor=id==='frozen'?'snow':id==='desert'?'sand':id==='jungle'?'grass':'stone';add(0,-1,0,64,2,64,floor);

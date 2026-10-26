@@ -14,7 +14,10 @@
     "test:production": "node scripts/production-smoke.cjs",
     "benchmark:physics": "node scripts/benchmark-physics.cjs",
     "build:production": "node scripts/build-production.cjs",
-    "test:wind-browser": "node scripts/wind-smoke.cjs"
+    "test:wind-browser": "node scripts/wind-smoke.cjs",
+    "test:new-heroes-browser": "node scripts/new-heroes-smoke.cjs",
+    "test:maps-browser": "node scripts/maps-smoke.cjs",
+    "test:lobby-browser": "node scripts/lobby-smoke.cjs"
   },
   "engines": {
     "node": ">=20"

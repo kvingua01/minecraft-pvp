@@ -169,7 +169,7 @@ function frame(now){
   const visualKey=potionActive?'flask:'+r.target.potionKind:r.target.weapon;
   if(r.weaponKey!==visualKey){r.weaponKey=visualKey;combat.buildWeapon(r.weapon,r.weaponKey,true);r.styleKey=null;}
   r.weapon.position.y=.9;
-  const cooldown=window.CombatRules.weapons[r.target.weapon].cooldown,duration=r.weaponKey==='crossbow'?cooldown:Math.min(cooldown,800);
+  const cooldown=window.CombatRules.weapons[r.target.weapon].cooldown,duration=['crossbow','toxicbow'].includes(r.weaponKey)?cooldown:Math.min(cooldown,800);
   const phase=Math.min(1,Math.max(0,(combat.serverNow()-(r.target.attackAt||0))/duration));combat.animateWeapon(r.weapon,r.weaponKey,phase);
   if(potionActive){const t=potionAge/(window.PotionRules.items[r.target.potionKind].splash?400:650);r.weapon.position.y=.9+Math.sin(t*Math.PI)*.5;r.weapon.rotation.x=-Math.sin(t*Math.PI)*.9;}
   if(r.weaponKey==='bow'){
