@@ -9,6 +9,7 @@ import {createVoxelLook} from '/voxel-look.js';
 import {skinMaterial,heroColors} from '/skins.js';
 import {createParticles} from '/particles.js';
 import {createUnitsView} from '/units-view.js';
+import {createLobby} from '/lobby.js';
 const $=s=>document.querySelector(s), World=window.VoxelWorld;
 const menu=$('#menu'), pause=$('#pause'), canvas=$('#world'), loading=$('#loading');
 let renderer;
@@ -42,7 +43,8 @@ const audio=createAudio({socket,getSelf:()=>self,getPlayers:()=>self?[self,...[.
 const heroView=createHeroView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished,serverNow:combat.serverNow});
 const runtime=createRuntime({renderer,socket,getSelf:()=>self,isActive:()=>locked&&!reconnecting&&!objective.finished,syncClock:combat.syncClock});
 const objective=createObjectiveView({scene,socket,getSelf:()=>self,clearKeys:()=>keys.clear()});
-function controls(){const active=locked&&!document.hidden&&!reconnecting&&socket.connected&&self?.hp>0;return {forward:active&&keys.has('KeyW'),back:active&&keys.has('KeyS'),left:active&&keys.has('KeyA'),right:active&&keys.has('KeyD'),jump:active&&keys.has('Space'),sprint:active&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:active&&combat.isBlocking()};}
+const lobby=createLobby({socket,getSelf:()=>self,onStarted:()=>{pause.hidden=false;$('#pause-error').textContent='Match started. Click resume to play.';}});
+function controls(){const active=objective.match?.phase!=='lobby'&&locked&&!document.hidden&&!reconnecting&&socket.connected&&self?.hp>0;return {forward:active&&keys.has('KeyW'),back:active&&keys.has('KeyS'),left:active&&keys.has('KeyA'),right:active&&keys.has('KeyD'),jump:active&&keys.has('Space'),sprint:active&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:active&&combat.isBlocking()};}
 function acceptSession(result,recovered=false){
  setMap(result.match?.map);
  ownId=result.id;roomCode=result.code;resumeToken=result.resumeToken;self={...result.player};yaw=self.yaw;pitch=self.pitch||0;keys.clear();correction.set(0,0,0);reconnecting=false;
@@ -50,10 +52,11 @@ function acceptSession(result,recovered=false){
  $('#resume').textContent='Click to resume';$('#network-banner').hidden=true;menu.hidden=true;$('#hud').hidden=false;$('#room-label').textContent=`ROOM ${roomCode}`;loading.hidden=true;
  pause.hidden=false;objective.update(result.match,[result.player]);
  if(recovered){pause.hidden=objective.finished;$('#pause-error').textContent='Reconnected. Click resume to continue.';}
- else if(!objective.finished)requestLock();
+ else if(!objective.finished&&result.match.phase!=='lobby')requestLock();
+ lobby.update(result.match,[result.player]);
 }
 function endSession(message=''){
- self=null;ownId=null;resumeToken='';reconnecting=false;keys.clear();clearPlayers();document.exitPointerLock();pause.hidden=true;$('#hud').hidden=true;menu.hidden=false;$('#network-banner').hidden=true;$('#error').textContent=message;setButtons(false);
+ lobby.clear();self=null;ownId=null;resumeToken='';reconnecting=false;keys.clear();clearPlayers();document.exitPointerLock();pause.hidden=true;$('#hud').hidden=true;menu.hidden=false;$('#network-banner').hidden=true;$('#error').textContent=message;setButtons(false);
  for(const selector of ['#resume','#next-hero','#restart'])$(selector).disabled=false;$('#resume').textContent='Click to resume';
 }
 function resumeSession(attempt=0){
@@ -80,7 +83,7 @@ function join(create) {
 $('#create').onclick=()=>join(true);$('#join-form').onsubmit=e=>{e.preventDefault();join(false);};
 function requestLock(){ if(!socket.connected||reconnecting)return;$('#pause-error').textContent='';try{const promise=canvas.requestPointerLock();promise?.catch(()=>{$('#pause-error').textContent='Click resume to allow mouse capture.';});}catch{$('#pause-error').textContent='Mouse capture unavailable. Use a desktop browser.';}}
 $('#resume').onclick=requestLock;canvas.onclick=()=>{if(self&&!locked)requestLock();};
-document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;keys.clear();pause.hidden=!self||locked||objective.finished;if(self)socket.volatile.emit('input',controls());});
+document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;keys.clear();pause.hidden=!self||locked||objective.finished||objective.match?.phase==='lobby';if(self)socket.volatile.emit('input',controls());});
 document.addEventListener('pointerlockerror',()=>{$('#pause-error').textContent='Mouse capture was denied. Click resume and allow it in your browser.';});
 document.addEventListener('mousemove',e=>{if(locked){const sensitivity=Number($('#sensitivity').value)*.0005;yaw-=e.movementX*sensitivity;pitch=THREE.MathUtils.clamp(pitch-e.movementY*sensitivity,-1.5,1.5);}});
 window.addEventListener('keydown',e=>{if(!self)return;if(e.code==='Escape'){document.exitPointerLock();return;}if(['Tab','Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code))e.preventDefault();if(e.code==='Tab'){tab=true;updateRoster();}if(locked){keys.add(e.code);if(e.code==='Space'&&!e.repeat&&self.hp>0)self.jumpQueued=true;if(movementKeys.has(e.code)&&!e.repeat&&socket.connected&&!reconnecting)socket.emit('input',controls());}});
@@ -141,7 +144,7 @@ socket.on('state',state=>{
   ids.add(p.id);let remote=remotes.get(p.id);
   if(!remote){remote=makeAvatar(p,state.serverTime);remotes.set(p.id,remote);}else {const reset=p.life!==remote.target.life||Math.hypot(p.x-remote.target.x,p.y-remote.target.y,p.z-remote.target.z)>12;remote.speed=reset?0:Math.hypot(p.x-remote.target.x,p.z-remote.target.z)/Math.max(.001,(state.serverTime-remote.lastTime)/1000);window.ArenaNetwork.remember(remote.history,p,state.serverTime,reset);remote.target=p;remote.lastTime=state.serverTime;}
  }
- for(const [id,r]of remotes)if(!ids.has(id)){removeRemote(r);remotes.delete(id);}heroView.snapshot(state);unitsView.snapshot(state);audio.snapshot(state);updateRoster();objective.update(state.match,state.players);
+ for(const [id,r]of remotes)if(!ids.has(id)){removeRemote(r);remotes.delete(id);}heroView.snapshot(state);unitsView.snapshot(state);audio.snapshot(state);updateRoster();objective.update(state.match,state.players);lobby.update(state.match,state.players);
 });
 document.addEventListener('visibilitychange',()=>{keys.clear();if(self)self.jumpQueued=false;if(document.hidden){document.exitPointerLock();if(self&&socket.connected&&!reconnecting)socket.emit('input',controls());}last=performance.now();accumulator=0;});
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();viewCamera.aspect=camera.aspect;viewCamera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});

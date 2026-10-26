@@ -23,14 +23,14 @@ export function createObjectiveView({scene,socket,getSelf,clearKeys}){
       $('#results').hidden=false;$('#pause').hidden=true;$('#death').hidden=true;
       $('#result-title').textContent=match.winner===self.team?'VICTORY':'DEFEAT';$('#result-title').className=match.winner;
       $('#result-score').textContent=`RED ${Math.floor(match.scores.red)} · BLUE ${Math.floor(match.scores.blue)}`;
-      $('#result-players').textContent=['red','blue'].map(team=>team.toUpperCase()+' TEAM\n'+players.filter(p=>p.team===team).map(p=>`${p.name} · ${p.kills} K / ${p.deaths} D`).join('\n')).join('\n\n');
-      $('#restart').hidden=match.host!==self.id;$('#host-message').hidden=match.host===self.id;
+      $('#result-players').textContent=['red','blue'].map(team=>team.toUpperCase()+' TEAM\n'+players.filter(p=>p.team===team).map(p=>`${p.name} · ${p.kills} K / ${p.deaths} D · ${Math.round(p.healingDone||0)} healed · ${Math.round(p.objectiveTime||0)}s objective`).join('\n')).join('\n\n');
+      $('#restart').textContent=match.lobbyEnabled?'Return to Lobby':'Start Rematch';$('#restart').hidden=match.lobbyEnabled?false:match.host!==self.id;$('#host-message').hidden=match.host===self.id;
     }else{
       $('#results').hidden=true;
       if(finished){finished=false;$('#pause').hidden=false;$('#pause-error').textContent='New match ready. Click resume to play.';}
     }
   }
-  $('#restart').onclick=()=>{socket.timeout(5000).emit('restart',{},(error,result)=>{$('#results-error').textContent=error?'Server did not respond. Retry.':result?.error||'';});};
+  $('#restart').onclick=()=>{socket.timeout(5000).emit(match?.lobbyEnabled?'lobby-return':'restart',{},(error,result)=>{$('#results-error').textContent=error?'Server did not respond. Retry.':result?.error||'';});};
   $('#results-leave').onclick=()=>$('#leave').click();
   function clear(){match=null;finished=false;$('#objective-hud').hidden=true;$('#results').hidden=true;$('#results-error').textContent='';for(const m of markers.values()){scene.remove(m.group);m.group.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});}markers.clear();}
   return {update,clear,get match(){return match;},get finished(){return finished;}};

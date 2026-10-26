@@ -14,7 +14,7 @@ models, shield breaking, or shield audio. Wind charges remain for every weapon.
 3. Three simultaneous server-owned points, ten-second solo capture, capped teammate acceleration, neutralization, independent contesting and income, first to 300, six-second respawns.
 4. Fourteen playable classes; all Q/E/R implemented. Server-owned skeletons, zombie, turrets, repair station and guardian have health, targeting, collisions and finite lifetimes. Timed sword parry, poison, cleanse, roots and healing reduction are validated. 80 server tests, 14-class picker and real new-class Q/E/R browser input passed.
 5. Six distinct map layouts, protected spawns, three locations each, tested walking routes, half-block stepping, Sky void deaths, lava and lower-friction ice. Atlas rendering and replicated map selection checked in a browser.
-6. Host-selected map lobby and lifecycle: pending.
+6. Public servers require a lobby. Host-only map/start, team/class changes, real roster, results with healing/objective time, Return to Lobby and immediate host transfer. 84 server tests and a two-browser lifecycle check passed. Combat regression fixtures explicitly use constructor-only autoStart; clients cannot enable it.
 7. Integration / performance / deployment validation: pending.
 
 Phase 1/2 checks: unit suite and two-browser combat regression; render checked in

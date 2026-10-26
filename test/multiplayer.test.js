@@ -5,7 +5,7 @@ const {createGameServer}=require('../server');
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function once(socket,event){return new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Timed out: '+event)),3000);socket.once(event,data=>{clearTimeout(timer);resolve(data);});});}
 test('real clients share authoritative movement; rooms isolate players and clean up',async()=>{
- const game=createGameServer();await new Promise(r=>game.server.listen(0,'127.0.0.1',r));
+ const game=createGameServer({autoStart:true});await new Promise(r=>game.server.listen(0,'127.0.0.1',r));
  const base=`http://127.0.0.1:${game.server.address().port}`;
  const clients=[];
  async function client(){const s=io(base,{transports:['websocket'],forceNew:true});clients.push(s);await once(s,'connect');return s;}

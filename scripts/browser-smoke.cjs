@@ -2,7 +2,7 @@ const {chromium}=require('playwright');
 const {createGameServer}=require('../server');
 const assert=require('node:assert/strict');
 (async()=>{
- const game=createGameServer();await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${game.server.address().port}`;
+ const game=createGameServer({autoStart:true});await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${game.server.address().port}`;
  const browser=await chromium.launch({executablePath:process.env.BROWSER_EXECUTABLE_PATH||(require('node:fs').existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader','--use-angle=swiftshader']});
  try{
  const contexts=await Promise.all([browser.newContext({viewport:{width:1280,height:800}}),browser.newContext({viewport:{width:1280,height:800}})]),pages=await Promise.all(contexts.map(c=>c.newPage())),[a,b]=pages,errors=[];

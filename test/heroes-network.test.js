@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {io}=require('socket.io-client'),{createGameServer}=require('../server');
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn){const deadline=Date.now()+2000;while(!fn()&&Date.now()<deadline)await wait(10);assert.ok(fn(),'Expected server state did not arrive');}
-async function fixture(fn){const game=createGameServer();await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const sockets=[],url=`http://127.0.0.1:${game.server.address().port}`;
+async function fixture(fn){const game=createGameServer({autoStart:true});await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const sockets=[],url=`http://127.0.0.1:${game.server.address().port}`;
  const send=(s,event,data)=>new Promise(r=>s.emit(event,data,r));
  async function client(){const s=io(url,{transports:['websocket']});sockets.push(s);await new Promise((resolve,reject)=>{s.once('connect',resolve);s.once('connect_error',reject);});return s;}
  try{await fn({game,client,send});}finally{sockets.forEach(s=>s.disconnect());await new Promise(r=>game.io.close(r));}}

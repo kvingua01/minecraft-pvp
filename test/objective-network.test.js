@@ -3,7 +3,7 @@ const {io}=require('socket.io-client');const {createGameServer}=require('../serv
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const once=(s,event)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Timed out '+event)),3000);s.once(event,data=>{clearTimeout(timer);resolve(data);});});
 test('real clients receive teams, contested states, victory, and an authorized rematch',async()=>{
- const game=createGameServer();await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${game.server.address().port}`,clients=[];
+ const game=createGameServer({autoStart:true});await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${game.server.address().port}`,clients=[];
  const emit=(s,event,data)=>new Promise(r=>s.emit(event,data,r));
  async function connect(){const s=io(url,{transports:['websocket']});clients.push(s);await once(s,'connect');return s;}
  try{

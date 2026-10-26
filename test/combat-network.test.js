@@ -5,7 +5,7 @@ const {createGameServer}=require('../server');
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const once=(s,e)=>new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(new Error('Timed out '+e)),3000);s.once(e,v=>{clearTimeout(t);resolve(v);});});
 test('two socket clients fight, ignore removed block requests, die and respawn without trusting client damage',async()=>{
- const game=createGameServer();await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${game.server.address().port}`,sockets=[];
+ const game=createGameServer({autoStart:true});await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${game.server.address().port}`,sockets=[];
  async function connect(){const s=io(base,{transports:['websocket']});sockets.push(s);await once(s,'connect');return s;}
  const join=(s,data)=>new Promise(r=>s.emit('join',data,r));
  try{

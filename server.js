@@ -12,7 +12,7 @@ const HeroRules=require('./shared/heroes');
 const Maps=require('./shared/maps');
 const {fixedClock}=require('./lib/timing');
 const {version}=require('./package.json');
-function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
+function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}={}) {
   const app=express(), server=http.createServer(app), io=new Server(server,{maxHttpBufferSize:4096,connectionStateRecovery:{maxDisconnectionDuration:reconnectGrace}});
   const rooms=new Map(), combats=new Map(),matches=new Map(),disconnectTimers=new Map();
   let draining=false,shutdownPromise=null;
@@ -28,7 +28,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
     clearTimeout(disconnectTimers.get(socket.id));disconnectTimers.delete(socket.id);
     const room=rooms.get(socket.data.room);
     if(room) {room.delete(socket.id);socket.leave(socket.data.room);if(!room.size){rooms.delete(socket.data.room);combats.delete(socket.data.room);matches.delete(socket.data.room);}}
-    const match=matches.get(socket.data.room);if(match&&match.host===socket.id)match.host=room.keys().next().value||null;
+    const match=matches.get(socket.data.room);if(match&&match.host===socket.id)match.host=[...room.values()].find(p=>p.connected!==false)?.id||null;
     socket.data.room=null;
   }
   io.on('connection',socket=> {
@@ -42,14 +42,14 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
       const room=rooms.get(code)||new Map();
       if(room.size>=10) return ack({error:'This room is full (10 players).'});
       const match=matches.get(code)||new Objective(socket.id);
-      if(!matches.has(code)){match.mapId=Maps.has(data.map)?data.map:'castle';match.locations=World.getMap(match.mapId).points;match.reset();}
+      if(!matches.has(code)){match.phase=autoStart?'playing':'lobby';match.lobbyEnabled=!autoStart;match.mapId=Maps.has(data.map)?data.map:'castle';match.locations=World.getMap(match.mapId).points;match.reset();}
       const team=match.chooseTeam(room,data.team);
       if(!team)return ack({error:'That team is full (5 players). Choose the other team.'});
       leave(socket);
       const used=new Set([...room.values()].map(p=>p.spawnIndex));
       let spawnIndex=team==='red'?1:0;while(used.has(spawnIndex))spawnIndex+=2;
       const player={id:socket.id,name:(typeof data.name==='string'?data.name:'Player').trim().slice(0,20)||'Player',...World.spawn(spawnIndex),map:match.mapId,hero:HeroRules.has(data.hero)?data.hero:'knight',team,connected:true,resumeToken:crypto.randomBytes(24).toString('hex'),input:{},lastInput:0,life:0};
-      if(!combats.has(code)){const combat=new Combat((event,data)=>io.to(code).emit(event,data));combat.map=match.mapId;combat.heroes=new Heroes(combat);combat.potions=new Potions(combat);combats.set(code,combat);}
+      if(!combats.has(code)){const combat=new Combat((event,data)=>io.to(code).emit(event,data));combat.map=match.mapId;combat.inLobby=!autoStart;combat.heroes=new Heroes(combat);combat.potions=new Potions(combat);combats.set(code,combat);}
       combats.get(code).init(player,spawnIndex,Date.now());
       matches.set(code,match);
       room.set(socket.id,player);rooms.set(code,room);socket.data.room=code;socket.join(code);
@@ -67,7 +67,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
         room.delete(oldId);p.id=socket.id;room.set(p.id,p);
         if(match.host===oldId)match.host=p.id;
         for(const arrow of combat.projectiles)if(arrow.owner===oldId)arrow.owner=p.id;
-        for(const effect of combat.heroes.effects)if(effect.owner===oldId)effect.owner=p.id;
+        for(const effect of combat.heroes.effects)if(effect.owner===oldId)effect.owner=p.id;for(const unit of combat.heroes.units.units)if(unit.owner===oldId)unit.owner=p.id;
         for(const history of combat.history)if(history.poses.has(oldId)){history.poses.set(p.id,history.poses.get(oldId));history.poses.delete(oldId);}
         for(const other of room.values())if(other.chargeHits)other.chargeHits=other.chargeHits.map(id=>id===oldId?p.id:id);
       }
@@ -107,13 +107,20 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
     });
     socket.on('hero-select',(hero,ack=()=>{})=>{
       if(typeof ack!=='function')return;const p=rooms.get(socket.data.room)?.get(socket.id);
-      if(!p||!HeroRules.has(hero))return ack({error:'Select one of the fourteen heroes.'});p.pendingHero=hero;ack({ok:true});
+      if(!p||!HeroRules.has(hero))return ack({error:'Select one of the fourteen heroes.'});p.pendingHero=hero;if(matches.get(socket.data.room).phase==='lobby')combats.get(socket.data.room).heroes.spawn(p,Date.now());ack({ok:true});
     });
+    function lobbyContext(ack){const code=socket.data.room,room=rooms.get(code),match=matches.get(code),combat=combats.get(code);if(!room||!match){ack({error:'Join a lobby first.'});return null;}return {room,match,combat};}
+    function resetRoom(room,match,combat){match.locations=World.getMap(match.mapId).points;match.reset();combat.map=match.mapId;combat.matchOver=false;combat.projectiles=[];combat.history=[];combat.heroes.clear();for(const p of room.values()){Object.assign(p,World.spawn(p.spawnIndex),{map:match.mapId,input:{},lastInput:0,life:p.life+1});combat.init(p,p.spawnIndex,Date.now());}}
+    socket.on('lobby-map',(id,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(match.host!==socket.id||match.phase!=='lobby')return ack({error:'Only the host can change maps while in the lobby.'});if(!Maps.has(id))return ack({error:'Choose one of the six maps.'});match.mapId=id;resetRoom(room,match,combat);ack({ok:true});});
+    socket.on('match-start',(_data,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(match.host!==socket.id||match.phase!=='lobby')return ack({error:'Only the host can start a waiting lobby.'});if(!['red','blue'].every(t=>[...room.values()].some(p=>p.connected!==false&&p.team===t)))return ack({error:'At least one connected player on each team is needed.'});resetRoom(room,match,combat);match.phase='playing';combat.inLobby=false;ack({ok:true});});
+    socket.on('lobby-team',(team,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match}=ctx,p=room.get(socket.id);if(match.phase!=='lobby'||!['red','blue'].includes(team))return ack({error:'Choose a team in the lobby.'});const others=new Map([...room].filter(([id])=>id!==p.id));if(!match.chooseTeam(others,team))return ack({error:'That team is full.'});p.team=team;const used=new Set([...others.values()].map(t=>t.spawnIndex));let index=team==='red'?1:0;while(used.has(index))index+=2;p.spawnIndex=index;Object.assign(p,World.spawn(index));ack({ok:true});});
+    socket.on('lobby-return',(_data,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(!match.winner)return ack({error:'Finish the match before returning the room to its lobby.'});match.phase='lobby';combat.inLobby=true;resetRoom(room,match,combat);ack({ok:true});});
     socket.on('restart',(_data,ack=()=>{})=>{
       if(typeof ack!=='function')return;
       const code=socket.data.room,room=rooms.get(code),match=matches.get(code),combat=combats.get(code);
       if(!room||!match||match.host!==socket.id)return ack({error:'Only the current room host can start a rematch.'});
       if(!match.winner)return ack({error:'This match is still running.'});
+      if(match.lobbyEnabled){match.phase='lobby';combat.inLobby=true;}
       match.reset();combat.matchOver=false;combat.projectiles=[];combat.history=[];combat.heroes.clear();
       for(const p of room.values()){
         Object.assign(p,World.spawn(p.spawnIndex),{input:{},lastInput:0,life:p.life+1});combat.init(p,p.spawnIndex,Date.now());
@@ -125,19 +132,19 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
       const room=rooms.get(socket.data.room),p=room?.get(socket.id);
       if(!p)return;
       if(['client namespace disconnect','server namespace disconnect','server shutting down'].includes(reason)){leave(socket);return;}
-      p.connected=false;p.jumpQueued=false;p.input={};p.lastInput=0;p.blocking=false;p.drawAt=0;p.drinking=null;p.dash=null;p.kx=p.kz=0;
+      p.connected=false;const match=matches.get(socket.data.room);if(match?.host===socket.id)match.host=[...room.values()].find(t=>t.connected!==false)?.id||null;p.jumpQueued=false;p.input={};p.lastInput=0;p.blocking=false;p.drawAt=0;p.drinking=null;p.dash=null;p.kx=p.kz=0;
       console.warn('Player connection interrupted:',reason);
       const timer=setTimeout(()=>leave(socket),reconnectGrace);timer.unref();disconnectTimers.set(socket.id,timer);
     });
   });
-  function pack(p) {return {id:p.id,name:p.name,team:p.team,map:p.map,connected:p.connected,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,vy:p.vy,grounded:p.grounded,hp:p.hp,maxHp:p.maxHp,hero:p.hero,pendingHero:p.pendingHero,canShield:p.canShield,windReady:p.windReady,abilityReady:p.abilityReady,ult:p.ult,status:p.status,speedScale:p.speedScale,attackSpeed:p.attackSpeed,motionSerial:p.motionSerial,inventory:p.inventory,selectedPotion:p.selectedPotion,potionReady:p.potionReady,potionAt:p.potionAt,potionKind:p.potionKind,drinking:p.drinking,armor:p.armor,weapon:p.weapon,blocking:p.blocking,shieldUntil:p.shieldUntil,nextAttack:p.nextAttack,drawAt:p.drawAt,attackAt:p.attackAt,attackSerial:p.attackSerial,deadUntil:p.deadUntil,protectedUntil:p.protectedUntil,kills:p.kills,deaths:p.deaths,kx:p.kx,kz:p.kz,life:p.life};}
+  function pack(p) {return {id:p.id,name:p.name,healingDone:p.healingDone||0,objectiveTime:p.objectiveTime||0,team:p.team,map:p.map,connected:p.connected,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,vy:p.vy,grounded:p.grounded,hp:p.hp,maxHp:p.maxHp,hero:p.hero,pendingHero:p.pendingHero,canShield:p.canShield,windReady:p.windReady,abilityReady:p.abilityReady,ult:p.ult,status:p.status,speedScale:p.speedScale,attackSpeed:p.attackSpeed,motionSerial:p.motionSerial,inventory:p.inventory,selectedPotion:p.selectedPotion,potionReady:p.potionReady,potionAt:p.potionAt,potionKind:p.potionKind,drinking:p.drinking,armor:p.armor,weapon:p.weapon,blocking:p.blocking,shieldUntil:p.shieldUntil,nextAttack:p.nextAttack,drawAt:p.drawAt,attackAt:p.attackAt,attackSerial:p.attackSerial,deadUntil:p.deadUntil,protectedUntil:p.protectedUntil,kills:p.kills,deaths:p.deaths,kx:p.kx,kz:p.kz,life:p.life};}
   let ticks=0;
   const clock=fixedClock(performance.now());
   const timer=setInterval(()=>clock.advance(performance.now(),dt=>{
     if(draining)return;
     for(const [code,room] of rooms){
       const now=Date.now(),combat=combats.get(code),match=matches.get(code);combat.tick(room,now,dt);match.tick(room,dt);
-      if(!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.connected!==false&&p.hp>0&&match.points.some(point=>match.inside(p,point)))combat.heroes.charge(p,3*dt,now);
+      if(!combat.inLobby&&!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.connected!==false&&p.hp>0&&match.points.some(point=>match.inside(p,point)))combat.heroes.charge(p,3*dt,now);
       combat.matchOver=!!match.winner;
       if(ticks%3===0)io.to(code).volatile.emit('state',{serverTime:now,players:[...room.values()].map(pack),units:combat.heroes.units.snapshot(),projectiles:combat.snapshot(now),effects:combat.heroes.snapshot(),match:match.snapshot()});
     }

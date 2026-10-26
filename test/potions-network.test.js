@@ -3,7 +3,7 @@ const {io}=require('socket.io-client'),{createGameServer}=require('../server');
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn){const end=Date.now()+2500;while(!fn()&&Date.now()<end)await wait(10);assert.ok(fn(),'Expected potion state did not arrive');}
 test('real clients cannot forge potion counts, cooldowns or buffs; drinking and thrown splash effects synchronize',async()=>{
- const game=createGameServer();await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const clients=[],url=`http://127.0.0.1:${game.server.address().port}`,send=(s,e,d)=>new Promise(r=>s.emit(e,d,r));
+ const game=createGameServer({autoStart:true});await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const clients=[],url=`http://127.0.0.1:${game.server.address().port}`,send=(s,e,d)=>new Promise(r=>s.emit(e,d,r));
  async function client(){const s=io(url,{transports:['websocket']});clients.push(s);await new Promise(r=>s.once('connect',r));return s;}
  try{
  const a=await client(),b=await client(),c=await client(),joined=await send(a,'join',{create:true,team:'red'});await send(b,'join',{code:joined.code,team:'blue'});await send(c,'join',{code:joined.code,team:'red'});
