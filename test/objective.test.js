@@ -4,22 +4,22 @@ const {Combat}=require('../lib/combat');
 const W=require('../shared/world');
 function fixture(){const red={id:'r',team:'red',hp:100,x:0,y:.24,z:0},blue={id:'b',team:'blue',hp:100,x:12,y:0,z:0},room=new Map([['r',red],['b',blue]]),match=new Objective('r');return {red,blue,room,match};}
 function ticks(match,room,count){for(let i=0;i<count;i++)match.tick(room,1/60);}
-test('only living players standing on the point capture it; a full capture takes five seconds',()=>{
+test('only living players standing on the point capture it; a full capture takes ten seconds',()=>{
  const {red,room,match}=fixture();red.hp=0;ticks(match,room,360);assert.equal(match.meter,0);red.hp=100;red.y=5;ticks(match,room,60);assert.equal(match.meter,0);
- red.y=.24;red.x=3.9;red.z=3.9;ticks(match,room,60);assert.equal(match.meter,0);red.x=0;red.z=0;ticks(match,room,299);assert.equal(match.control,null);ticks(match,room,1);assert.equal(match.control,'red');assert.equal(match.meter,100);
+ red.y=.24;red.x=3.9;red.z=3.9;ticks(match,room,60);assert.equal(match.meter,0);red.x=0;red.z=0;ticks(match,room,599);assert.equal(match.control,null);ticks(match,room,1);assert.equal(match.control,'red');assert.equal(match.meter,100);
 });
 test('opponents contest the objective and freeze capture and score',()=>{
- const {red,blue,room,match}=fixture();ticks(match,room,300);const score=match.scores.red;Object.assign(blue,{x:0,z:1,y:.24});ticks(match,room,180);
+ const {red,blue,room,match}=fixture();ticks(match,room,600);const score=match.scores.red;Object.assign(blue,{x:0,z:1,y:.24});ticks(match,room,180);
  assert.ok(match.contested);assert.equal(match.meter,100);assert.equal(match.scores.red,score);
  blue.hp=0;ticks(match,room,60);assert.equal(match.contested,false);assert.ok(match.scores.red>score);
 });
 test('enemy capture neutralizes the owner before claiming; abandoned capture does not invent progress',()=>{
- const {red,blue,room,match}=fixture();ticks(match,room,300);red.x=10;Object.assign(blue,{x:0,z:0,y:.24});const score=match.scores.red;
- ticks(match,room,301);assert.equal(match.control,null);assert.equal(match.scores.red,score);ticks(match,room,300);assert.equal(match.control,'blue');assert.equal(match.meter,-100);
+ const {red,blue,room,match}=fixture();ticks(match,room,600);red.x=10;Object.assign(blue,{x:0,z:0,y:.24});const score=match.scores.red;
+ ticks(match,room,601);assert.equal(match.control,null);assert.equal(match.scores.red,score);ticks(match,room,600);assert.equal(match.control,'blue');assert.equal(match.meter,-100);
  blue.x=10;const before=match.scores.blue;ticks(match,room,60);assert.ok(match.scores.blue>before);assert.equal(match.meter,-100);
 });
-test('score reaches exactly 100, declares one winner, and freezes until reset',()=>{
- const {red,room,match}=fixture();ticks(match,room,300);red.x=10;ticks(match,room,3000);assert.equal(match.winner,'red');assert.equal(match.scores.red,100);assert.equal(match.status,'finished');
+test('score reaches exactly 300, declares one winner, and freezes until reset',()=>{
+ const {red,room,match}=fixture();ticks(match,room,600);red.x=10;ticks(match,room,18000);assert.equal(match.winner,'red');assert.equal(match.scores.red,300);assert.equal(match.status,'finished');
  const state=match.snapshot();ticks(match,room,1000);assert.deepEqual(match.snapshot(),state);match.reset();assert.equal(match.winner,null);assert.equal(match.control,null);assert.deepEqual(match.scores,{red:0,blue:0});
 });
 test('waiting for both teams pauses progress; the host transfers on departure',()=>{
@@ -42,3 +42,5 @@ test('enemy spawn boundaries stop entry while your own room stays accessible',()
  p.x=-sign*20;W.move(p,{x:-sign*5,y:0,z:0});assert.equal(p.x,-sign*25);
  }
 });
+
+test('three points capture independently, teammates accelerate capture, and owned points stack income',()=>{const {room,match,red}=fixture();for(const point of match.points){point.control='red';point.meter=100;}red.x=10;match.tick(room,1);assert.equal(match.scores.red,3);match.reset();const a=match.points[0];Object.assign(red,{x:a.x,y:a.y,z:a.z});room.set('r2',{...red,id:'r2'});ticks(match,room,400);assert.equal(a.control,'red');assert.equal(match.points[1].control,null);assert.equal(match.points[2].control,null);});

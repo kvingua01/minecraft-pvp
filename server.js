@@ -135,7 +135,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
     if(draining)return;
     for(const [code,room] of rooms){
       const now=Date.now(),combat=combats.get(code),match=matches.get(code);combat.tick(room,now,dt);match.tick(room,dt);
-      if(!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.connected!==false&&p.hp>0&&p.y>=.19&&p.y<=.65&&p.x*p.x+p.z*p.z<=16)combat.heroes.charge(p,3*dt,now);
+      if(!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.connected!==false&&p.hp>0&&match.points.some(point=>match.inside(p,point)))combat.heroes.charge(p,3*dt,now);
       combat.matchOver=!!match.winner;
       if(ticks%3===0)io.to(code).volatile.emit('state',{serverTime:now,players:[...room.values()].map(pack),projectiles:combat.snapshot(now),effects:combat.heroes.snapshot(),match:match.snapshot()});
     }

@@ -13,7 +13,7 @@ test('real clients receive teams, contested states, victory, and an authorized r
  a.emit('input',{team:'blue',score:100});a.emit('capture',{score:100});await wait(50);assert.equal(pa.team,'red');assert.equal(match.scores.red,0);
  Object.assign(pa,{x:0,z:0,y:.24,hp:100,protectedUntil:0});await wait(200);assert.ok(match.meter>0);
  Object.assign(pb,{x:1,z:0,y:.24});await wait(60);const meter=match.meter;await wait(100);const state=await once(b,'state');assert.equal(state.match.contested,true);assert.equal(match.meter,meter);
- pb.x=12;match.control='red';match.meter=100;match.scores.red=99.99;await wait(80);const finished=await once(a,'state');assert.equal(finished.match.winner,'red');assert.equal(finished.match.scores.red,100);
+ pb.x=12;match.control='red';match.meter=100;match.scores.red=299.99;await wait(80);const finished=await once(a,'state');assert.equal(finished.match.winner,'red');assert.equal(finished.match.scores.red,300);
  assert.ok((await emit(b,'restart',{})).error);const oldLife=pa.life;assert.deepEqual(await emit(a,'restart',{}),{ok:true});assert.equal(pa.life,oldLife+1);assert.equal(pa.hp,pa.maxHp);assert.equal(match.winner,null);assert.deepEqual(match.scores,{red:0,blue:0});assert.equal(game.combats.get(first.code).projectiles.length,0);
  a.disconnect();await wait(60);assert.equal((await once(b,'state')).match.host,b.id);assert.ok((await emit(b,'restart',{})).error);
  }finally{clients.forEach(s=>s.disconnect());await new Promise(r=>game.io.close(r));}

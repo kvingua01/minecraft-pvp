@@ -40,8 +40,8 @@ test('critical and falling mace attacks add damage; sprint increases knockback',
 test('spawn protection, death, score, and delayed respawn are authoritative',()=>{
  const {engine,room,a,b,events}=setup();b.protectedUntil=11000;engine.attack(room,a,'attack',10000);assert.equal(b.hp,100);
  b.protectedUntil=0;b.x=25;b.z=0;engine.damage(room,b,a,1000,11000);assert.equal(b.hp,100);
- b.x=0;b.z=7;engine.damage(room,b,a,1000,12000);assert.equal(b.hp,0);assert.equal(b.deadUntil,16000);assert.equal(a.kills,1);assert.equal(b.deaths,1);
- assert.equal(engine.attack(room,b,'attack',13000),false);engine.tick(room,15999,1/60);assert.equal(b.hp,0);engine.tick(room,16000,1/60);assert.equal(b.hp,100);assert.equal(b.life,1);assert.equal(b.protectedUntil,18000);assert.ok(events.some(e=>e.type==='kill'));
+ b.x=0;b.z=7;engine.damage(room,b,a,1000,12000);assert.equal(b.hp,0);assert.equal(b.deadUntil,18000);assert.equal(a.kills,1);assert.equal(b.deaths,1);
+ assert.equal(engine.attack(room,b,'attack',13000),false);engine.tick(room,17999,1/60);assert.equal(b.hp,0);engine.tick(room,18000,1/60);assert.equal(b.hp,100);assert.equal(b.life,1);assert.equal(b.protectedUntil,20000);assert.ok(events.some(e=>e.type==='kill'));
 });
 test('fall damage and knockback run through colliding server physics',()=>{
  const {engine,room,a,b}=setup();Object.assign(b,{x:0,z:25,y:8,fallPeak:8,grounded:false});

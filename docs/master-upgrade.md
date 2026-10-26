@@ -11,7 +11,7 @@ models, shield breaking, or shield audio. Wind charges remain for every weapon.
 2. Combat: existing server authority preserved; katana, dagger and pickaxe definitions,
    reach and attack cadence, all nine keys mapped to real equipment. Existing potions,
    mace falling attacks, ranged weapons and wind charges preserved.
-3. Three points: pending.
+3. Three simultaneous server-owned points, ten-second solo capture, capped teammate acceleration, neutralization, independent contesting and income, first to 300, six-second respawns.
 4. Fourteen classes and authoritative summoned units: pending.
 5. Six maps and hazards: pending.
 6. Host-selected map lobby and lifecycle: pending.
