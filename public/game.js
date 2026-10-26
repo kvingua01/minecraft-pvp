@@ -106,10 +106,10 @@ function makeAvatar(p,time) {
  cube(group,.17,.65,.2,color,-.44,1,0);cube(group,.17,.65,.2,color,.44,1,0);
  const weapon=new THREE.Group();weapon.position.set(.48,.9,-.3);group.add(weapon);combat.buildWeapon(weapon,p.weapon,true);
  const wind=new THREE.Group();wind.position.set(-.5,1,-.15);group.add(wind);cube(wind,.2,.2,.2,0xe6fbff,0,0,0);cube(wind,.27,.06,.27,0x94d7ed,0,0,0);
- const shield=new THREE.Group();shield.position.set(-.5,1,-.15);group.add(shield);cube(shield,.4,.6,.12,0x849ba5,0,0,0);
+
  // Four original armor pieces: helmet, chestplate, leggings, and boots.
  cube(group,.53,.18,.53,0x8da4ad,0,1.83,0);cube(group,.65,.4,.38,0x8da4ad,0,1.15,0);cube(group,.49,.18,.3,0x687e8b,0,.67,0);for(const x of [-.17,.17])cube(group,.26,.16,.32,0x687e8b,x,.08,0);
- group.position.set(p.x,p.y,p.z);group.rotation.y=p.yaw;scene.add(group);const history=[];window.ArenaNetwork.remember(history,p,time);return {group,head,legs,weapon,shield,wind,weaponKey:p.weapon,target:p,history,lastTime:time,speed:0};
+ group.position.set(p.x,p.y,p.z);group.rotation.y=p.yaw;scene.add(group);const history=[];window.ArenaNetwork.remember(history,p,time);return {group,head,legs,weapon,wind,weaponKey:p.weapon,target:p,history,lastTime:time,speed:0};
 }
 function updateRoster(){
  const roster=$('#roster');roster.hidden=!tab;
@@ -165,8 +165,8 @@ function frame(now){
    const charge=r.target.drawAt?Math.min(1,(combat.serverNow()-r.target.drawAt)/1000):0;
    r.weapon.userData.string.position.z=charge*.2;r.weapon.userData.arrow.position.z=charge*.2;r.weapon.rotation.y=-charge*.2;
   }
-  r.wind.visible=r.target.weapon==='mace'&&!potionActive;r.wind.rotation.y=now*.002;
-  r.shield.visible=!potionActive&&r.target.canShield!==false&&['sword','axe'].includes(r.weaponKey);r.shield.position.y=r.target.blocking?1.35:.95;
+  r.wind.visible=!potionActive;r.wind.rotation.y=now*.002;
+
   const time=combat.serverNow(),s=r.target.status||{},hidden=s.vanish>time;
   const emissive=s.rampage>time||s.rage>time?0x662211:s.holy>time||s.divine>time?0x665622:s.slow>time||s.slowPotion>time?0x224466:s.burning>time?0x663311:0;
   const styleKey=`${hidden}:${emissive}`;
@@ -180,4 +180,4 @@ function frame(now){
 }
 loading.hidden=true;requestAnimationFrame(frame);
 // Read-only diagnostics for smoke tests; no client state can override the server.
-window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),drawCalls:renderer.info.render.calls});
+window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),drawCalls:renderer.info.render.calls});

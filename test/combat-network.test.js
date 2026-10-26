@@ -4,7 +4,7 @@ const {io}=require('socket.io-client');
 const {createGameServer}=require('../server');
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const once=(s,e)=>new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(new Error('Timed out '+e)),3000);s.once(e,v=>{clearTimeout(t);resolve(v);});});
-test('two socket clients fight, block, die and respawn without trusting client damage',async()=>{
+test('two socket clients fight, ignore removed block requests, die and respawn without trusting client damage',async()=>{
  const game=createGameServer();await new Promise(r=>game.server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${game.server.address().port}`,sockets=[];
  async function connect(){const s=io(base,{transports:['websocket']});sockets.push(s);await once(s,'connect');return s;}
  const join=(s,data)=>new Promise(r=>s.emit('join',data,r));
@@ -16,8 +16,8 @@ test('two socket clients fight, block, die and respawn without trusting client d
  place();a.emit('damage',{target:b.id,amount:10000});a.emit('input',{hp:999,armor:1,weapon:'axe',yaw:0});a.emit('equip','__proto__');await wait(50);assert.equal(pa.weapon,'sword');assert.equal(pa.hp,pa.maxHp);assert.equal(pb.hp,pb.maxHp);
  const hit=once(b,'combat');a.emit('action',{kind:'attack',damage:999,target:b.id});assert.equal((await hit).type,'attack');await wait(100);assert.equal(pb.hp,pb.maxHp-13);
  a.emit('action',{kind:'attack'});await wait(30);assert.equal(pb.hp,pb.maxHp-13);
- place();b.emit('input',{block:true,yaw:Math.PI});await wait(50);a.emit('action',{kind:'attack'});await wait(50);assert.equal(pb.hp,pb.maxHp-13);
- place();a.emit('equip','axe');await wait(20);a.emit('action',{kind:'attack'});await wait(50);assert.ok(pb.shieldUntil>Date.now());assert.equal(pb.hp,pb.maxHp-13);
+ place();b.emit('input',{block:true,yaw:Math.PI});await wait(50);a.emit('action',{kind:'attack'});await wait(50);assert.equal(pb.blocking,false);assert.equal(pb.hp,pb.maxHp-26);
+ place();a.emit('equip','axe');await wait(20);a.emit('action',{kind:'attack'});await wait(50);assert.equal(pb.shieldUntil,0);assert.equal(pb.hp,pb.maxHp-47);
  place();b.emit('input',{block:false,yaw:Math.PI});pb.hp=20;a.emit('action',{kind:'attack'});await wait(70);assert.equal(pb.hp,0);assert.equal(pa.kills,1);assert.equal(pb.deaths,1);
  b.emit('action',{kind:'attack'});b.emit('input',{forward:true,yaw:0});const oldZ=pb.z;await wait(150);assert.equal(pb.z,oldZ);
  pb.deadUntil=Date.now()-1;await wait(60);assert.equal(pb.hp,pb.maxHp);assert.equal(pb.life,1);assert.ok(pb.protectedUntil>Date.now());

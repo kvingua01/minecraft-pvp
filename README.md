@@ -25,7 +25,7 @@ bots: at least one real player on each team is required to advance the match.
 | 1–5 | Class primary and backup weapons |
 | Left click | Melee attack or fire crossbow |
 | Hold and release left click | Draw and fire bow |
-| Right click | Throw a wind charge with a mace; hold to shield with sword/axe on shield classes |
+| Right click | Throw the offhand wind charge (all classes and weapons) |
 | Q / E / R | Class abilities / earned ultimate |
 | F / G / Shift+G | Use selected potion / cycle forward / cycle backward |
 | Tab / Escape | Player scores / unlock mouse and pause your input |
@@ -65,26 +65,27 @@ player eliminations by team. There are no fake participants or simulated scores.
 ## Combat rules
 
 Heroes have different maximum health, armor, movement speed, primary weapons,
-and shield availability. Armor reduces direct and area damage but not fall damage.
+and primary weapons. Armor reduces direct and area damage but not fall damage.
 All classes retain backup weapons in their five-slot hotbar; slot 1 is always the
-class primary. Only Knight, Paladin, and Mace Warrior can raise shields. Friendly
+class primary. Equipment shields are removed from every class. Friendly
 fire is disabled, including abilities; support effects heal or protect allies.
 
 | Weapon | Base damage before armor | Cooldown | Mechanic |
 | --- | --- | --- | --- |
 | Sword | 20 | 0.45s | Fast melee; 3.2-unit reach |
-| Axe | 32 | 0.95s | Disables a blocking shield for 10s |
+| Axe | 32 | 0.95s | Heavy melee hit; equipment shields are removed |
 | Mace | 28 | 1.15s | Descending hits add 7 damage per block fallen, without the old cap |
 | Bow | 8–32 | 0.4s after release | Server-timed draw; full charge at 1s |
 | Crossbow | 38 | 1.8s | Reloads after every shot |
 
-Every class holding a mace carries a wind charge instead of a shield. Right-click
+Every class carries a visible wind charge with every weapon. Right-click
 throws a visible projectile; aim at your feet to burst against the ground. A burst
 within four units and clear line of sight launches its owner upward, with a
 three-second server-enforced cooldown and protection through the next landing.
 It deals no damage and grants no free ultimate charge. Throws are blocked while
-dead, disconnected, drinking, inside spawn, or after match end. Other weapons
-cannot throw charges. Shields remain available with swords/axes on shield classes.
+dead, disconnected, drinking, inside spawn, or after match end. Rejected throws
+show the reason, including spawn protection and cooldown. The offhand remains
+visible in spawn and during cooldown. No equipment shields or blocking remain.
 
 Mace smash damage adds seven raw damage per block fallen while descending; there
 is no longer a 60-damage bonus cap. Armor and resistance still apply. Rising or
@@ -93,20 +94,18 @@ the accumulated fall and protects the landing; blocked/missed hits do not reset 
 `npm run test:wind-browser` checks real throws and launches for all eight classes.
 
 Descending melee attacks deal 1.5× base damage. Sprint attacks increase knockback.
-Shields block within a 120-degree horizontal arc. A blocked axe hit disables the
-shield instead of damaging health, opening the target to follow-up attacks.
 All melee weapons have approximately three-unit reach. Bow and crossbow arrows
 have gravity, finite lifetimes, and swept player/map collisions. Falling more than
 3.5 units deals damage based on distance. Eliminated players respawn after four
 seconds with full health. Kills and deaths persist until leaving the room.
 
-The HUD shows health, armor, hotbar, attack/reload cooldown, bow charge, shield
-state, hit markers, damage flashes, kill feed, and respawn countdown. Hand and
+The HUD shows health, armor, hotbar, attack/reload cooldown, bow charge, wind-charge
+status, hit markers, damage flashes, kill feed, and respawn countdown. Hand and
 weapon animations remain first-person. Other players see weapon swings, reloads,
-head movement, armor, shields, and walking animations.
+head movement, armor, wind charges, and walking animations.
 
 The server owns health, equipment selection, cooldowns, draw duration, projectiles,
-shield direction, hit validation, knockback, fall damage, kills, and respawns.
+wind-charge cooldowns, hit validation, knockback, fall damage, kills, and respawns.
 Client damage and target claims are ignored. Switching weapons cannot reset attack
 cooldowns. Melee uses authoritative pose history with at most 150ms of rewind;
 static cover is checked on the server. Projectiles use current server positions.
@@ -121,11 +120,11 @@ to the chosen class. All balance values are provisional for real-player testing.
 
 | Hero | HP / armor | Primary | Q | E | R ultimate |
 | --- | --- | --- | --- | --- | --- |
-| Knight | 180 / 35% | Sword + shield | Shield Charge | Battle Cry | Fortress |
+| Knight | 180 / 35% | Sword + wind charge | Charging Rush | Battle Cry | Fortress |
 | Berserker | 130 / 20% | Axe | Rage | Leap | Rampage |
 | Assassin | 95 / 10% | Dual swords | Directional Dash | Vanish | Shadow Strike |
 | Archer | 110 / 12% | Bow; crossbow backup | Grappling Arrow | Explosive Arrow | Arrow Storm |
-| Paladin | 160 / 30% | Sword + shield | Healing Aura | Holy Shield | Divine Protection |
+| Paladin | 160 / 30% | Sword + wind charge | Healing Aura | Holy Ward | Divine Protection |
 | Alchemist | 120 / 20% | Potion launcher | Healing Splash | Poison Cloud | Mega Potion |
 | Mace Warrior | 160 / 30% | Mace + wind charge | Rocket Jump | Ground Slam | Meteor Strike |
 | Frost Mage | 105 / 12% | Frost staff; sword backup | Ice Bolt | Ice Wall | Blizzard |
@@ -136,7 +135,7 @@ the aimed surface (up to 16 units). Grappling Arrow needs a block within 22 unit
 Walls require clear space three units ahead and cannot trap players or intersect
 terrain. Temporary walls block movement and shots on both server and client, then
 expire. Poison, storm and healing zones check distance and line of sight. Area
-damage bypasses directional shields; direct ice bolts can be blocked.
+damage and direct ice bolts respect armor, resistance and spawn protection.
 
 Ultimates start at 0% and require 100%. Actual enemy damage and actual healing of
 other teammates grant 0.15% charge per health point. Standing on the live objective
@@ -145,7 +144,7 @@ self-healing, and ultimate damage do not create free charge. Charge is capped at
 100%, spent on successful use, reset on death/respawn, and does not accumulate for
 eight seconds after activating an ultimate. Invalid casts keep their charge.
 
-Battle Cry gives nearby allies 25% resistance for 5s. Holy Shield protects an aimed
+Battle Cry gives nearby allies 25% resistance for 5s. Holy Ward protects an aimed
 ally (or yourself if none is aimed at) for 4s; Divine Protection buffs nearby allies
 for 5s. Healing Aura follows its caster. Assassin movement remains collision-safe;
 Vanish renders the actual remote avatar at 15% opacity and breaks on attacking or
@@ -195,7 +194,7 @@ The initial combat values are provisional and need real-player balance testing.
 ## Validation
 
 `npm test` runs physics, combat, and real Socket.io integration tests, including
-cooldowns, armor, shields, axe shield disable, blocked line of sight, ranged
+cooldowns, armor, removed-block-input rejection, blocked line of sight, ranged
 collisions, draw/reload timing, falling/critical damage, knockback, spawn safety,
 room isolation, death, respawning, and rejection of client damage claims. Match
 tests also cover capture/contest/recapture, full scoring to 100%, friendly fire,
@@ -210,7 +209,7 @@ npm run test:browser
 
 The browser script starts an isolated test server and two real browser contexts.
 It uses server-side fixtures to position those clients for deterministic duels;
-there is no production teleport endpoint. It tests shield controls, melee, bow,
+there is no production teleport endpoint. It tests offhand visibility, melee, bow,
 crossbow reloads, damage HUDs, elimination, kill feed, respawn, and Escape/resume.
 It uses system Chromium when available, or Playwright's installed Chromium.
 Set `BROWSER_EXECUTABLE_PATH` to select another Chromium executable. Browser

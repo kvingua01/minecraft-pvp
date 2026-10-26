@@ -84,6 +84,12 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
     });
     socket.on('equip',key=>{const p=rooms.get(socket.data.room)?.get(socket.id);if(p)combats.get(socket.data.room).select(p,key);});
     socket.on('action',data=>{const room=rooms.get(socket.data.room),p=room?.get(socket.id);if(p&&data&&typeof data==='object')combats.get(socket.data.room).attack(room,p,data.kind,Date.now(),data.time);});
+    socket.on('wind-use',(_data,ack=()=>{})=>{
+      if(typeof ack!=='function')return;const p=rooms.get(socket.data.room)?.get(socket.id),combat=combats.get(socket.data.room);
+      if(!p||!combat)return ack({error:'Join a room first.'});
+      const now=Date.now(),error=combat.windError(p,now);if(error)return ack({error});
+      combat.wind(p,now);ack({ok:true,readyAt:p.windReady});
+    });
     socket.on('ping-check',(_data,ack)=>{if(typeof ack==='function')ack({serverTime:Date.now()});});
     socket.on('potion-select',(id,ack=()=>{})=>{
       if(typeof ack!=='function')return;const p=rooms.get(socket.data.room)?.get(socket.id);

@@ -1,11 +1,14 @@
 import * as THREE from '/vendor/three.module.js';
 const C=window.CombatRules;
 export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLocked}){
-  const hand=new THREE.Group(),shield=new THREE.Group(),wind=new THREE.Group();camera.add(hand,shield,wind);
-  wind.position.set(-.43,-.36,-.7);cube(wind,.18,.18,.18,0xe6fbff,0,0,0);const windBand=cube(wind,.26,.055,.26,0x94d7ed,0,0,0);windBand.rotation.y=.5;
-  hand.position.set(.4,-.36,-.65);hand.scale.setScalar(.65);shield.position.set(-.47,-.52,-.76);shield.scale.setScalar(.65);
-  cube(shield,.52,.68,.12,0x697f8e,0,0,0);cube(shield,.36,.51,.14,0xba9c62,0,0,0);
-  let hotbarStamp='',weapon='',blocking=false,clockOffset=0,clockSynced=false,swing=0,flash=0,hit=0,drawHeld=false;
+  const hand=new THREE.Group(),wind=new THREE.Group();camera.add(hand,wind);
+  wind.position.set(-.34,-.23,-.72);
+  const core=cube(wind,.25,.25,.25,0xe6fbff,0,0,0),band=cube(wind,.36,.065,.3,0x78cde8,0,0,0);
+  const cap=cube(wind,.14,.065,.14,0xffffff,0,.16,0);band.rotation.y=.5;
+  // Keep the offhand bright and unmistakable independently of world lighting.
+  core.material=new THREE.MeshBasicMaterial({color:0xe6fbff});band.material=new THREE.MeshBasicMaterial({color:0x78cde8});cap.material=new THREE.MeshBasicMaterial({color:0xffffff});
+  hand.position.set(.4,-.36,-.65);hand.scale.setScalar(.65);
+  let hotbarStamp='',weapon='',blocking=false,clockOffset=0,clockSynced=false,swing=0,flash=0,hit=0,drawHeld=false,windNoticeAt=0,windThrownAt=0;
   const bursts=new Set(),arrows=new Map(),feed=document.querySelector('#kill-feed');
   function buildWeapon(group,key,remote=false){
     if(remote)group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});group.clear();const scale=remote ? .8 : 1;group.userData.string=null;group.userData.arrow=null;
@@ -27,11 +30,19 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     if(remote)group.scale.setScalar(scale);
   }
   function action(kind){const p=getSelf();if(!p||p.hp<=0||!isLocked())return;socket.emit('input',getInput());socket.emit('action',{kind,time:Date.now()+clockOffset});}
+  function throwWind(){
+    const p=getSelf();if(!p||p.hp<=0||!isLocked())return;
+    socket.emit('input',getInput());socket.timeout(3000).emit('wind-use',{},(error,result)=>{
+      if(!getSelf()||getSelf().id!==p.id)return;
+      const text=error?'Wind charge request timed out. Try again.':result?.error||'WIND CHARGE THROWN';
+      document.querySelector('#combat-note').textContent=text;windNoticeAt=performance.now();
+      if(result?.ok){p.windReady=result.readyAt;windThrownAt=performance.now();}
+    });
+  }
   function release(){if(drawHeld&&getSelf())socket.volatile.emit('action',{kind:'cancel'});drawHeld=false;blocking=false;}
   window.addEventListener('mousedown',e=>{
     if(!isLocked()||!getSelf()||getSelf().hp<=0)return;
-    if(e.button===2&&getSelf().weapon==='mace'){action('wind');return;}
-    if(e.button===2){blocking=true;socket.volatile.emit('input',getInput());}
+    if(e.button===2){throwWind();return;}
     if(e.button===0){if(getSelf().weapon==='bow'){drawHeld=true;action('draw');}else action('attack');}
   });
   window.addEventListener('mouseup',e=>{if(e.button===0&&drawHeld){action('release');drawHeld=false;}if(e.button===2){blocking=false;if(getSelf())socket.volatile.emit('input',getInput());}});
@@ -44,7 +55,6 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     if(event.type==='attack'&&event.source===p.id)swing=performance.now();
     if(event.type==='hit'&&event.target===p.id){flash=performance.now();document.querySelector('#damage').textContent=`−${event.amount}`;}
     if(event.type==='hit'&&event.source===p.id){hit=performance.now();document.querySelector('#hit-marker').textContent=event.critical?'✦':'×';}
-    if(event.type==='block'&&(event.target===p.id||event.source===p.id)){document.querySelector('#combat-note').textContent=event.disabled?'SHIELD DISABLED · 10s':'BLOCKED';setTimeout(()=>document.querySelector('#combat-note').textContent='',1200);}
     if(event.type==='kill'){
       const item=document.createElement('div');item.textContent=`${event.sourceName} → ${event.targetName} · ${event.weapon}`;feed.prepend(item);while(feed.children.length>5)feed.lastChild.remove();setTimeout(()=>item.remove(),7000);
     }
@@ -74,23 +84,25 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
   }
   function frame(now){
     for(const b of bursts){const age=(now-b.start)/500;b.mesh.scale.setScalar(1+age*3);b.mesh.material.opacity=Math.max(0,.8*(1-age));if(age>=1){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();bursts.delete(b);}}
-    const p=getSelf();hand.visible=shield.visible=wind.visible=!!p;if(!p)return;
+    const p=getSelf();hand.visible=wind.visible=!!p;if(!p)return;
     const time=Date.now()+clockOffset,w=C.weapons[p.weapon];
     if(weapon!==p.weapon){weapon=p.weapon;buildWeapon(hand,weapon);}
     const duration=weapon==='crossbow'?w.cooldown:Math.min(w.cooldown,800),phase=Math.min(1,(now-swing)/duration);
     animateWeapon(hand,weapon,swing?phase:0);
     if(p.drawAt&&weapon==='bow'){const charge=Math.min(1,(time-p.drawAt)/1000);hand.position.z=-.65+charge*.12;hand.rotation.y=-charge*.2;hand.userData.string.position.z=charge*.2;hand.userData.arrow.position.z=charge*.2;}else {hand.position.z=-.65;if(hand.userData.string){hand.userData.string.position.z=0;hand.userData.arrow.position.z=0;}}
-    shield.visible=p.hp>0&&p.canShield!==false&&['sword','axe'].includes(weapon);shield.position.y=p.blocking?-.13:-.52;shield.rotation.y=p.blocking?-.15:-.4;
-    wind.visible=p.hp>0&&weapon==='mace';wind.rotation.y=now*.002;wind.scale.setScalar(p.windReady>time?.7:1);
+    wind.visible=p.hp>0;wind.rotation.y=now*.002;
+    const throwAge=now-windThrownAt;wind.position.y=-.23-(throwAge<300?Math.sin(throwAge/300*Math.PI)*.16:0);
+    wind.scale.setScalar(p.windReady>time?.9:1);
+    if(windNoticeAt&&now-windNoticeAt>2400){document.querySelector('#combat-note').textContent='';windNoticeAt=0;}
     hand.visible=p.hp>0;
     document.querySelector('#health').max=p.maxHp||100;document.querySelector('#health').value=p.hp;document.querySelector('#health-label').textContent=`${Math.ceil(p.hp)} / ${p.maxHp||100}`;
     document.querySelector('#armor-label').textContent=`ARMOR ${Math.round(p.armor*100)}% · 4 PIECES`;
     const remaining=Math.max(0,p.nextAttack-time);document.querySelector('#attack-ready').value=1-remaining/(w.cooldown/(p.attackSpeed||1));
     document.querySelector('#weapon-status').textContent=p.drawAt?`DRAW ${Math.min(100,Math.round((time-p.drawAt)/10))}%`:remaining>0?(weapon==='crossbow'?'RELOADING ':'READY IN ')+(remaining/1000).toFixed(1)+'s':C.inSpawn(p)?'SPAWN SANCTUARY':p.protectedUntil>time?'SPAWN PROTECTION':'READY';
     const stamp=p.hero+':'+weapon;if(stamp!==hotbarStamp){hotbarStamp=stamp;document.querySelectorAll('[data-weapon]').forEach((el,i)=>{el.dataset.weapon=window.HeroRules.loadout(p.hero)[i];el.textContent=`${i+1} ${C.weapons[el.dataset.weapon].name}`;el.classList.toggle('selected',el.dataset.weapon===weapon);});}
-    document.querySelector('#shield-status').textContent=weapon==='mace'?(p.windReady>time?`WIND CHARGE ${((p.windReady-time)/1000).toFixed(1)}s`:'RMB: THROW WIND CHARGE · AIM AT YOUR FEET'):p.shieldUntil>time?`SHIELD DISABLED ${((p.shieldUntil-time)/1000).toFixed(1)}s`:p.blocking?'BLOCKING':shield.visible?'RMB: SHIELD':'RANGED WEAPON';
+    document.querySelector('#shield-status').textContent=C.inSpawn(p)?'WIND CHARGE · LEAVE SPAWN TO THROW':p.windReady>time?`WIND CHARGE ${((p.windReady-time)/1000).toFixed(1)}s`:'RMB: WIND CHARGE · AIM AT YOUR FEET';
     document.querySelector('#damage').style.opacity=now-flash<400?1:0;document.querySelector('#hit-marker').style.opacity=now-hit<250?1:0;
     document.querySelector('#death').hidden=p.hp>0;document.querySelector('#respawn-time').textContent=`${Math.max(0,Math.ceil((p.deadUntil-time)/1000))}s`;
   }
-  return {syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},hand,offhand:()=>({wind:wind.visible,shield:shield.visible}),buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>blocking};
+  return {syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},hand,offhand:()=>({wind:wind.visible,shield:false}),buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>false};
 }

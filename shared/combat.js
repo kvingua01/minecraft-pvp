@@ -28,7 +28,7 @@
   }
   function playerDistance(origin,dir,p,limit,padding=0){return rayBox(origin,dir,{x:p.x-.32-padding,y:p.y,z:p.z-.32-padding},{x:p.x+.32+padding,y:p.y+1.8,z:p.z+.32+padding},limit);}
   function inSpawn(p){return Math.abs(p.x)>22&&Math.abs(p.z)<6;}
-  function shieldFaces(p,source){const dx=source.x-p.x,dz=source.z-p.z,length=Math.hypot(dx,dz);return length>0&&(-Math.sin(p.yaw)*dx-Math.cos(p.yaw)*dz)/length>=Math.cos(Math.PI/3);}
-  const api={weapons,equipment,slots,maxHealth,armor,respawnDelay,direction,rayBox,wallDistance,playerDistance,inSpawn,shieldFaces};
+
+  const api={weapons,equipment,slots,maxHealth,armor,respawnDelay,direction,rayBox,wallDistance,playerDistance,inSpawn};
   if(typeof module!=='undefined')module.exports=api;else root.CombatRules=api;
 })(globalThis);

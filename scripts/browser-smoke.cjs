@@ -15,7 +15,7 @@ const assert=require('node:assert/strict');
  function place(){Object.assign(pa,{x:0,y:0,z:10,protectedUntil:0,nextAttack:0,kx:0,kz:0,vy:0,fallPeak:0});Object.assign(pb,{x:0,y:0,z:7,protectedUntil:0,kx:0,kz:0,vy:0,fallPeak:0});}
  place();await a.waitForTimeout(350);
  await a.evaluate(()=>{const d=window.arenaDiagnostics();document.dispatchEvent(new MouseEvent('mousemove',{movementX:d.yaw/.002,movementY:d.pitch/.002}));});await a.waitForTimeout(100);
- await a.mouse.down({button:'right'});await a.waitForFunction(()=>window.arenaDiagnostics().blocking);await a.mouse.up({button:'right'});await a.waitForFunction(()=>!window.arenaDiagnostics().blocking);console.log('First-person shield raises and lowers');
+ assert.equal((await a.evaluate(()=>window.arenaDiagnostics())).offhand.shield,false);assert.equal((await a.evaluate(()=>window.arenaDiagnostics())).offhand.wind,true);console.log('Visible wind-charge offhand replaces the removed shield');
  await a.mouse.down();await a.mouse.up();await b.waitForFunction(()=>window.arenaDiagnostics().hp<180);assert.equal(pb.hp,167);console.log('Melee click deals authoritative damage and updates both HUDs');
  await a.keyboard.press('2');await a.waitForFunction(()=>window.arenaDiagnostics().weapon==='axe');await a.keyboard.press('3');await a.waitForFunction(()=>window.arenaDiagnostics().weapon==='mace');await a.keyboard.press('4');await a.waitForFunction(()=>window.arenaDiagnostics().weapon==='bow');
  place();await a.waitForTimeout(400);await a.mouse.down();await a.waitForTimeout(1100);assert.match(await a.locator('#weapon-status').textContent(),/DRAW/);await a.mouse.up();await b.waitForFunction(()=>window.arenaDiagnostics().hp<167);console.log('Bow draws, releases a server projectile and damages the other browser');

@@ -61,12 +61,12 @@ test('respawn applies the pending hero and clears statuses, cooldowns, and ultim
  const {combat,room,a}=setup('knight');a.pendingHero='frost';a.hp=0;a.deadUntil=10001;a.ult=100;combat.tick(room,10002,1/60);assert.equal(a.hero,'frost');assert.equal(a.hp,105);assert.equal(a.weapon,'staff');assert.equal(a.ult,0);assert.deepEqual(a.status,{});
 });
 
-test('Holy Shield can select a real aimed teammate and reduces incoming damage',()=>{
+test('Holy Ward can select a real aimed teammate and reduces incoming damage',()=>{
  const {h,combat,room,a,b,ally}=setup('paladin');Object.assign(ally,{x:0,z:7});b.x=5;h.use(room,a,'e',10000);h.before(room,10001);assert.equal(ally.resist,.65);combat.damage(room,ally,b,100,10002,{noKnock:true});assert.equal(ally.hp,ally.maxHp-23);
 });
-test('shields stop direct ice bolts, protected enemies ignore slowing, expired lives remove temporary effects',()=>{
- const {h,combat,room,a,b}=setup('frost');b.yaw=Math.PI;combat.block(b,true,10000);h.projectile(a,'ice',22,10000);h.impact(room,combat.projectiles[0],a,b,10001);assert.equal(b.hp,b.maxHp);assert.equal(b.status.slow,undefined);
- b.blocking=false;b.protectedUntil=11000;h.impact(room,combat.projectiles[0],a,b,10002);assert.equal(b.status.slow,undefined);b.x=10;h.use(room,a,'e',10003);assert.equal(h.solids().length,1);a.life++;h.before(room,10004);assert.equal(h.solids().length,0);
+test('removed equipment shields cannot stop ice bolts; protected enemies ignore slowing, expired lives remove temporary effects',()=>{
+ const {h,combat,room,a,b}=setup('frost');b.yaw=Math.PI;combat.block(b,true,10000);h.projectile(a,'ice',22,10000);h.impact(room,combat.projectiles[0],a,b,10001);assert.equal(b.hp,b.maxHp-14);assert.ok(b.status.slow>10001);
+ b.status.slow=undefined;b.blocking=false;b.protectedUntil=11000;h.impact(room,combat.projectiles[0],a,b,10002);assert.equal(b.status.slow,undefined);b.x=10;h.use(room,a,'e',10003);assert.equal(h.solids().length,1);a.life++;h.before(room,10004);assert.equal(h.solids().length,0);
 });
 
 test('potion and explosive splashes work when their projectile hits the ground',()=>{
