@@ -19,8 +19,10 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
   app.disable('x-powered-by');
   app.get('/health',(_req,res)=>res.status(draining?503:200).json({ok:!draining,version,revision:/^[a-f0-9]{7,40}$/i.test(revision)?revision.slice(0,12):'local'}));
   app.use('/vendor',express.static(path.join(__dirname,'node_modules/three/build')));
-  app.use('/shared',express.static(path.join(__dirname,'shared')));
-  app.use(express.static(path.join(__dirname,'public')));
+  // Revalidate the release as a whole after deployments, including imported modules.
+  const liveAssets={setHeaders:res=>res.setHeader('Cache-Control','no-store')};
+  app.use('/shared',express.static(path.join(__dirname,'shared'),liveAssets));
+  app.use(express.static(path.join(__dirname,'public'),liveAssets));
   function leave(socket) {
     clearTimeout(disconnectTimers.get(socket.id));disconnectTimers.delete(socket.id);
     const room=rooms.get(socket.data.room);
