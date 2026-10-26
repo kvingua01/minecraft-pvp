@@ -13,7 +13,8 @@
     "test:network-browser": "node scripts/network-smoke.cjs",
     "test:production": "node scripts/production-smoke.cjs",
     "benchmark:physics": "node scripts/benchmark-physics.cjs",
-    "build:production": "node scripts/build-production.cjs"
+    "build:production": "node scripts/build-production.cjs",
+    "test:wind-browser": "node scripts/wind-smoke.cjs"
   },
   "engines": {
     "node": ">=20"

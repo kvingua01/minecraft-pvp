@@ -1,11 +1,12 @@
 import * as THREE from '/vendor/three.module.js';
 const C=window.CombatRules;
 export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLocked}){
-  const hand=new THREE.Group(),shield=new THREE.Group();camera.add(hand,shield);
+  const hand=new THREE.Group(),shield=new THREE.Group(),wind=new THREE.Group();camera.add(hand,shield,wind);
+  wind.position.set(-.43,-.36,-.7);cube(wind,.18,.18,.18,0xe6fbff,0,0,0);const windBand=cube(wind,.26,.055,.26,0x94d7ed,0,0,0);windBand.rotation.y=.5;
   hand.position.set(.4,-.36,-.65);hand.scale.setScalar(.65);shield.position.set(-.47,-.52,-.76);shield.scale.setScalar(.65);
   cube(shield,.52,.68,.12,0x697f8e,0,0,0);cube(shield,.36,.51,.14,0xba9c62,0,0,0);
   let hotbarStamp='',weapon='',blocking=false,clockOffset=0,clockSynced=false,swing=0,flash=0,hit=0,drawHeld=false;
-  const arrows=new Map(),feed=document.querySelector('#kill-feed');
+  const bursts=new Set(),arrows=new Map(),feed=document.querySelector('#kill-feed');
   function buildWeapon(group,key,remote=false){
     if(remote)group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});group.clear();const scale=remote ? .8 : 1;group.userData.string=null;group.userData.arrow=null;
     if(!remote)cube(group,.16,.34,.18,0xc8916e,0,-.12,0);
@@ -29,6 +30,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
   function release(){if(drawHeld&&getSelf())socket.volatile.emit('action',{kind:'cancel'});drawHeld=false;blocking=false;}
   window.addEventListener('mousedown',e=>{
     if(!isLocked()||!getSelf()||getSelf().hp<=0)return;
+    if(e.button===2&&getSelf().weapon==='mace'){action('wind');return;}
     if(e.button===2){blocking=true;socket.volatile.emit('input',getInput());}
     if(e.button===0){if(getSelf().weapon==='bow'){drawHeld=true;action('draw');}else action('attack');}
   });
@@ -38,6 +40,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
   window.addEventListener('keydown',e=>{if(!isLocked()||e.repeat)return;const index=Number(e.key)-1;if(index>=0&&index<5){drawHeld=false;blocking=false;socket.emit('equip',window.HeroRules.loadout(getSelf().hero)[index]);}});
   socket.on('combat',event=>{
     const p=getSelf();if(!p)return;
+    if(event.type==='wind-burst'){const mesh=new THREE.Mesh(new THREE.RingGeometry(.65,1,12),new THREE.MeshBasicMaterial({color:0xd9faff,side:THREE.DoubleSide,transparent:true,opacity:.8,depthWrite:false}));mesh.rotation.x=-Math.PI/2;mesh.position.set(event.x,event.y+.08,event.z);scene.add(mesh);bursts.add({mesh,start:performance.now()});}
     if(event.type==='attack'&&event.source===p.id)swing=performance.now();
     if(event.type==='hit'&&event.target===p.id){flash=performance.now();document.querySelector('#damage').textContent=`−${event.amount}`;}
     if(event.type==='hit'&&event.source===p.id){hit=performance.now();document.querySelector('#hit-marker').textContent=event.critical?'✦':'×';}
@@ -51,15 +54,15 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     for(const a of state.projectiles||[]){
       seen.add(a.id);let m=arrows.get(a.id);
       if(!m){
-        m=new THREE.Group();const flask=a.kind==='potion'||a.kind?.startsWith('flask:'),size=flask ? .22 : .06;
-        const color=a.kind?.startsWith('flask:')?window.PotionRules.items[a.kind.slice(6)].color:a.kind==='ice'||a.kind==='frost'?0x9ee6ff:a.kind==='potion'?0xa9e5a1:a.kind==='explosive'?0xf4b273:0xe8d2a2;
+        m=new THREE.Group();const flask=a.kind==='wind'||a.kind==='potion'||a.kind?.startsWith('flask:'),size=flask ? .22 : .06;
+        const color=a.kind==='wind'?0xe6fbff:a.kind?.startsWith('flask:')?window.PotionRules.items[a.kind.slice(6)].color:a.kind==='ice'||a.kind==='frost'?0x9ee6ff:a.kind==='potion'?0xa9e5a1:a.kind==='explosive'?0xf4b273:0xe8d2a2;
         cube(m,size,size,flask ? .22 : .65,color,0,0,0);scene.add(m);arrows.set(a.id,m);
       }
       m.position.set(a.x,a.y,a.z);m.lookAt(a.x+a.vx,a.y+a.vy,a.z+a.vz);
     }
     for(const [id,m]of arrows)if(!seen.has(id)){scene.remove(m);arrows.delete(id);}
   }
-  function clear(){hotbarStamp='';clockSynced=false;release();for(const m of arrows.values())scene.remove(m);arrows.clear();feed.replaceChildren();document.querySelector('#death').hidden=true;document.querySelector('#damage').style.opacity=0;document.querySelector('#hit-marker').style.opacity=0;}
+  function clear(){for(const b of bursts){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();}bursts.clear();hotbarStamp='';clockSynced=false;release();for(const m of arrows.values())scene.remove(m);arrows.clear();feed.replaceChildren();document.querySelector('#death').hidden=true;document.querySelector('#damage').style.opacity=0;document.querySelector('#hit-marker').style.opacity=0;}
   function animateWeapon(group,key,phase){
     const a=Math.sin(Math.PI*phase);
     group.rotation.set(0,0,-.22);
@@ -70,22 +73,24 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     if(key==='staff'||key==='launcher')group.rotation.x=-a*.3;
   }
   function frame(now){
-    const p=getSelf();hand.visible=shield.visible=!!p;if(!p)return;
+    for(const b of bursts){const age=(now-b.start)/500;b.mesh.scale.setScalar(1+age*3);b.mesh.material.opacity=Math.max(0,.8*(1-age));if(age>=1){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();bursts.delete(b);}}
+    const p=getSelf();hand.visible=shield.visible=wind.visible=!!p;if(!p)return;
     const time=Date.now()+clockOffset,w=C.weapons[p.weapon];
     if(weapon!==p.weapon){weapon=p.weapon;buildWeapon(hand,weapon);}
     const duration=weapon==='crossbow'?w.cooldown:Math.min(w.cooldown,800),phase=Math.min(1,(now-swing)/duration);
     animateWeapon(hand,weapon,swing?phase:0);
     if(p.drawAt&&weapon==='bow'){const charge=Math.min(1,(time-p.drawAt)/1000);hand.position.z=-.65+charge*.12;hand.rotation.y=-charge*.2;hand.userData.string.position.z=charge*.2;hand.userData.arrow.position.z=charge*.2;}else {hand.position.z=-.65;if(hand.userData.string){hand.userData.string.position.z=0;hand.userData.arrow.position.z=0;}}
-    shield.visible=p.hp>0&&p.canShield!==false&&['sword','axe','mace'].includes(weapon);shield.position.y=p.blocking?-.13:-.52;shield.rotation.y=p.blocking?-.15:-.4;
+    shield.visible=p.hp>0&&p.canShield!==false&&['sword','axe'].includes(weapon);shield.position.y=p.blocking?-.13:-.52;shield.rotation.y=p.blocking?-.15:-.4;
+    wind.visible=p.hp>0&&weapon==='mace';wind.rotation.y=now*.002;wind.scale.setScalar(p.windReady>time?.7:1);
     hand.visible=p.hp>0;
     document.querySelector('#health').max=p.maxHp||100;document.querySelector('#health').value=p.hp;document.querySelector('#health-label').textContent=`${Math.ceil(p.hp)} / ${p.maxHp||100}`;
     document.querySelector('#armor-label').textContent=`ARMOR ${Math.round(p.armor*100)}% · 4 PIECES`;
     const remaining=Math.max(0,p.nextAttack-time);document.querySelector('#attack-ready').value=1-remaining/(w.cooldown/(p.attackSpeed||1));
     document.querySelector('#weapon-status').textContent=p.drawAt?`DRAW ${Math.min(100,Math.round((time-p.drawAt)/10))}%`:remaining>0?(weapon==='crossbow'?'RELOADING ':'READY IN ')+(remaining/1000).toFixed(1)+'s':C.inSpawn(p)?'SPAWN SANCTUARY':p.protectedUntil>time?'SPAWN PROTECTION':'READY';
     const stamp=p.hero+':'+weapon;if(stamp!==hotbarStamp){hotbarStamp=stamp;document.querySelectorAll('[data-weapon]').forEach((el,i)=>{el.dataset.weapon=window.HeroRules.loadout(p.hero)[i];el.textContent=`${i+1} ${C.weapons[el.dataset.weapon].name}`;el.classList.toggle('selected',el.dataset.weapon===weapon);});}
-    document.querySelector('#shield-status').textContent=p.shieldUntil>time?`SHIELD DISABLED ${((p.shieldUntil-time)/1000).toFixed(1)}s`:p.blocking?'BLOCKING':shield.visible?'RMB: SHIELD':'RANGED WEAPON';
+    document.querySelector('#shield-status').textContent=weapon==='mace'?(p.windReady>time?`WIND CHARGE ${((p.windReady-time)/1000).toFixed(1)}s`:'RMB: THROW WIND CHARGE · AIM AT YOUR FEET'):p.shieldUntil>time?`SHIELD DISABLED ${((p.shieldUntil-time)/1000).toFixed(1)}s`:p.blocking?'BLOCKING':shield.visible?'RMB: SHIELD':'RANGED WEAPON';
     document.querySelector('#damage').style.opacity=now-flash<400?1:0;document.querySelector('#hit-marker').style.opacity=now-hit<250?1:0;
     document.querySelector('#death').hidden=p.hp>0;document.querySelector('#respawn-time').textContent=`${Math.max(0,Math.ceil((p.deadUntil-time)/1000))}s`;
   }
-  return {syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},hand,buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>blocking};
+  return {syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},hand,offhand:()=>({wind:wind.visible,shield:shield.visible}),buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>blocking};
 }

@@ -25,7 +25,7 @@ bots: at least one real player on each team is required to advance the match.
 | 1–5 | Class primary and backup weapons |
 | Left click | Melee attack or fire crossbow |
 | Hold and release left click | Draw and fire bow |
-| Hold right click | Raise offhand shield with a melee weapon |
+| Right click | Throw a wind charge with a mace; hold to shield with sword/axe on shield classes |
 | Q / E / R | Class abilities / earned ultimate |
 | F / G / Shift+G | Use selected potion / cycle forward / cycle backward |
 | Tab / Escape | Player scores / unlock mouse and pause your input |
@@ -74,9 +74,23 @@ fire is disabled, including abilities; support effects heal or protect allies.
 | --- | --- | --- | --- |
 | Sword | 20 | 0.45s | Fast melee; 3.2-unit reach |
 | Axe | 32 | 0.95s | Disables a blocking shield for 10s |
-| Mace | 28 | 1.15s | Falling adds up to 60 damage |
+| Mace | 28 | 1.15s | Descending hits add 7 damage per block fallen, without the old cap |
 | Bow | 8–32 | 0.4s after release | Server-timed draw; full charge at 1s |
 | Crossbow | 38 | 1.8s | Reloads after every shot |
+
+Every class holding a mace carries a wind charge instead of a shield. Right-click
+throws a visible projectile; aim at your feet to burst against the ground. A burst
+within four units and clear line of sight launches its owner upward, with a
+three-second server-enforced cooldown and protection through the next landing.
+It deals no damage and grants no free ultimate charge. Throws are blocked while
+dead, disconnected, drinking, inside spawn, or after match end. Other weapons
+cannot throw charges. Shields remain available with swords/axes on shield classes.
+
+Mace smash damage adds seven raw damage per block fallen while descending; there
+is no longer a 60-damage bonus cap. Armor and resistance still apply. Rising or
+grounded attacks receive no falling bonus. A successful descending mace hit resets
+the accumulated fall and protects the landing; blocked/missed hits do not reset it.
+`npm run test:wind-browser` checks real throws and launches for all eight classes.
 
 Descending melee attacks deal 1.5× base damage. Sprint attacks increase knockback.
 Shields block within a 120-degree horizontal arc. A blocked axe hit disables the
@@ -113,7 +127,7 @@ to the chosen class. All balance values are provisional for real-player testing.
 | Archer | 110 / 12% | Bow; crossbow backup | Grappling Arrow | Explosive Arrow | Arrow Storm |
 | Paladin | 160 / 30% | Sword + shield | Healing Aura | Holy Shield | Divine Protection |
 | Alchemist | 120 / 20% | Potion launcher | Healing Splash | Poison Cloud | Mega Potion |
-| Mace Warrior | 160 / 30% | Mace + shield | Rocket Jump | Ground Slam | Meteor Strike |
+| Mace Warrior | 160 / 30% | Mace + wind charge | Rocket Jump | Ground Slam | Meteor Strike |
 | Frost Mage | 105 / 12% | Frost staff; sword backup | Ice Bolt | Ice Wall | Blizzard |
 
 The class menu describes each ability. The HUD shows Q/E cooldowns, active status
