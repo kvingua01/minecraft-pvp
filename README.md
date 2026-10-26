@@ -1,4 +1,4 @@
-# Blockward — Phase 4
+# Blockward — Phase 5
 
 An original first-person multiplayer voxel arena, built with Three.js, Express,
 and Socket.io. The original click-target game remains available at `/practice/`.
@@ -28,6 +28,7 @@ bots: at least one real player on each team is required to advance the match.
 | Hold and release left click | Draw and fire bow |
 | Hold right click | Raise offhand shield with a melee weapon |
 | Q / E / R | Class abilities / earned ultimate |
+| F / G / Shift+G | Use selected potion / cycle forward / cycle backward |
 | Tab / Escape | Player scores / unlock mouse and pause your input |
 
 Walk out of the colored spawn sanctuary to fight. Spawn sanctuaries protect
@@ -165,9 +166,9 @@ snapshots at 20 Hz. Clients predict local movement and interpolate remote avatar
 Rooms support up to ten players and are removed when empty. All room state lives
 in memory; restarting the server ends active rooms.
 
-Not yet implemented: consumable potion inventory, potion charges, additional
-sound design, and final deployment/performance polish. Alchemist abilities and
-the potion launcher work now; these are separate from the Phase 5 potion items.
+Final deployment/performance polish remains for Phase 6. Consumable potions and
+procedural sound effects are implemented; Alchemist abilities and the potion
+launcher remain separate from this limited-charge inventory.
 The initial combat values are provisional and need real-player balance testing.
 
 ## Validation
@@ -193,6 +194,57 @@ crossbow reloads, damage HUDs, elimination, kill feed, respawn, and Escape/resum
 It uses system Chromium when available, or Playwright's installed Chromium.
 Set `BROWSER_EXECUTABLE_PATH` to select another Chromium executable. Browser
 installation is unnecessary on Railway; it is only needed to run browser tests.
+
+## Potions and feedback
+
+Every hero spawns with the same seven consumables. **F** drinks/throws the selected
+potion, **G** cycles forward, and **Shift+G** cycles backward. The HUD shows all
+counts, the selection and the shared cooldown. You can also select an item under
+**Escape → Potion inventory**. Selection never consumes an item.
+
+| Potion | Charges per life | Effect |
+| --- | --- | --- |
+| Healing | 2 | Restore 40 HP, capped at class maximum |
+| Speed | 1 | 25% faster movement for 8s |
+| Strength | 1 | 25% more weapon damage for 8s, including ranged primaries |
+| Regeneration | 1 | Restore 5 HP per second for 8s |
+| Slowness splash | 1 | Throw a flask; slow enemies in a 3.5-unit area for 5s |
+| Damage splash | 1 | Throw a flask; 30 raw area damage before armor/resistance |
+| Fire resistance | 1 | Ignore flames and lingering burning for 10s |
+
+Potions share an eight-second cooldown. Drinking takes 650ms and prevents attacks,
+blocking and hero abilities until finished. Death/disconnection interrupts a drink
+without refunding the charge; respawning or a rematch refills the loadout. Full
+health Healing requests do not consume a charge. Buffs clear on respawn; reconnects
+preserve remaining inventory and cooldown. Existing regeneration and fire continue
+ticking on a reserved disconnected body. A first-person bottle and matching
+remote animation show successful use. Thrown flasks use server projectile
+collisions, range/cover checks and friendly-fire/spawn protection. Slows use the
+strongest active slow instead of multiplying together. Strength affects weapons,
+not hero spells or environmental damage. Potions cannot forge ultimate charge.
+
+Two mirrored flame braziers on the outer routes at (-10, 20) and (10, -20) deal
+real fire damage and briefly leave a burning effect. Fire resistance prevents
+both contact and lingering damage. These are original procedural voxel assets;
+no block mining, building or destruction is added.
+
+Original Web Audio effects cover footsteps, weapons, hits, shields, healing,
+abilities, potions, objective ownership and match results. Sound starts only after
+user interaction. The volume slider is available before joining and in the pause
+menu; zero mutes everything. Remote sounds fade with distance, voice counts are
+bounded, and no external audio downloads or services are required.
+
+```sh
+npm run test:potions-browser
+```
+
+This two-browser test uses real F/G input and inventory buttons, verifies all
+seven potion effects, projectile damage/slow synchronization, limited charges,
+refills, visible hazards, and audio start/mute behavior. It shortens repeated
+cooldowns through explicit server-side fixtures; production clients cannot do
+that. Unit/network tests independently verify cooldown enforcement and inventory
+authority. Headless audio checks verify a running audio graph and scheduled tones,
+not subjective speaker quality.
 
 ## Connection recovery
 

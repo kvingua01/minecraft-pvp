@@ -47,7 +47,7 @@ const assert=require('node:assert/strict');
  Object.assign(pb,{x:12,y:0,z:0,vy:0,kx:0,kz:0,fallPeak:0,input:{},lastInput:0});
  await a.waitForFunction(()=>Math.abs(window.arenaDiagnostics().position.z-6)<.1);
  await a.evaluate(()=>{const d=window.arenaDiagnostics();document.dispatchEvent(new MouseEvent('mousemove',{movementX:d.yaw/.002,movementY:d.pitch/.002}));});
- await a.keyboard.down('KeyW');await a.keyboard.down('Space');await a.waitForFunction(()=>window.arenaDiagnostics().position.y>.3);await a.keyboard.up('Space');await a.waitForFunction(()=>window.arenaDiagnostics().position.z<3);await a.keyboard.up('KeyW');
+ await a.keyboard.down('KeyW');await a.keyboard.down('Space');await a.waitForFunction(()=>window.arenaDiagnostics().position.y>.3);await a.waitForFunction(()=>window.arenaDiagnostics().position.z<4);await a.keyboard.up('Space');await a.waitForFunction(()=>window.arenaDiagnostics().position.z<3);await a.keyboard.up('KeyW');
  await a.waitForFunction(()=>window.arenaDiagnostics().match?.control==='red',null,{timeout:15000});
  await a.waitForFunction(()=>document.querySelector('#point-status').textContent==='RED CONTROLS THE POINT');
  await a.waitForFunction(()=>window.arenaDiagnostics().match.scores.red>=1);console.log('Walk and jump onto the point, real five-second capture, and team scoring passed');await a.screenshot({path:'/tmp/blockward-phase3-game.png'});

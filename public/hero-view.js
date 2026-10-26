@@ -5,7 +5,8 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
  const $=s=>document.querySelector(s),effects=new Map(),flash=$('#ability-flash');let flashedAt=0;
  let queuedHero=null;
  function paintPicker(selector,value){
-  $(selector).value=value;
+  const grid=$(selector+'-options');if($(selector).value===value&&grid.dataset.selected===value)return;
+  $(selector).value=value;grid.dataset.selected=value;
   for(const button of $(selector+'-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.hero===value));
  }
  function describe(){const h=H.heroes[$('#hero').value];$('#hero-description').textContent=`${h.health} HP · ${Math.round(h.armor*100)}% armor · ${h.weapon}\nQ — ${h.q.name}: ${h.q.description}\nE — ${h.e.name}: ${h.e.description}\nR — ${h.r.name}: ${h.r.description}`;}
@@ -36,7 +37,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   if(e.source===getSelf()?.id&&(e.type==='ability'||e.type==='slam')){flashedAt=performance.now();$('#ability-message').textContent=e.name||'GROUND SLAM';flash.style.background=e.hero==='frost'?'#83cfff22':'#d5e58a22';}
  });
  function build(e){const group=new THREE.Group();group.position.set(e.x,e.y,e.z);
-  const color=e.kind==='wall'?e.color:e.kind==='poison'?0x94c661:e.kind==='blizzard'?0x9cdbff:e.kind==='storm'?0xe1bb8d:0x9ce4bd;
+  const color=e.kind==='wall'?e.color:e.kind==='splash'?window.PotionRules.items[e.potionKind].color:e.kind==='poison'?0x94c661:e.kind==='blizzard'?0x9cdbff:e.kind==='storm'?0xe1bb8d:0x9ce4bd;
   if(e.kind==='wall'){
    const alongX=e.w>e.d,cols=Math.round(alongX?e.w:e.d),rows=Math.round(e.h),mesh=new THREE.InstancedMesh(blockGeometry,new THREE.MeshLambertMaterial({color}),cols*rows),dummy=new THREE.Object3D();
    mesh.userData.ownedMaterial=true;
@@ -62,7 +63,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   $('#hero-hud').hidden=!p;if(!p)return;const h=H.heroes[p.hero],time=serverNow();dagger.rotation.x=-Math.sin(Math.PI*Math.min(1,Math.max(0,(time-(p.attackAt||0))/450)))*.7;$('#hero-name').textContent=`${h.name.toUpperCase()} · ${h.role.toUpperCase()}`;
   for(const key of ['q','e']){const wait=Math.max(0,(p.abilityReady?.[key]||0)-time);$('#ability-'+key).textContent=`${key.toUpperCase()} · ${h[key].name} · ${wait?(wait/1000).toFixed(1)+'s':'READY'}`;}
   $('#ultimate').value=p.ult||0;$('#ability-r').textContent=`R · ${h.r.name} · ${Math.floor(p.ult||0)}%`;
-  const active=Object.entries(p.status||{}).filter(([_,end])=>end>time).map(([name])=>name.toUpperCase());$('#hero-status').textContent=active.join(' · ');
+  const active=Object.entries(p.status||{}).filter(([_,end])=>end>time).map(([name])=>({slowPotion:'SLOWED',fireResistance:'FIRE RESISTANCE',regeneration:'REGENERATION'}[name]||name.toUpperCase()));$('#hero-status').textContent=active.join(' · ');
   if(queuedHero===p.pendingHero)queuedHero=null;paintPicker('#next-hero',queuedHero||p.pendingHero||p.hero);
   for(const e of effects.values()){const rain=e.group.userData.rain;if(!rain)continue;for(let i=0;i<12;i++){rainDummy.position.set(Math.sin(i*2.4)*rain.userData.radius*.8,1+((now*.004+i*.5)%5),Math.cos(i*2.4)*rain.userData.radius*.8);rainDummy.scale.set(.05,e.kind==='storm'?.65:.15,.05);rainDummy.updateMatrix();rain.setMatrixAt(i,rainDummy.matrix);}rain.instanceMatrix.needsUpdate=true;}
  }

@@ -8,10 +8,10 @@ async function setup(grace,fn){const game=createGameServer({reconnectGrace:grace
  try{await fn({game,client,send});}finally{clients.forEach(s=>s.disconnect());await new Promise(r=>game.io.close(r));}}
 test('temporary transport loss recovers the same player without resetting health, class or scores',async()=>setup(1500,async({game,client,send})=>{
  const a=await client({reconnectionDelay:200,reconnectionDelayMax:200,randomizationFactor:0}),b=await client();const joined=await send(a,'join',{create:true,team:'red',hero:'frost'});await send(b,'join',{code:joined.code,team:'blue'});await once(a,'state');
- const oldId=a.id,room=game.rooms.get(joined.code),p=room.get(oldId);Object.assign(p,{x:0,y:0,z:10,hp:77,kills:2,ult:43});
+ const oldId=a.id,room=game.rooms.get(joined.code),p=room.get(oldId);Object.assign(p,{x:0,y:0,z:10,hp:77,kills:2,ult:43});p.inventory.healing=1;p.selectedPotion='speed';
  const disconnected=once(a,'disconnect'),reconnected=once(a,'connect');a.io.engine.close();await disconnected;await wait(40);
  assert.ok(room.has(oldId));assert.equal(p.connected,false);assert.equal(game.matches.get(joined.code).status,'waiting');
- await reconnected;const result=await send(a,'resume',{code:joined.code,token:joined.resumeToken});assert.equal(result.player.hp,77);assert.equal(result.player.hero,'frost');assert.equal(result.player.kills,2);assert.equal(result.player.ult,43);assert.equal(p.connected,true);assert.equal(room.size,2);
+ await reconnected;const result=await send(a,'resume',{code:joined.code,token:joined.resumeToken});assert.equal(result.player.hp,77);assert.equal(result.player.hero,'frost');assert.equal(result.player.kills,2);assert.equal(result.player.ult,43);assert.equal(result.player.inventory.healing,1);assert.equal(result.player.selectedPotion,'speed');assert.equal(p.connected,true);assert.equal(room.size,2);
  const state=await once(b,'state');assert.equal(state.match.status,'active');assert.ok(!JSON.stringify(state).includes(joined.resumeToken));
 }));
 test('private resume token restores a new socket identity and retains host/effect ownership',async()=>setup(1500,async({game,client,send})=>{

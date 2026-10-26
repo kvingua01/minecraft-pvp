@@ -12,7 +12,7 @@ const {chromium}=require('playwright'),{createGameServer}=require('../server'),H
   const card=page.locator(`#hero-options button[data-hero="${id}"]`);await card.click();assert.equal(await card.getAttribute('aria-pressed'),'true');assert.match(await page.locator('#hero-description').textContent(),new RegExp(h.q.name));
   await page.click('#create');await page.waitForFunction(id=>window.arenaDiagnostics().joined&&window.arenaDiagnostics().hero===id,id);
   const info=await page.evaluate(()=>window.arenaDiagnostics()),player=game.rooms.get(info.room).get(info.id);assert.equal(player.hero,id);assert.equal(player.hp,h.health);assert.equal(player.weapon,h.weapon);
-  if(info.locked)await page.keyboard.press('Escape');await page.locator('#pause').waitFor({state:'visible'});
+  await page.waitForFunction(()=>window.arenaDiagnostics().locked||document.querySelector('#pause-error').textContent.length>0);if(await page.evaluate(()=>window.arenaDiagnostics().locked))await page.keyboard.press('Escape');await page.locator('#pause').waitFor({state:'visible'});
   assert.equal(await page.locator('#next-hero-options button').count(),8);
   await page.click('#leave');await page.locator('#menu').waitFor({state:'visible'});console.log(`${h.name}: visible card joins with the correct playable class`);
  }

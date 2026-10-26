@@ -9,7 +9,8 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
   function buildWeapon(group,key,remote=false){
     if(remote)group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});group.clear();const scale=remote ? .8 : 1;group.userData.string=null;group.userData.arrow=null;
     if(!remote)cube(group,.16,.34,.18,0xc8916e,0,-.12,0);
-    if(['sword','axe','mace'].includes(key)){
+    if(key.startsWith('flask:')){cube(group,.18,.25,.18,window.PotionRules.items[key.slice(6)].color,0,.18,0);cube(group,.08,.13,.08,0xc5dcd6,0,.36,0);cube(group,.09,.05,.09,0xb18f61,0,.45,0);
+    }else if(['sword','axe','mace'].includes(key)){
       cube(group,.1,.48,.1,0x70583c,0,.17,0);
       if(key==='sword'){cube(group,.36,.055,.13,0xd6b66b,0,.24,0);cube(group,.12,.66,.055,0xd8e2d7,0,.59,0);}
       if(key==='axe'){cube(group,.36,.32,.09,0xa8c6c5,.1,.52,0);cube(group,.14,.26,.08,0xe4e6d3,.31,.52,0);}
@@ -47,7 +48,15 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
   });
   function snapshot(state){
     clockOffset=state.serverTime-Date.now();const seen=new Set();
-    for(const a of state.projectiles||[]){seen.add(a.id);let m=arrows.get(a.id);if(!m){m=new THREE.Group();cube(m,a.kind==='potion'?.22:.06,a.kind==='potion'?.22:.06,a.kind==='potion'?.22:.65,a.kind==='ice'||a.kind==='frost'?0x9ee6ff:a.kind==='potion'?0xa9e5a1:a.kind==='explosive'?0xf4b273:0xe8d2a2,0,0,0);scene.add(m);arrows.set(a.id,m);}m.position.set(a.x,a.y,a.z);m.lookAt(a.x+a.vx,a.y+a.vy,a.z+a.vz);}
+    for(const a of state.projectiles||[]){
+      seen.add(a.id);let m=arrows.get(a.id);
+      if(!m){
+        m=new THREE.Group();const flask=a.kind==='potion'||a.kind?.startsWith('flask:'),size=flask ? .22 : .06;
+        const color=a.kind?.startsWith('flask:')?window.PotionRules.items[a.kind.slice(6)].color:a.kind==='ice'||a.kind==='frost'?0x9ee6ff:a.kind==='potion'?0xa9e5a1:a.kind==='explosive'?0xf4b273:0xe8d2a2;
+        cube(m,size,size,flask ? .22 : .65,color,0,0,0);scene.add(m);arrows.set(a.id,m);
+      }
+      m.position.set(a.x,a.y,a.z);m.lookAt(a.x+a.vx,a.y+a.vy,a.z+a.vz);
+    }
     for(const [id,m]of arrows)if(!seen.has(id)){scene.remove(m);arrows.delete(id);}
   }
   function clear(){release();for(const m of arrows.values())scene.remove(m);arrows.clear();feed.replaceChildren();document.querySelector('#death').hidden=true;document.querySelector('#damage').style.opacity=0;document.querySelector('#hit-marker').style.opacity=0;}

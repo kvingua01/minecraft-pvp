@@ -2,6 +2,8 @@ import * as THREE from '/vendor/three.module.js';
 import {createCombatView} from '/combat-view.js';
 import {createObjectiveView} from '/objective-view.js';
 import {createHeroView} from '/hero-view.js';
+import {createPotionView} from '/potion-view.js';
+import {createAudio} from '/audio.js';
 const $=s=>document.querySelector(s), World=window.VoxelWorld;
 const menu=$('#menu'), pause=$('#pause'), canvas=$('#world'), loading=$('#loading');
 let renderer;
@@ -26,10 +28,13 @@ for(const color of new Set(World.boxes.map(b=>b.color))) {
 }
 function cube(parent,w,h,d,color,x,y,z) {const m=new THREE.Mesh(geometry,material(color));m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
 const socket=io({autoConnect:false}), remotes=new Map(),keys=new Set();
+const movementKeys=new Set(['KeyW','KeyA','KeyS','KeyD','Space','ShiftLeft','ShiftRight']);
 let self=null, ownId=null,roomCode='',yaw=0,pitch=0,locked=false,tab=false,accumulator=0,last=performance.now(),sendTime=0;
 let correction=new THREE.Vector3(),walkTime=0,reconnecting=false,resumeToken='';
 const combat=createCombatView({camera:viewCamera,scene,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished});
 const hand=combat.hand;
+const potionView=createPotionView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished,serverNow:combat.serverNow,hand});
+const audio=createAudio({socket,getSelf:()=>self,getPlayers:()=>self?[self,...[...remotes.values()].map(r=>r.target)]:[],isActive:()=>locked&&!reconnecting&&!objective.finished});
 const heroView=createHeroView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished,serverNow:combat.serverNow});
 const objective=createObjectiveView({scene,socket,getSelf:()=>self,clearKeys:()=>keys.clear()});
 function controls(){const active=locked&&!reconnecting&&socket.connected&&self?.hp>0;return {forward:active&&keys.has('KeyW'),back:active&&keys.has('KeyS'),left:active&&keys.has('KeyA'),right:active&&keys.has('KeyD'),jump:active&&keys.has('Space'),sprint:active&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:active&&combat.isBlocking()};}
@@ -70,12 +75,12 @@ $('#resume').onclick=requestLock;canvas.onclick=()=>{if(self&&!locked)requestLoc
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;keys.clear();pause.hidden=!self||locked||objective.finished;if(self)socket.volatile.emit('input',controls());});
 document.addEventListener('pointerlockerror',()=>{$('#pause-error').textContent='Mouse capture was denied. Click resume and allow it in your browser.';});
 document.addEventListener('mousemove',e=>{if(locked){const sensitivity=Number($('#sensitivity').value)*.0005;yaw-=e.movementX*sensitivity;pitch=THREE.MathUtils.clamp(pitch-e.movementY*sensitivity,-1.5,1.5);}});
-window.addEventListener('keydown',e=>{if(!self)return;if(e.code==='Escape'){document.exitPointerLock();return;}if(['Tab','Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code))e.preventDefault();if(e.code==='Tab'){tab=true;updateRoster();}if(locked)keys.add(e.code);});
-window.addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='Tab'){tab=false;updateRoster();}});
+window.addEventListener('keydown',e=>{if(!self)return;if(e.code==='Escape'){document.exitPointerLock();return;}if(['Tab','Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code))e.preventDefault();if(e.code==='Tab'){tab=true;updateRoster();}if(locked){keys.add(e.code);if(e.code==='Space'&&!e.repeat&&self.hp>0)self.jumpQueued=true;if(movementKeys.has(e.code)&&!e.repeat&&socket.connected&&!reconnecting)socket.emit('input',controls());}});
+window.addEventListener('keyup',e=>{keys.delete(e.code);if(self&&locked&&movementKeys.has(e.code)&&socket.connected&&!reconnecting)socket.emit('input',controls());if(e.code==='Tab'){tab=false;updateRoster();}});
 window.addEventListener('blur',()=>{keys.clear();tab=false;updateRoster();if(self)socket.volatile.emit('input',controls());});
 canvas.oncontextmenu=e=>e.preventDefault();
 function removeRemote(remote){scene.remove(remote.group);remote.group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});}
-function clearPlayers(){heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
+function clearPlayers(){audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
 $('#leave').onclick=()=>{if(socket.connected)socket.emit('leave');endSession();};
 socket.on('connect',()=>{if(self&&resumeToken)resumeSession();});
 socket.on('disconnect',reason=>{
@@ -115,7 +120,7 @@ socket.on('state',state=>{
   if(p.id===ownId){
    const error=Math.hypot(p.x-self.x,p.y-self.y,p.z-self.z);
    // Soft reconciliation of local prediction to authoritative positions.
-   if(error>3||p.life!==self.life||p.motionSerial!==self.motionSerial){Object.assign(self,p);correction.set(0,0,0);}else {
+   if(error>3||p.life!==self.life||p.motionSerial!==self.motionSerial){Object.assign(self,p);self.jumpQueued=false;correction.set(0,0,0);}else {
     correction.set(p.x-self.x,p.y-self.y,p.z-self.z);
     const {x,y,z,yaw:remoteYaw,pitch:remotePitch,vy,grounded,...stats}=p;Object.assign(self,stats);
     if(Math.hypot(p.kx,p.kz)>.5)self.vy=Math.max(self.vy,vy);
@@ -125,7 +130,7 @@ socket.on('state',state=>{
   ids.add(p.id);let remote=remotes.get(p.id);
   if(!remote){remote=makeAvatar(p);remotes.set(p.id,remote);}else {remote.previous={x:remote.group.position.x,y:remote.group.position.y,z:remote.group.position.z,yaw:remote.group.rotation.y};remote.target=p;remote.stamp=performance.now();}
  }
- for(const [id,r]of remotes)if(!ids.has(id)){removeRemote(r);remotes.delete(id);}heroView.snapshot(state);updateRoster();objective.update(state.match,state.players);
+ for(const [id,r]of remotes)if(!ids.has(id)){removeRemote(r);remotes.delete(id);}heroView.snapshot(state);audio.snapshot(state);updateRoster();objective.update(state.match,state.players);
 });
 $('#quality').onchange=()=>renderer.setPixelRatio(Math.min(devicePixelRatio,Number($('#quality').value)));
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();viewCamera.aspect=camera.aspect;viewCamera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
@@ -145,22 +150,25 @@ function frame(now){
  }else {camera.position.set(13,8,24);camera.lookAt(0,1,0);}
  for(const r of remotes.values()) {
   r.group.visible=r.target.hp>0;if(!r.group.visible)continue;
-  if(r.weaponKey!==r.target.weapon){r.weaponKey=r.target.weapon;combat.buildWeapon(r.weapon,r.weaponKey,true);}
+  const potionAge=combat.serverNow()-r.target.potionAt,potionActive=r.target.potionAt&&potionAge>=0&&potionAge<(window.PotionRules.items[r.target.potionKind]?.splash?400:650);
+  const visualKey=potionActive?'flask:'+r.target.potionKind:r.target.weapon;
+  if(r.weaponKey!==visualKey){r.weaponKey=visualKey;combat.buildWeapon(r.weapon,r.weaponKey,true);}
   r.weapon.position.y=.9;
-  const cooldown=window.CombatRules.weapons[r.weaponKey].cooldown,duration=r.weaponKey==='crossbow'?cooldown:Math.min(cooldown,800);
+  const cooldown=window.CombatRules.weapons[r.target.weapon].cooldown,duration=r.weaponKey==='crossbow'?cooldown:Math.min(cooldown,800);
   const phase=Math.min(1,Math.max(0,(combat.serverNow()-(r.target.attackAt||0))/duration));combat.animateWeapon(r.weapon,r.weaponKey,phase);
+  if(potionActive){const t=potionAge/(window.PotionRules.items[r.target.potionKind].splash?400:650);r.weapon.position.y=.9+Math.sin(t*Math.PI)*.5;r.weapon.rotation.x=-Math.sin(t*Math.PI)*.9;}
   if(r.weaponKey==='bow'){
    const charge=r.target.drawAt?Math.min(1,(combat.serverNow()-r.target.drawAt)/1000):0;
    r.weapon.userData.string.position.z=charge*.2;r.weapon.userData.arrow.position.z=charge*.2;r.weapon.rotation.y=-charge*.2;
   }
-  r.shield.visible=r.target.canShield!==false&&['sword','axe','mace'].includes(r.weaponKey);r.shield.position.y=r.target.blocking?1.35:.95;
+  r.shield.visible=!potionActive&&r.target.canShield!==false&&['sword','axe','mace'].includes(r.weaponKey);r.shield.position.y=r.target.blocking?1.35:.95;
   const hidden=r.target.status?.vanish>combat.serverNow();r.group.traverse(m=>{if(m.isMesh){if(!m.userData.avatarMaterial){m.material=m.material.clone();m.userData.avatarMaterial=true;}m.material.transparent=hidden;m.material.opacity=hidden?.15:1;const s=r.target.status||{},time=combat.serverNow();if(m.material.emissive)m.material.emissive.setHex(s.rampage>time||s.rage>time?0x662211:s.holy>time||s.divine>time?0x665622:s.slow>time?0x224466:0x000000);}});
   const t=Math.min(1,(now-r.stamp)/50);r.group.position.set(THREE.MathUtils.lerp(r.previous.x,r.target.x,t),THREE.MathUtils.lerp(r.previous.y,r.target.y,t),THREE.MathUtils.lerp(r.previous.z,r.target.z,t));
   const turn=Math.atan2(Math.sin(r.target.yaw-r.previous.yaw),Math.cos(r.target.yaw-r.previous.yaw));r.group.rotation.y=r.previous.yaw+turn*t;r.head.rotation.x=r.target.pitch;
   const moving=Math.hypot(r.target.x-r.previous.x,r.target.z-r.previous.z)>.02;r.legs[0].rotation.x=moving?Math.sin(now*.012)*.4:0;r.legs[1].rotation.x=-r.legs[0].rotation.x;
  }
- combat.frame(now);heroView.frame(now);if(objective.finished)$('#death').hidden=true;renderer.info.reset();renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(viewScene,viewCamera);
+ combat.frame(now);heroView.frame(now);potionView.frame(now);audio.frame(now);if(objective.finished)$('#death').hidden=true;renderer.info.reset();renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(viewScene,viewCamera);
 }
 loading.hidden=true;requestAnimationFrame(frame);
 // Read-only diagnostics for smoke tests; no client state can override the server.
-window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,drawCalls:renderer.info.render.calls});
+window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,drawCalls:renderer.info.render.calls});

@@ -42,3 +42,7 @@ test('sweeps stop at the nearest wall even for a large displacement',()=>{
  W.move(p,{x:100,y:0,z:0});assert.ok(Math.abs(p.x-31.18)<1e-7);
  W.move(p,{x:0,y:-100,z:0});assert.equal(p.y,0);
 });
+
+test('short jump taps survive until a physics step and are consumed once',()=>{
+ const p={...W.spawn(),x:0,y:0,z:10,grounded:true,jumpQueued:true};W.step(p,{jump:false},1/60);assert.ok(p.vy>0);assert.equal(p.jumpQueued,false);simulate(p,{},120);assert.equal(p.y,0);assert.equal(p.vy,0);
+});

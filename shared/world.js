@@ -31,6 +31,7 @@
   for(const x of [-6,6]) for(const z of [-6,6]) box(x,1,z,2,2,2,0x8a9c91);
   for(const z of [-32,32]) box(0,2,z,65,4,1,0x687e76);
   for(const x of [-32,32]) box(x,2,0,1,4,65,0x687e76);
+  const hazards=[{x:-10,y:0,z:20,radius:.95},{x:10,y:0,z:-20,radius:.95}];
   const radius=.32, height=1.8;
   // Enemy spawn rooms are solid to players; allies can leave and return freely.
   const enemySpawns={red:{x:27,y:32,z:0,w:10,h:64,d:12,solid:true},blue:{x:-27,y:32,z:0,w:10,h:64,d:12,solid:true}};
@@ -62,7 +63,7 @@
     }
     return moved;
   }
-  function spawn(index=0) { return {x:index%2?-25:25,y:.61,z:(Math.floor(index/2)%5-2)*1.4,vy:0,yaw:index%2?-Math.PI/2:Math.PI/2,pitch:0,grounded:false}; }
+  function spawn(index=0) { return {x:index%2?-25:25,y:.61,z:(Math.floor(index/2)%5-2)*1.4,vy:0,yaw:index%2?-Math.PI/2:Math.PI/2,pitch:0,grounded:false,jumpQueued:false}; }
   function step(p,input,dt) {
     p.yaw=Number.isFinite(input.yaw)?input.yaw:p.yaw;
     p.pitch=Math.max(-1.5,Math.min(1.5,Number.isFinite(input.pitch)?input.pitch:p.pitch));
@@ -71,7 +72,8 @@
     const dx=((s*Math.cos(p.yaw)-f*Math.sin(p.yaw))/norm*speed+(p.kx||0))*dt;
     const dz=((-s*Math.sin(p.yaw)-f*Math.cos(p.yaw))/norm*speed+(p.kz||0))*dt;
     p.kx=(p.kx||0)*Math.exp(-8*dt);p.kz=(p.kz||0)*Math.exp(-8*dt);
-    if(input.jump && p.grounded) {p.vy=8;p.grounded=false;}
+    if((input.jump||p.jumpQueued) && p.grounded) {p.vy=8;p.grounded=false;}
+    p.jumpQueued=false;
     p.vy=Math.max(-30,p.vy-23*dt);
     const dy=p.vy*dt,moved=move(p,{x:dx,y:dy,z:dz});
     p.grounded=dy<0&&Math.abs(moved.y-dy)>epsilon;
@@ -81,6 +83,6 @@
     if(p.y < -20) Object.assign(p,spawn());
     return p;
   }
-  const api={boxes,spawn,step,move,radius,height};
+  const api={boxes,hazards,spawn,step,move,radius,height};
   if(typeof module!=='undefined') module.exports=api; else root.VoxelWorld=api;
 })(globalThis);
