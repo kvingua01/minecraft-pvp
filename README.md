@@ -108,6 +108,9 @@ remaining-time countdown. Slowness, poison and burning are shown too; expired
 effects disappear automatically, and respawning clears the effect display. Instant heals/damage
 do not show a timed buff.
 
+Timed potions (Speed, Strength, Regeneration, Slowness and Fire Resistance) last
+**30 seconds**. Healing and splash damage are instant.
+
 Seven limited-charge potions: Healing (two), Regeneration, Strength, Speed,
 Slowness splash, Damage splash and Fire Resistance (one each per life). F uses
 and G cycles; pause also offers an inventory picker. Shared cooldown: eight
