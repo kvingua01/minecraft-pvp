@@ -103,6 +103,11 @@ steering; complex crowd navigation and class balance still need human playtestin
 Parry is a 350 ms sword counter window, with no physical blocking equipment.
 Plague reduces incoming healing, poison ticks on the server and Antidote cleanses.
 
+Active potion effects appear in the top-left corner with an icon, name and live
+remaining-time countdown. Slowness, poison and burning are shown too; expired
+effects disappear automatically, and respawning clears the effect display. Instant heals/damage
+do not show a timed buff.
+
 Seven limited-charge potions: Healing (two), Regeneration, Strength, Speed,
 Slowness splash, Damage splash and Fire Resistance (one each per life). F uses
 and G cycles; pause also offers an inventory picker. Shared cooldown: eight

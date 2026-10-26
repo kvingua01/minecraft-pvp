@@ -1,7 +1,8 @@
 import * as THREE from '/vendor/three.module.js';
+import {potionIcon} from '/pixel-items.js';
 const P=window.PotionRules;
 export function createPotionView({scene,camera,cube,socket,getSelf,getInput,isLocked,serverNow,hand}){
- const $=s=>document.querySelector(s),bottle=new THREE.Group();camera.add(bottle);let model='',pending=null,noticeAt=0,inventoryStamp='';
+ const $=s=>document.querySelector(s),bottle=new THREE.Group();camera.add(bottle);let model='',pending=null,noticeAt=0,inventoryStamp='',effectStamp='';
  function message(text){$('#potion-message').textContent=text;$('#potion-note').textContent=text;noticeAt=performance.now();}
  function select(id){if(!socket.connected||!getSelf()){message('Reconnect before selecting potions.');return;}pending=id;socket.timeout(4000).emit('potion-select',id,(error,result)=>{if(error||result?.error){pending=null;message(result?.error||'Could not select potion. Try again.');}});}
  for(const [id,item]of Object.entries(P.items)){
@@ -17,9 +18,20 @@ export function createPotionView({scene,camera,cube,socket,getSelf,getInput,isLo
  const fires=[];
  for(const hazard of window.VoxelWorld.hazards){const group=new THREE.Group();group.position.set(hazard.x,hazard.y,hazard.z);scene.add(group);cube(group,1.3,.12,1.3,0x63726c,0,.06,0);const flames=new THREE.Group();group.add(flames);cube(flames,.7,.65,.7,0xe88b52,0,.43,0);cube(flames,.4,.95,.4,0xf1c568,0,.58,0);fires.push(flames);}
  function buildBottle(id){if(model===id)return;model=id;bottle.clear();cube(bottle,.16,.25,.16,P.items[model].color,0,0,0);cube(bottle,.08,.13,.08,0xc4dfd8,0,.17,0);cube(bottle,.09,.05,.09,0xb18f61,0,.26,0);cube(bottle,.14,.25,.13,0xc99070,0,-.18,.05);}
+ function showEffects(p,time){
+  const entries=p&&p.hp>0?[
+   ['speed','Speed',p.status?.speed],['strength','Strength',p.status?.strength],['regeneration','Regeneration',p.status?.regeneration],
+   ['slowness','Slowness',Math.max(p.status?.slowPotion||0,p.status?.slow||0)],['fireResistance','Fire Resistance',p.status?.fireResistance],
+   ['damage','Poison',p.status?.poisoned],['fireResistance','Burning',p.status?.burning]
+  ].filter(([, ,end])=>Number.isFinite(end)&&end>time).map(([id,name,end])=>({id,name,seconds:Math.ceil((end-time)/1000)})):[];
+  const stamp=JSON.stringify(entries);if(stamp===effectStamp)return;effectStamp=stamp;
+  const root=$('#potion-effects');root.hidden=!entries.length;root.replaceChildren();
+  for(const e of entries){const row=document.createElement('div');row.className='potion-effect';row.dataset.effect=e.name;const image=document.createElement('img');image.src=potionIcon(e.id);image.alt='';const name=document.createElement('span');name.textContent=e.name;const remaining=document.createElement('time');remaining.textContent=Math.floor(e.seconds/60)+':'+String(e.seconds%60).padStart(2,'0');remaining.setAttribute('aria-label',e.seconds+' seconds remaining');row.append(image,name,remaining);root.append(row);}
+  $('#hud').style.setProperty('--effect-stack-height',entries.length?entries.length*42+8+'px':'0px');
+ }
  function frame(now){
   for(let i=0;i<fires.length;i++){fires[i].parent.visible=!getSelf()?.map||['legacy','castle'].includes(getSelf().map);fires[i].scale.y=.9+Math.sin(now*.009+i)*.12;}
-  const p=getSelf();bottle.visible=false;$('#potion-hud').hidden=!p;$('#potion-message').style.opacity=now-noticeAt<2000?1:0;if(!p)return;
+  const p=getSelf();showEffects(p,serverNow());bottle.visible=false;$('#potion-hud').hidden=!p;$('#potion-message').style.opacity=now-noticeAt<2000?1:0;if(!p)return;
   if(pending===p.selectedPotion)pending=null;const id=pending||p.selectedPotion||'healing',item=P.items[id],time=serverNow(),remaining=Math.max(0,p.potionReady-time);
   $('#potion-selected').textContent=`${item.name.toUpperCase()} · ${p.inventory?.[id]||0} LEFT`;
   $('#potion-help').textContent=p.drinking?'DRINKING…':remaining?`READY IN ${(remaining/1000).toFixed(1)}s · G: cycle`:'F: '+(item.splash?'throw':'drink')+' · G: cycle';$('#potion-cooldown').value=1-remaining/P.cooldown;
@@ -34,6 +46,6 @@ export function createPotionView({scene,camera,cube,socket,getSelf,getInput,isLo
    const t=age/duration;bottle.visible=true;hand.visible=false;const lift=Math.sin(t*Math.PI);bottle.position.set(.35-lift*.18,-.33+lift*.18,-.57);bottle.rotation.set(lift*.7,0,lift*-.45);
   }
  }
- function clear(){pending=null;inventoryStamp='';bottle.visible=false;$('#potion-hud').hidden=true;$('#potion-message').textContent='';$('#potion-note').textContent='';noticeAt=0;}
+ function clear(){effectStamp='';showEffects(null,serverNow());pending=null;inventoryStamp='';bottle.visible=false;$('#potion-hud').hidden=true;$('#potion-message').textContent='';$('#potion-note').textContent='';noticeAt=0;}
  return {frame,clear};
 }
