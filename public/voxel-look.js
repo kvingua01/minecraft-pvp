@@ -1,38 +1,39 @@
 import * as THREE from '/vendor/three.module.js';
-// Original 16px tiles. No downloaded textures, fonts or game assets.
+// Original, deterministic 16x16 artwork. Atlas tiles have a one-pixel gutter.
+const palette={grass:0x6ca33e,dirt:0x805536,stone:0x949994,cobble:0x7f8985,bricks:0x969f99,cracked:0x89918c,oak:0xaf8248,darkoak:0x60442b,log:0x705034,leaves:0x437d38,sand:0xdcc58b,sandstone:0xcbb27c,snow:0xe7f2f3,ice:0x9dcddf,water:0x397ebd,lava:0xe76519,glass:0x9acbc9,obsidian:0x332b46,fence:0x956a3a,torch:0xeab452,lantern:0xf4c362,door:0x9b743e,roof:0x714530,metal:0xb3c1c6};
 export function createVoxelLook(){
- const textures=new Map(),materials=new Map();
- function texture(kind,color){
-  const key=kind+':'+color;if(textures.has(key))return textures.get(key);
-  const canvas=document.createElement('canvas');canvas.width=canvas.height=16;const ctx=canvas.getContext('2d');let seed=Number(color)||37;
-  const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
-  const rgb=[(color>>16)&255,(color>>8)&255,color&255];
-  function pixel(x,y,shade,override){const c=override||rgb;ctx.fillStyle=`rgb(${c.map(v=>Math.max(0,Math.min(255,Math.round(v*shade)))).join(',')})`;ctx.fillRect(x,y,1,1);}
-  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
-   let shade=.83+random()*.32;
-   if(kind==='stone'){const row=Math.floor(y/8),seam=y%8===0||(x+(row%2)*8)%16===0;shade=seam?.53:shade;}
-   if(kind==='cobble'){const row=Math.floor(y/5),seam=y%5===0||(x+(row%2)*3)%7===0;shade=seam?.55:shade;}
-   if(kind==='planks'){if(y%4===0)shade=.57;else if(y%4===1)shade=1.12;if((x+Math.floor(y/4)*5)%16===0)shade*=.7;}
-   if(kind==='log')shade=(x%5===0?.6:.8+random()*.3);
-   if(kind==='leaves')shade=random()<.25?.6:shade;
-   if(kind==='grass-side'){pixel(x,y,shade,y<3+(x%3===0?2:0)?[91,148,48]:[123,85,54]);continue;}
-   pixel(x,y,shade);
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=512;const ctx=canvas.getContext('2d'),tiles=new Map(),items=new Map();let next=0;
+ const atlas=new THREE.CanvasTexture(canvas);atlas.magFilter=atlas.minFilter=THREE.NearestFilter;atlas.generateMipmaps=false;atlas.colorSpace=THREE.SRGBColorSpace;
+ function tile(kind,color=palette[kind]||0x999999){const key=kind+':'+color;if(tiles.has(key))return tiles.get(key);const i=next++,tx=i%28,ty=Math.floor(i/28);if(i>=784)throw Error('Atlas full');let seed=color+kind.length;
+  const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;},rgb=[color>>16&255,color>>8&255,color&255];
+  const small=document.createElement('canvas');small.width=small.height=16;const c=small.getContext('2d');
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){let shade=.82+rand()*.3,base=rgb;
+   if(['bricks','stone','cracked','sandstone'].includes(kind)){if(y%8===0||(x+Math.floor(y/8)*8)%16===0)shade=.57;if(kind==='cracked'&&(x+y*3)%17===0)shade=.4;}
+   if(kind==='cobble'&&(y%5===0||(x+Math.floor(y/5)*3)%7===0))shade=.55;
+   if(['oak','darkoak','fence','roof','door'].includes(kind)){if(y%4===0)shade=.6;if((x+Math.floor(y/4)*5)%16===0)shade*=.65;}
+   if(kind==='log')shade=x%5===0?.55:.8+rand()*.3;
+   if(kind==='leaves'&&rand()<.3)shade=.55;
+   if(kind==='grass-side')base=y<3+(x%3===0?2:0)?[91,148,48]:[123,85,54];
+   if(['ice','glass','water'].includes(kind)){if(x===0||y===0)shade=.65;else if((x+y)%12<2)shade=1.3;}
+   if(kind==='lava')shade=.65+Math.sin(x*2+y)*.2+rand()*.5;
+   if(kind==='obsidian')shade=(x+y)%7===0?1.6:shade;
+   if(kind==='torch'||kind==='lantern')base=x>3&&x<12&&y>2&&y<13?[255,208,89]:[85,65,43];
+   c.fillStyle=`rgb(${base.map(v=>Math.min(255,Math.round(v*shade))).join(',')})`;c.fillRect(x,y,1,1);
   }
-  const map=new THREE.CanvasTexture(canvas);map.magFilter=THREE.NearestFilter;map.minFilter=THREE.NearestMipmapNearestFilter;map.wrapS=map.wrapT=THREE.RepeatWrapping;map.colorSpace=THREE.SRGBColorSpace;textures.set(key,map);return map;
+  ctx.drawImage(small,tx*18+1,ty*18+1);ctx.drawImage(small,0,0,16,1,tx*18+1,ty*18,16,1);ctx.drawImage(small,0,15,16,1,tx*18+1,ty*18+17,16,1);
+  const result={x:tx,y:ty,canvas:small};tiles.set(key,result);atlas.needsUpdate=true;return result;
  }
- function material(kind,color){const key=kind+':'+color;if(!materials.has(key))materials.set(key,new THREE.MeshLambertMaterial({map:texture(kind,color)}));return materials.get(key);}
- function classify(color){if([0x6e9f50].includes(color))return 'grass';if([0x497d4e].includes(color))return 'leaves';if([0xa07b4e,0xb39061].includes(color))return 'planks';if(color===0x896546)return 'log';if([0x879493,0x82928d,0x8b9993].includes(color))return 'cobble';return 'stone';}
- function addWorld(scene,boxes){
-  const template=new THREE.BoxGeometry(1,1,1),groups=new Map();
-  for(const b of boxes){const kind=classify(b.color);for(let face=0;face<6;face++){
-   const tile=kind==='grass'?(face===2?'grass':face===3?'dirt':'grass-side'):kind,color=kind==='grass'?(face===2?0x6eaa3d:0x805b3a):b.color,key=tile+':'+color;
-   if(!groups.has(key))groups.set(key,{positions:[],normals:[],uvs:[],material:material(tile,color)});const batch=groups.get(key),sx=face<2?b.d:b.w,sy=face===2||face===3?b.d:b.h;
-   for(let i=face*6;i<face*6+6;i++){const index=template.index.getX(i),p=template.attributes.position,n=template.attributes.normal,uv=template.attributes.uv;batch.positions.push(p.getX(index)*b.w+b.x,p.getY(index)*b.h+b.y,p.getZ(index)*b.d+b.z);batch.normals.push(n.getX(index),n.getY(index),n.getZ(index));batch.uvs.push(uv.getX(index)*sx,uv.getY(index)*sy);}
+ for(const kind of Object.keys(palette))tile(kind);
+ const worldMaterial=new THREE.MeshLambertMaterial({map:atlas});
+ worldMaterial.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec2 tileId; varying vec2 vTileId; varying vec2 vTileUv;').replace('#include <uv_vertex>','#include <uv_vertex>\nvTileId=tileId;vTileUv=uv;');shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vTileId; varying vec2 vTileUv;').replace('#include <map_fragment>','diffuseColor *= texture2D(map, vec2((vTileId.x * 18.0 + 1.5 + fract(vTileUv.x) * 15.0) / 512.0, 1.0 - (vTileId.y * 18.0 + 1.5 + fract(vTileUv.y) * 15.0) / 512.0));');};
+ worldMaterial.customProgramCacheKey=()=> 'original-block-atlas-v1';
+ function classify(b){if(b.tile)return b.tile;const c=b.color;if(c===0x6e9f50)return 'grass';if(c===0x497d4e)return 'leaves';if([0xa07b4e,0xb39061].includes(c))return 'oak';if(c===0x896546)return 'log';if([0x879493,0x82928d,0x8b9993].includes(c))return 'cobble';return 'bricks';}
+ function addWorld(scene,boxes){const template=new THREE.BoxGeometry(),pos=[],norm=[],uv=[],ids=[];for(const b of boxes){const kind=classify(b);for(let f=0;f<6;f++){const k=kind==='grass'?(f===2?'grass':f===3?'dirt':'grass-side'):kind,t=tile(k,b.tile?palette[k]:kind==='grass'?palette[k]||palette.dirt:b.color),sx=f<2?b.d:b.w,sy=f===2||f===3?b.d:b.h;
+   for(let j=f*6;j<f*6+6;j++){const i=template.index.getX(j),p=template.attributes.position,n=template.attributes.normal,u=template.attributes.uv;pos.push(p.getX(i)*b.w+b.x,p.getY(i)*b.h+b.y,p.getZ(i)*b.d+b.z);norm.push(n.getX(i),n.getY(i),n.getZ(i));uv.push(u.getX(i)*sx,u.getY(i)*sy);ids.push(t.x,t.y);}
   }}
-  for(const b of groups.values()){const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(b.positions,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(b.normals,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(b.uvs,2));scene.add(new THREE.Mesh(geo,b.material));}template.dispose();
-  const clouds=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0xffffff}),18),dummy=new THREE.Object3D();
-  for(let i=0;i<18;i++){dummy.position.set((i*29%130)-65,23+(i%3)*2,(i*47%130)-65);dummy.scale.set(8+i%4*3,.65,4+i%3*2);dummy.updateMatrix();clouds.setMatrixAt(i,dummy.matrix);}scene.add(clouds);
-  const sun=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshBasicMaterial({color:0xfff4bc,fog:false}));sun.position.set(-45,55,-55);sun.lookAt(0,0,0);scene.add(sun);
+  const geo=new THREE.BufferGeometry();for(const [name,data,size]of [['position',pos,3],['normal',norm,3],['uv',uv,2],['tileId',ids,2]])geo.setAttribute(name,new THREE.Float32BufferAttribute(data,size));geo.computeBoundingSphere();const group=new THREE.Group();group.add(new THREE.Mesh(geo,worldMaterial));scene.add(group);template.dispose();return group;
  }
- return {addWorld,material:color=>material('pixel',color)};
+ function material(color){if(!items.has(color)){const t=tile('pixel',color),map=new THREE.CanvasTexture(t.canvas);map.magFilter=THREE.NearestFilter;map.minFilter=THREE.NearestMipmapNearestFilter;map.colorSpace=THREE.SRGBColorSpace;items.set(color,new THREE.MeshLambertMaterial({map}));}return items.get(color);}
+ function sky(scene){const clouds=new THREE.InstancedMesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial({color:0xffffff}),18),d=new THREE.Object3D();for(let i=0;i<18;i++){d.position.set(i*29%130-65,24+i%3*2,i*47%130-65);d.scale.set(8+i%4*3,.65,4+i%3*2);d.updateMatrix();clouds.setMatrixAt(i,d.matrix);}scene.add(clouds);const sun=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshBasicMaterial({color:0xfff4bc,fog:false}));sun.position.set(-45,55,-55);sun.lookAt(0,0,0);scene.add(sun);}
+ return {addWorld,sky,material,diagnostics:()=>({atlasSize:512,tileSize:16,tileCount:tiles.size})};
 }

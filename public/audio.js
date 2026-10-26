@@ -9,7 +9,7 @@ export function createAudio({socket,getSelf,getPlayers,isActive}){
  window.addEventListener('pointerdown',unlock);window.addEventListener('keydown',unlock);for(const control of [slider,document.querySelector('#pause-volume')])control.addEventListener('input',()=>{slider.value=control.value;document.querySelector('#pause-volume').value=control.value;unlock();if(master)master.gain.value=(Number(slider.value)/100)**2*.2;tone(640,.07);});
  socket.on('combat',e=>{if(!getSelf())return;const volume=e.target===getSelf().id?1:level(e.source||e.target);if(!volume)return;
   if(e.type==='attack')tone(e.weapon==='bow'||e.weapon==='crossbow'?420:e.weapon==='mace'?90:e.weapon==='axe'?130:210,.11,'triangle',volume);
-  if(e.type==='block')tone(780,.12,'square',volume*.25);
+
   if(e.type==='hit'&&performance.now()-lastTone>60){lastTone=performance.now();tone(e.target===getSelf().id?95:e.critical?1100:740,.09,'triangle',e.target===getSelf().id ? .8 : volume);}
   if(e.type==='kill'&&e.source===getSelf().id){tone(660,.12);tone(990,.15,'triangle',1,.12);}
  });

@@ -6,6 +6,8 @@ import {createPotionView} from '/potion-view.js';
 import {createAudio} from '/audio.js';
 import {createRuntime} from '/runtime.js';
 import {createVoxelLook} from '/voxel-look.js';
+import {skinMaterial,heroColors} from '/skins.js';
+import {createParticles} from '/particles.js';
 const $=s=>document.querySelector(s), World=window.VoxelWorld;
 const menu=$('#menu'), pause=$('#pause'), canvas=$('#world'), loading=$('#loading');
 let renderer;
@@ -23,9 +25,10 @@ const viewSun=new THREE.DirectionalLight(0xffffff,2);viewSun.position.set(-2,4,1
 renderer.autoClear=false;renderer.info.autoReset=false;
 const geometry=new THREE.BoxGeometry(1,1,1),voxelLook=createVoxelLook();
 const material=color=>voxelLook.material(color);
-voxelLook.addWorld(scene,World.boxes);
+voxelLook.addWorld(scene,World.boxes);voxelLook.sky(scene);
 function cube(parent,w,h,d,color,x,y,z) {const m=new THREE.Mesh(geometry,material(color));m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
 const socket=io({autoConnect:false}), remotes=new Map(),keys=new Set();
+const particles=createParticles({scene,socket,getPlayers:()=>self?[self,...[...remotes.values()].map(r=>r.target)]:[]});
 const movementKeys=new Set(['KeyW','KeyA','KeyS','KeyD','Space','ShiftLeft','ShiftRight']);
 let self=null, ownId=null,roomCode='',yaw=0,pitch=0,locked=false,tab=false,accumulator=0,last=performance.now(),sendTime=0,lastRender=0;
 let correction=new THREE.Vector3(),walkTime=0,reconnecting=false,resumeToken='',serverUpdating=false;
@@ -79,7 +82,7 @@ window.addEventListener('keyup',e=>{keys.delete(e.code);if(self&&locked&&movemen
 window.addEventListener('blur',()=>{keys.clear();tab=false;updateRoster();if(self)socket.volatile.emit('input',controls());});
 canvas.oncontextmenu=e=>e.preventDefault();
 function removeRemote(remote){scene.remove(remote.group);remote.group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});}
-function clearPlayers(){audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
+function clearPlayers(){particles.clear();audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
 $('#leave').onclick=()=>{if(socket.connected)socket.emit('leave');endSession();};
 socket.on('server-restarting',()=>{serverUpdating=true;endSession('The game server is restarting for an update. Create or join a new arena shortly.');});
 socket.on('connect',()=>{if(self&&resumeToken)resumeSession();});
@@ -97,18 +100,16 @@ socket.on('connect_error',()=>{
  else{$('#error').textContent=serverUpdating?'The game server is updating. Try again after the restart.':'Server unavailable. Check your connection and retry.';setButtons(false);}
 });
 function makeAvatar(p,time) {
- const group=new THREE.Group(),color=p.team==='red'?0xdd8d73:0x70a9bd;
- cube(group,.62,.65,.34,color,0,1.04,0);const head=cube(group,.48,.48,.48,0xd4a181,0,1.61,0);
- cube(head,.1,.065,.025,0xffffff,-.12,.015,-.25);cube(head,.1,.065,.025,0xffffff,.12,.015,-.25);
- cube(head,.045,.065,.03,0x354d85,-.1,.015,-.265);cube(head,.045,.065,.03,0x354d85,.1,.015,-.265);cube(head,.12,.055,.025,0x724d35,0,-.13,-.25);
- cube(head,.49,.13,.49,0x4c3524,0,.19,0);
+ const group=new THREE.Group(),color=heroColors(p.hero)[0];
+ const torso=cube(group,.62,.65,.34,color,0,1.04,0);torso.material=skinMaterial(p.hero,p.team,'torso');const head=cube(group,.48,.48,.48,0xd4a181,0,1.61,0);
+ head.material=skinMaterial(p.hero,p.team,'head');
  const legs=[cube(group,.23,.7,.26,0x344d52,-.17,.35,0),cube(group,.23,.7,.26,0x344d52,.17,.35,0)];
- cube(group,.17,.65,.2,color,-.44,1,0);cube(group,.17,.65,.2,color,.44,1,0);
+ for(const side of [-1,1])cube(group,.23,.65,.25,color,side*.44,1,0).material=skinMaterial(p.hero,p.team,'torso');for(const leg of legs)leg.material=skinMaterial(p.hero,p.team,'legs');
  const weapon=new THREE.Group();weapon.position.set(.48,.9,-.3);group.add(weapon);combat.buildWeapon(weapon,p.weapon,true);
  const wind=new THREE.Group();wind.position.set(-.5,1,-.15);group.add(wind);cube(wind,.2,.2,.2,0xe6fbff,0,0,0);cube(wind,.27,.06,.27,0x94d7ed,0,0,0);
 
  // Four original armor pieces: helmet, chestplate, leggings, and boots.
- cube(group,.53,.18,.53,0x8da4ad,0,1.83,0);cube(group,.65,.4,.38,0x8da4ad,0,1.15,0);cube(group,.49,.18,.3,0x687e8b,0,.67,0);for(const x of [-.17,.17])cube(group,.26,.16,.32,0x687e8b,x,.08,0);
+ cube(group,.53,.18,.53,color,0,1.83,0);cube(group,.65,.4,.38,color,0,1.15,0);cube(group,.49,.18,.3,0x687e8b,0,.67,0);for(const x of [-.17,.17])cube(group,.26,.16,.32,0x687e8b,x,.08,0);
  group.position.set(p.x,p.y,p.z);group.rotation.y=p.yaw;scene.add(group);const history=[];window.ArenaNetwork.remember(history,p,time);return {group,head,legs,weapon,wind,weaponKey:p.weapon,target:p,history,lastTime:time,speed:0};
 }
 function updateRoster(){
@@ -176,8 +177,8 @@ function frame(now){
   r.group.position.set(pose.x,pose.y,pose.z);r.group.rotation.y=pose.yaw;r.head.rotation.x=pose.pitch;
   r.legs[0].rotation.x=r.speed>.1?Math.sin(now*.012)*.4:0;r.legs[1].rotation.x=-r.legs[0].rotation.x;
  }
- combat.frame(now);heroView.frame(now);potionView.frame(now);audio.frame(now);if(objective.finished)$('#death').hidden=true;renderer.info.reset();renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(viewScene,viewCamera);
+ particles.frame(now,dt);combat.frame(now);heroView.frame(now);potionView.frame(now);audio.frame(now);if(objective.finished)$('#death').hidden=true;renderer.info.reset();renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(viewScene,viewCamera);
 }
 loading.hidden=true;requestAnimationFrame(frame);
 // Read-only diagnostics for smoke tests; no client state can override the server.
-window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),drawCalls:renderer.info.render.calls});
+window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),visuals:voxelLook.diagnostics(),drawCalls:renderer.info.render.calls});

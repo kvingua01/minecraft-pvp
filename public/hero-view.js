@@ -1,4 +1,5 @@
 import * as THREE from '/vendor/three.module.js';
+import {portrait} from '/skins.js';
 const H=window.HeroRules;
 export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLocked,serverNow}){
  const blockGeometry=new THREE.BoxGeometry(1,1,1),rainDummy=new THREE.Object3D();
@@ -23,7 +24,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
    const option=document.createElement('option');option.value=id;option.textContent=`${h.name} · ${h.role}`;select.append(option);
    const button=document.createElement('button');button.type='button';button.dataset.hero=id;button.className='hero-card';button.setAttribute('aria-pressed','false');
    const name=document.createElement('strong'),role=document.createElement('span'),stats=document.createElement('small');name.textContent=h.name;role.textContent=h.role;stats.textContent=`${h.health} HP · ${Math.round(h.armor*100)}% armor`;
-   button.append(name,role,stats);button.onclick=()=>{if(selector==='#hero'){paintPicker(selector,id);describe();}else queueHero(id);};grid.append(button);
+   const preview=document.createElement('img');preview.src=portrait(id);preview.alt=h.name+' character';preview.className='hero-portrait';button.append(preview,name,role,stats);button.onclick=()=>{if(selector==='#hero'){paintPicker(selector,id);describe();}else queueHero(id);};grid.append(button);
   }
   paintPicker(selector,select.value);
  }

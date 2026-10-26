@@ -38,7 +38,7 @@ test('diagonal pressure slides along a wall without jitter or sideways teleporta
  assert.ok(p.z<4);assert.ok(p.z>0);
 });
 test('sweeps stop at the nearest wall even for a large displacement',()=>{
- const p={...W.spawn(),x:0,y:0,z:25};
+ const p={...W.spawn(),x:0,y:0,z:29};
  W.move(p,{x:100,y:0,z:0});assert.ok(Math.abs(p.x-31.18)<1e-7);
  W.move(p,{x:0,y:-100,z:0});assert.equal(p.y,0);
 });
@@ -46,3 +46,5 @@ test('sweeps stop at the nearest wall even for a large displacement',()=>{
 test('short jump taps survive until a physics step and are consumed once',()=>{
  const p={...W.spawn(),x:0,y:0,z:10,grounded:true,jumpQueued:true};W.step(p,{jump:false},1/60);assert.ok(p.vy>0);assert.equal(p.jumpQueued,false);simulate(p,{},120);assert.equal(p.y,0);assert.equal(p.vy,0);
 });
+
+test('constructed lodges have a walkable entrance and solid side walls',()=>{const doorway={...W.spawn(),x:26,y:.21,z:18,grounded:true};for(let i=0;i<100;i++)W.step(doorway,{back:true,yaw:0},1/60);assert.ok(doorway.z>21);assert.ok(doorway.z<26.2);const side={...W.spawn(),x:21,y:.21,z:23};W.move(side,{x:8});assert.ok(side.x<22.3);});

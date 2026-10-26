@@ -31,6 +31,32 @@
   for(const x of [-6,6]) for(const z of [-6,6]) box(x,1,z,2,2,2,0x8a9c91);
   for(const z of [-32,32]) box(0,2,z,65,4,1,0x687e76);
   for(const x of [-32,32]) box(x,2,0,1,4,65,0x687e76);
+  // Constructed corner lodges: actual wall openings, roof steps and accessible interiors.
+  function detail(x,y,z,w,h,d,tile,solid=true){boxes.push({x,y,z,w,h,d,color:0x999999,tile,solid});}
+  for(const side of [-1,1])for(const sign of [-1,1]){
+    const x=side*26,z=sign*23;
+    detail(x,-.1,z,7,.2,7,'cobble');
+    detail(x-3.3,1.7,z,.4,3.4,7,'oak');detail(x+3.3,1.7,z,.4,3.4,7,'oak');
+    detail(x,1.7,z+sign*3.3,7,3.4,.4,'oak');
+    for(const dx of [-2.3,2.3])detail(x+dx,1.7,z-sign*3.3,2.4,3.4,.4,'oak');
+    detail(x,3,z-sign*3.3,2.2,.8,.4,'log');
+    for(const dx of [-3.35,3.35])for(const dz of [-3.35,3.35])detail(x+dx,1.8,z+dz,.55,3.6,.55,'log');
+    // Framed glass windows, shutters, door frame and a chimney.
+    for(const dx of [-3.52,3.52]){detail(x+dx,2,z, .08,1.2,1.6,'glass',false);detail(x+dx,1.3,z,.15,.2,2,'darkoak',false);}
+    for(let roof=0;roof<4;roof++)for(const dx of [-1,1])detail(x+dx*(3.5-roof*.8),3.5+roof*.45,z,1.5,.5,8,'roof');
+    detail(x,5.05,z,.7,.5,8,'darkoak');detail(x+2,4.3,z+2,.8,3,.8,'cracked');
+    detail(x-.85,1.5,z-sign*3.6,.12,1.1,.2,'door',false);
+    for(const dx of [-1.6,1.6]){detail(x+dx,2.2,z-sign*3.65,.16,.7,.16,'torch',false);}
+    for(const dx of [-4.3,4.3])for(let n=0;n<3;n++)detail(x+dx,.8,z+n-1,.12,1.6,.12,'fence');
+  }
+  // Roof details and windows on the existing keeps; main movement routes stay open.
+  for(const side of [-1,1])for(const z of [-8,8]){
+    for(const dz of [-1.8,0,1.8])detail(side*18.45,2.3,z+dz,.08,1.2,.65,'glass',false);
+    for(const dz of [-2,2])detail(side*18.35,1.6,z+dz,.16,.7,.16,'lantern',false);
+  }
+  for(const z of [-19,19])for(const x of [-5,-3,-1,1,3,5])for(const dz of [-1,1]){
+    detail(x,1,z+dz*1.8,.15,1.5,.15,'fence');detail(x,1.4,z+dz*1.8,2,.12,.12,'fence');
+  }
   const hazards=[{x:-10,y:0,z:20,radius:.95},{x:10,y:0,z:-20,radius:.95}];
   const radius=.32, height=1.8;
   // Enemy spawn rooms are solid to players; allies can leave and return freely.
