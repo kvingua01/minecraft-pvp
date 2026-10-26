@@ -15,7 +15,11 @@ local prediction, collision-safe reconciliation and reconnect reservations remai
 
 ## Measured checks
 
-Measurements below came from this cloud machine, not Chromebook hardware.
+Measurements below are the original Phase 6 baseline before the pixel-texture
+visual update. They came from this cloud machine, not Chromebook hardware.
+The later visual update adds tiled original textures and instanced clouds; its
+ten-client latency test also passes, with 241 draw calls before cloud batching.
+Software frame times vary with concurrent browser tests and do not predict device FPS.
 
 | Check | Result |
 | --- | --- |

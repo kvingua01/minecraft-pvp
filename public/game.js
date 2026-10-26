@@ -5,28 +5,25 @@ import {createHeroView} from '/hero-view.js';
 import {createPotionView} from '/potion-view.js';
 import {createAudio} from '/audio.js';
 import {createRuntime} from '/runtime.js';
+import {createVoxelLook} from '/voxel-look.js';
 const $=s=>document.querySelector(s), World=window.VoxelWorld;
 const menu=$('#menu'), pause=$('#pause'), canvas=$('#world'), loading=$('#loading');
 let renderer;
 try {renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'low-power'});} catch(error) {loading.textContent='WebGL is unavailable. Enable hardware acceleration and reload.';throw error;}
 renderer.setSize(innerWidth,innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,1));
-const scene=new THREE.Scene();scene.background=new THREE.Color(0xaacbd1);scene.fog=new THREE.Fog(0xaacbd1,32,95);
-scene.add(new THREE.HemisphereLight(0xe6f4ff,0x667347,2.3));
-const sun=new THREE.DirectionalLight(0xffecd1,2.4);sun.position.set(-20,40,10);scene.add(sun);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x91bfff);scene.fog=new THREE.Fog(0x91bfff,48,115);
+scene.add(new THREE.HemisphereLight(0xffffff,0x817454,2));
+const sun=new THREE.DirectionalLight(0xffffff,2);sun.position.set(-20,40,10);scene.add(sun);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.05,120);camera.rotation.order='YXZ';scene.add(camera);
 // Render held items after world depth so nearby walls never swallow the weapon.
 const viewScene=new THREE.Scene(),viewCamera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.05,10);
-viewScene.add(viewCamera,new THREE.HemisphereLight(0xe6f4ff,0x667347,2.3));
-const viewSun=new THREE.DirectionalLight(0xffecd1,2.4);viewSun.position.set(-2,4,1);viewScene.add(viewSun);
+viewScene.add(viewCamera,new THREE.HemisphereLight(0xffffff,0x817454,2));
+const viewSun=new THREE.DirectionalLight(0xffffff,2);viewSun.position.set(-2,4,1);viewScene.add(viewSun);
 renderer.autoClear=false;renderer.info.autoReset=false;
-const geometry=new THREE.BoxGeometry(1,1,1), materials=new Map();
-function material(color) {if(!materials.has(color))materials.set(color,new THREE.MeshLambertMaterial({color}));return materials.get(color);}
-// One draw call per color for static blocks; no textures or external assets.
-for(const color of new Set(World.boxes.map(b=>b.color))) {
- const blocks=World.boxes.filter(b=>b.color===color),mesh=new THREE.InstancedMesh(geometry,material(color),blocks.length),dummy=new THREE.Object3D();
- blocks.forEach((b,i)=>{dummy.position.set(b.x,b.y,b.z);dummy.scale.set(b.w,b.h,b.d);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);});scene.add(mesh);
-}
+const geometry=new THREE.BoxGeometry(1,1,1),voxelLook=createVoxelLook();
+const material=color=>voxelLook.material(color);
+voxelLook.addWorld(scene,World.boxes);
 function cube(parent,w,h,d,color,x,y,z) {const m=new THREE.Mesh(geometry,material(color));m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
 const socket=io({autoConnect:false}), remotes=new Map(),keys=new Set();
 const movementKeys=new Set(['KeyW','KeyA','KeyS','KeyD','Space','ShiftLeft','ShiftRight']);
@@ -102,7 +99,9 @@ socket.on('connect_error',()=>{
 function makeAvatar(p,time) {
  const group=new THREE.Group(),color=p.team==='red'?0xdd8d73:0x70a9bd;
  cube(group,.62,.65,.34,color,0,1.04,0);const head=cube(group,.48,.48,.48,0xd4a181,0,1.61,0);
- cube(head,.12,.1,.025,0x253c3d,-.22,.05,-.51);cube(head,.12,.1,.025,0x253c3d,.22,.05,-.51);
+ cube(head,.1,.065,.025,0xffffff,-.12,.015,-.25);cube(head,.1,.065,.025,0xffffff,.12,.015,-.25);
+ cube(head,.045,.065,.03,0x354d85,-.1,.015,-.265);cube(head,.045,.065,.03,0x354d85,.1,.015,-.265);cube(head,.12,.055,.025,0x724d35,0,-.13,-.25);
+ cube(head,.49,.13,.49,0x4c3524,0,.19,0);
  const legs=[cube(group,.23,.7,.26,0x344d52,-.17,.35,0),cube(group,.23,.7,.26,0x344d52,.17,.35,0)];
  cube(group,.17,.65,.2,color,-.44,1,0);cube(group,.17,.65,.2,color,.44,1,0);
  const weapon=new THREE.Group();weapon.position.set(.48,.9,-.3);group.add(weapon);combat.buildWeapon(weapon,p.weapon,true);

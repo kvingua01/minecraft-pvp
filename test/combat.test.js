@@ -15,9 +15,9 @@ test('melee validates aim, reach, armor, cooldown and weapon switching',()=>{
 });
 test('front-facing shields block, axes disable shields, rear hits bypass shields',()=>{
  const {engine,room,a,b}=setup();engine.block(b,true,10000);engine.attack(room,a,'attack',10000);assert.equal(b.hp,100);
- engine.select(a,'axe');engine.attack(room,a,'attack',11000);assert.equal(b.hp,100);assert.equal(b.blocking,false);assert.equal(b.shieldUntil,14000);
+ engine.select(a,'axe');engine.attack(room,a,'attack',11000);assert.equal(b.hp,100);assert.equal(b.blocking,false);assert.equal(b.shieldUntil,21000);
  engine.block(b,true,11001);assert.equal(b.blocking,false);engine.attack(room,a,'attack',12000);assert.equal(b.hp,74);
- engine.block(b,true,15000);b.yaw=0;engine.attack(room,a,'attack',15000);assert.equal(b.hp,48);
+ engine.block(b,true,20999);assert.equal(b.blocking,false);engine.block(b,true,21000);assert.equal(b.blocking,true);b.yaw=0;engine.attack(room,a,'attack',21000);assert.equal(b.hp,48);
 });
 test('static cover blocks melee and arrows; projectiles hit the nearest player',()=>{
  const {engine,room,a,b}=setup();const behind={...b,id:'behind',z:4,input:{}};room.set(behind.id,behind);Object.assign(a,{x:13,z:3,yaw:-Math.PI/2});Object.assign(b,{x:16,z:3});

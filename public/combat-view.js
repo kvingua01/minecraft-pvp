@@ -12,8 +12,8 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     if(key.startsWith('flask:')){cube(group,.18,.25,.18,window.PotionRules.items[key.slice(6)].color,0,.18,0);cube(group,.08,.13,.08,0xc5dcd6,0,.36,0);cube(group,.09,.05,.09,0xb18f61,0,.45,0);
     }else if(['sword','axe','mace'].includes(key)){
       cube(group,.1,.48,.1,0x70583c,0,.17,0);
-      if(key==='sword'){cube(group,.36,.055,.13,0xd6b66b,0,.24,0);cube(group,.12,.66,.055,0xd8e2d7,0,.59,0);}
-      if(key==='axe'){cube(group,.36,.32,.09,0xa8c6c5,.1,.52,0);cube(group,.14,.26,.08,0xe4e6d3,.31,.52,0);}
+      if(key==='sword'){cube(group,.34,.08,.09,0x715a38,0,.24,0);cube(group,.15,.56,.065,0xcbdde0,0,.56,0);cube(group,.07,.08,.065,0xf0f6f4,0,.88,0);cube(group,.035,.53,.07,0x718c96,-.075,.57,0);}
+      if(key==='axe'){cube(group,.3,.24,.09,0xa8c6c5,.1,.55,0);cube(group,.12,.38,.09,0xe4e6d3,.3,.48,0);cube(group,.08,.16,.09,0x718c96,-.09,.58,0);}
       if(key==='mace'){cube(group,.38,.37,.32,0x819ba4,0,.56,0);cube(group,.45,.09,.4,0xcac6a1,0,.56,0);}
     }else if(key==='bow'){
       for(const side of [-1,1]){const limb=cube(group,.07,.42,.09,0xb98a4f,0,side*.23+.15,0);limb.rotation.z=side*-.3;}
@@ -41,7 +41,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     if(event.type==='attack'&&event.source===p.id)swing=performance.now();
     if(event.type==='hit'&&event.target===p.id){flash=performance.now();document.querySelector('#damage').textContent=`−${event.amount}`;}
     if(event.type==='hit'&&event.source===p.id){hit=performance.now();document.querySelector('#hit-marker').textContent=event.critical?'✦':'×';}
-    if(event.type==='block'&&(event.target===p.id||event.source===p.id)){document.querySelector('#combat-note').textContent=event.disabled?'SHIELD DISABLED':'BLOCKED';setTimeout(()=>document.querySelector('#combat-note').textContent='',1200);}
+    if(event.type==='block'&&(event.target===p.id||event.source===p.id)){document.querySelector('#combat-note').textContent=event.disabled?'SHIELD DISABLED · 10s':'BLOCKED';setTimeout(()=>document.querySelector('#combat-note').textContent='',1200);}
     if(event.type==='kill'){
       const item=document.createElement('div');item.textContent=`${event.sourceName} → ${event.targetName} · ${event.weapon}`;feed.prepend(item);while(feed.children.length>5)feed.lastChild.remove();setTimeout(()=>item.remove(),7000);
     }

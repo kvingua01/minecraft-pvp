@@ -73,7 +73,7 @@ fire is disabled, including abilities; support effects heal or protect allies.
 | Weapon | Base damage before armor | Cooldown | Mechanic |
 | --- | --- | --- | --- |
 | Sword | 20 | 0.45s | Fast melee; 3.2-unit reach |
-| Axe | 32 | 0.95s | Disables a blocking shield for 3s |
+| Axe | 32 | 0.95s | Disables a blocking shield for 10s |
 | Mace | 28 | 1.15s | Falling adds up to 60 damage |
 | Bow | 8–32 | 0.4s after release | Server-timed draw; full charge at 1s |
 | Crossbow | 38 | 1.8s | Reloads after every shot |
@@ -161,7 +161,11 @@ The symmetric arena includes keeps, gate tunnels, cover, stairs, elevated terrac
 and wooden crossings. No mining, crafting, building, or third-person gameplay.
 The main and pause menus offer sensitivity, Auto/manual graphics resolution,
 volume and optional measured FPS/ping. Auto lowers resolution under sustained
-slow frames and restores it gradually when there is headroom. Static map geometry is instanced by material. Physics runs at 60 Hz;
+slow frames and restores it gradually when there is headroom. Original 16-pixel textures tile once per block with nearest-neighbor filtering.
+Grass has separate top, dirt and edge faces; cobblestone, stone bricks, oak planks,
+logs and leaves use distinct patterns. Static geometry is batched by material and
+clouds are instanced. The sky, characters, held tools and beveled interface use
+an original Minecraft-inspired voxel style; no Minecraft assets are bundled. Physics runs at 60 Hz;
 snapshots at 20 Hz. Clients predict local movement and interpolate remote avatars.
 Rooms support up to ten players and are removed when empty. All room state lives
 in memory; restarting the server ends active rooms.
