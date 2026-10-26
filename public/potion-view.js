@@ -17,7 +17,7 @@ export function createPotionView({scene,camera,cube,socket,getSelf,getInput,isLo
  const fires=[];
  for(const hazard of window.VoxelWorld.hazards){const group=new THREE.Group();group.position.set(hazard.x,hazard.y,hazard.z);scene.add(group);cube(group,1.3,.12,1.3,0x63726c,0,.06,0);const flames=new THREE.Group();group.add(flames);cube(flames,.7,.65,.7,0xe88b52,0,.43,0);cube(flames,.4,.95,.4,0xf1c568,0,.58,0);fires.push(flames);}
  function frame(now){
-  for(let i=0;i<fires.length;i++)fires[i].scale.y=.9+Math.sin(now*.009+i)*.12;
+  for(let i=0;i<fires.length;i++){fires[i].parent.visible=!getSelf()?.map||['legacy','castle'].includes(getSelf().map);fires[i].scale.y=.9+Math.sin(now*.009+i)*.12;}
   const p=getSelf();bottle.visible=false;$('#potion-hud').hidden=!p;$('#potion-message').style.opacity=now-noticeAt<2000?1:0;if(!p)return;
   if(pending===p.selectedPotion)pending=null;const id=pending||p.selectedPotion||'healing',item=P.items[id],time=serverNow(),remaining=Math.max(0,p.potionReady-time);
   $('#potion-selected').textContent=`${item.name.toUpperCase()} · ${p.inventory?.[id]||0} LEFT`;

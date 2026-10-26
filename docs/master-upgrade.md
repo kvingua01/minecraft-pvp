@@ -13,7 +13,7 @@ models, shield breaking, or shield audio. Wind charges remain for every weapon.
    mace falling attacks, ranged weapons and wind charges preserved.
 3. Three simultaneous server-owned points, ten-second solo capture, capped teammate acceleration, neutralization, independent contesting and income, first to 300, six-second respawns.
 4. Fourteen playable classes; all Q/E/R implemented. Server-owned skeletons, zombie, turrets, repair station and guardian have health, targeting, collisions and finite lifetimes. Timed sword parry, poison, cleanse, roots and healing reduction are validated. 80 server tests, 14-class picker and real new-class Q/E/R browser input passed.
-5. Six maps and hazards: pending.
+5. Six distinct map layouts, protected spawns, three locations each, tested walking routes, half-block stepping, Sky void deaths, lava and lower-friction ice. Atlas rendering and replicated map selection checked in a browser.
 6. Host-selected map lobby and lifecycle: pending.
 7. Integration / performance / deployment validation: pending.
 

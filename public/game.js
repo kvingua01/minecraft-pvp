@@ -26,7 +26,8 @@ const viewSun=new THREE.DirectionalLight(0xffffff,2);viewSun.position.set(-2,4,1
 renderer.autoClear=false;renderer.info.autoReset=false;
 const geometry=new THREE.BoxGeometry(1,1,1),voxelLook=createVoxelLook();
 const material=color=>voxelLook.material(color);
-voxelLook.addWorld(scene,World.boxes);voxelLook.sky(scene);
+let worldGroup=voxelLook.addWorld(scene,World.getMap('castle').boxes),activeMap='castle';voxelLook.sky(scene);
+function setMap(id){if(!window.ArenaMaps.has(id)||id===activeMap)return;scene.remove(worldGroup);worldGroup.traverse(o=>o.geometry?.dispose());worldGroup=voxelLook.addWorld(scene,World.getMap(id).boxes);activeMap=id;scene.background.setHex(window.ArenaMaps.definitions[id].sky);scene.fog.color.copy(scene.background);}
 function cube(parent,w,h,d,color,x,y,z) {const m=new THREE.Mesh(geometry,material(color));m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
 const socket=io({autoConnect:false}), remotes=new Map(),keys=new Set();
 const unitsView=createUnitsView({scene,cube});
@@ -43,6 +44,7 @@ const runtime=createRuntime({renderer,socket,getSelf:()=>self,isActive:()=>locke
 const objective=createObjectiveView({scene,socket,getSelf:()=>self,clearKeys:()=>keys.clear()});
 function controls(){const active=locked&&!document.hidden&&!reconnecting&&socket.connected&&self?.hp>0;return {forward:active&&keys.has('KeyW'),back:active&&keys.has('KeyS'),left:active&&keys.has('KeyA'),right:active&&keys.has('KeyD'),jump:active&&keys.has('Space'),sprint:active&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:active&&combat.isBlocking()};}
 function acceptSession(result,recovered=false){
+ setMap(result.match?.map);
  ownId=result.id;roomCode=result.code;resumeToken=result.resumeToken;self={...result.player};yaw=self.yaw;pitch=self.pitch||0;keys.clear();correction.set(0,0,0);reconnecting=false;
  for(const selector of ['#resume','#next-hero','#restart'])$(selector).disabled=false;
  $('#resume').textContent='Click to resume';$('#network-banner').hidden=true;menu.hidden=true;$('#hud').hidden=false;$('#room-label').textContent=`ROOM ${roomCode}`;loading.hidden=true;
@@ -64,10 +66,12 @@ function resumeSession(attempt=0){
  });
 }
 function setButtons(disabled){document.querySelectorAll('#join-form button').forEach(b=>b.disabled=disabled);}
+for(const [id,map]of Object.entries(window.ArenaMaps.definitions)){const option=document.createElement('option');option.value=id;option.textContent=map.name;$('#map').append(option);}
+$('#map').onchange=()=>{if(!self)setMap($('#map').value);};
 function join(create) {
  if(!create&&!$('#code').value.trim()) {$('#error').textContent='Enter your friend’s room code.';return;}
  serverUpdating=false;$('#error').textContent='Connecting…';setButtons(true);socket.connect();
- socket.timeout(6000).emit('join',{create,code:$('#code').value,name:$('#name').value,team:$('#team').value,hero:$('#hero').value},(err,result)=>{
+ socket.timeout(6000).emit('join',{create,map:$('#map').value,code:$('#code').value,name:$('#name').value,team:$('#team').value,hero:$('#hero').value},(err,result)=>{
   setButtons(false);
   if(err||result?.error){$('#error').textContent=result?.error||'Could not connect. Please retry.';return;}
   acceptSession(result);
@@ -121,6 +125,7 @@ function updateRoster(){
  $('#connection').textContent=`${players.filter(p=>p.connected!==false).length}/10 players connected`;
 }
 socket.on('state',state=>{
+ setMap(state.match?.map);
  if(!self||reconnecting)return;combat.snapshot(state);const ids=new Set();
  for(const p of state.players){
   if(p.id===ownId){
@@ -183,4 +188,4 @@ function frame(now){
 }
 loading.hidden=true;requestAnimationFrame(frame);
 // Read-only diagnostics for smoke tests; no client state can override the server.
-window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),unitCount:unitsView.count(),visuals:voxelLook.diagnostics(),drawCalls:renderer.info.render.calls});
+window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),map:activeMap,unitCount:unitsView.count(),visuals:voxelLook.diagnostics(),drawCalls:renderer.info.render.calls});

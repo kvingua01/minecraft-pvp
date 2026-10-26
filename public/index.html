@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Blockward · First-person arena</title><link rel="stylesheet" href="/style.css">
-<script src="/socket.io/socket.io.js" defer></script><script src="/shared/world.js" defer></script>
+<script src="/socket.io/socket.io.js" defer></script><script src="/shared/maps.js" defer></script><script src="/shared/world.js" defer></script>
 <script src="/shared/combat.js" defer></script>
 <script src="/shared/heroes.js" defer></script>
 <script src="/shared/potions.js" defer></script>
@@ -29,7 +29,7 @@
    <label>CALLSIGN<input id="name" maxlength="20" placeholder="Explorer" autocomplete="nickname"></label>
    <label class="team-choice">YOUR TEAM<select id="team"><option value="auto">Auto balance</option><option value="red">Red team</option><option value="blue">Blue team</option></select></label>
    <div class="hero-picker"><span class="hero-picker-title">CHOOSE YOUR HERO · 14 CLASSES</span><select id="hero" hidden aria-hidden="true" tabindex="-1"></select><div id="hero-options" class="hero-grid" role="group" aria-label="Choose your hero"></div></div><p id="hero-description"></p>
-   <button id="create" type="button">Create arena <span>↗</span></button>
+   <label class="map-choice">MAP<select id="map"></select></label><button id="create" type="button">Create arena <span>↗</span></button>
    <div class="join-row"><input id="code" placeholder="ROOM CODE" maxlength="6" aria-label="Room code"><button type="submit">Join friend</button></div>
   </form>
   <p id="error" role="alert"></p>

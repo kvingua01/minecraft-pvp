@@ -1,4 +1,6 @@
 (function (root) {
+  const Maps=typeof module!=='undefined'?require('./maps'):root.ArenaMaps;
+  const mapCache=new Map();
   const boxes = [];
   function box(x,y,z,w,h,d,color,solid=true) { boxes.push({x,y,z,w,h,d,color,solid}); }
   box(0,-1,0,64,2,64,0x6e9f50);
@@ -65,6 +67,9 @@
   function compile(list){return list.filter(b=>b.solid).map(b=>({minX:b.x-b.w/2,maxX:b.x+b.w/2,minY:b.y-b.h/2,maxY:b.y+b.h/2,minZ:b.z-b.d/2,maxZ:b.z+b.d/2}));}
   const staticBounds=compile(boxes),spawnBounds={red:compile([enemySpawns.red]),blue:compile([enemySpawns.blue])},dynamicCache=new WeakMap();
   function dynamicBounds(solids){if(!solids?.length)return null;let cached=dynamicCache.get(solids);if(!cached){cached=compile(solids);dynamicCache.set(solids,cached);}return cached;}
+  const boundsCache=new WeakMap();
+  function getMap(id){if(!Maps.has(id))return {id:'legacy',boxes,hazards,ice:[]};if(!mapCache.has(id))mapCache.set(id,Maps.build(id,boxes));return mapCache.get(id);}
+  function mapBounds(id){if(!Maps.has(id))return staticBounds;const data=getMap(id);if(!boundsCache.has(data.boxes))boundsCache.set(data.boxes,compile(data.boxes));return boundsCache.get(data.boxes);}
   // Sweep against precompiled faces without allocating bounds/closures per block.
   function move(p,delta) {
     const moved={x:0,y:0,z:0},dynamic=dynamicBounds(p.solids),gate=spawnBounds[p.team];
@@ -73,7 +78,7 @@
       const minX=p.x-radius,maxX=p.x+radius,minY=p.y,maxY=p.y+height,minZ=p.z-radius,maxZ=p.z+radius;
       const low=axis==='x'?minX:axis==='y'?minY:minZ,high=axis==='x'?maxX:axis==='y'?maxY:maxZ;
       for(let group=0;group<3;group++){
-        const list=group===0?staticBounds:group===1?dynamic:gate;if(!list)continue;
+        const list=group===0?mapBounds(p.map):group===1?dynamic:gate;if(!list)continue;
         for(let i=0;i<list.length;i++){
           const b=list[i];
           if(axis!=='x'&&(maxX<=b.minX+epsilon||minX>=b.maxX-epsilon))continue;
@@ -94,20 +99,26 @@
     p.pitch=Math.max(-1.5,Math.min(1.5,Number.isFinite(input.pitch)?input.pitch:p.pitch));
     const f=(input.forward?1:0)-(input.back?1:0), s=(input.right?1:0)-(input.left?1:0);
     const norm=Math.hypot(f,s)||1, speed=(input.sprint?8:5)*(p.speedScale??1);
-    const dx=((s*Math.cos(p.yaw)-f*Math.sin(p.yaw))/norm*speed+(p.kx||0))*dt;
-    const dz=((-s*Math.sin(p.yaw)-f*Math.cos(p.yaw))/norm*speed+(p.kz||0))*dt;
-    p.kx=(p.kx||0)*Math.exp(-8*dt);p.kz=(p.kz||0)*Math.exp(-8*dt);
+    let dx=((s*Math.cos(p.yaw)-f*Math.sin(p.yaw))/norm*speed+(p.kx||0))*dt;
+    let dz=((-s*Math.sin(p.yaw)-f*Math.cos(p.yaw))/norm*speed+(p.kz||0))*dt;
+    const onIce=getMap(p.map).ice.some(a=>p.y<1.2&&Math.abs(p.x-a.x)<a.w/2&&Math.abs(p.z-a.z)<a.d/2);
+    if(onIce){const alpha=1-Math.exp(-5*dt);p.iceVX=(p.iceVX||0)+(dx/dt-(p.iceVX||0))*alpha;p.iceVZ=(p.iceVZ||0)+(dz/dt-(p.iceVZ||0))*alpha;if(p.speedScale===0)p.iceVX=p.iceVZ=0;dx=p.iceVX*dt;dz=p.iceVZ*dt;}else p.iceVX=p.iceVZ=0;
+    p.kx=(p.kx||0)*Math.exp(-(onIce?3:8)*dt);p.kz=(p.kz||0)*Math.exp(-(onIce?3:8)*dt);
     if((input.jump||p.jumpQueued) && p.grounded) {p.vy=8;p.grounded=false;}
     p.jumpQueued=false;
     p.vy=Math.max(-30,p.vy-23*dt);
     const dy=p.vy*dt,moved=move(p,{x:dx,y:dy,z:dz});
+    // Minecraft-like half-block stepping, still swept against walls and ceilings.
+    if(p.grounded&&(Math.abs(moved.x-dx)>epsilon||Math.abs(moved.z-dz)>epsilon)){
+      const probe={...p},up=move(probe,{y:.51});if(up.y>.5){const horizontal=move(probe,{x:dx-moved.x,z:dz-moved.z});if(Math.hypot(horizontal.x,horizontal.z)>.001){p.x=probe.x;p.y=probe.y;p.z=probe.z;}}
+    }
     p.grounded=dy<0&&Math.abs(moved.y-dy)>epsilon;
     if(Math.abs(moved.y-dy)>epsilon)p.vy=0;
     if(Math.abs(moved.x-dx)>epsilon)p.kx=0;
     if(Math.abs(moved.z-dz)>epsilon)p.kz=0;
-    if(p.y < -20) Object.assign(p,spawn());
+    if(p.y < -20){if(p.map==='sky')p.voided=true;else Object.assign(p,spawn(p.spawnIndex));}
     return p;
   }
-  const api={boxes,hazards,spawn,step,move,radius,height};
+  const api={boxes,hazards,getMap,spawn,step,move,radius,height};
   if(typeof module!=='undefined') module.exports=api; else root.VoxelWorld=api;
 })(globalThis);

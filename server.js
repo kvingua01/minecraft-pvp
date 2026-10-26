@@ -9,6 +9,7 @@ const {Objective}=require('./lib/objective');
 const {Heroes}=require('./lib/heroes');
 const {Potions}=require('./lib/potions');
 const HeroRules=require('./shared/heroes');
+const Maps=require('./shared/maps');
 const {fixedClock}=require('./lib/timing');
 const {version}=require('./package.json');
 function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
@@ -41,13 +42,14 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
       const room=rooms.get(code)||new Map();
       if(room.size>=10) return ack({error:'This room is full (10 players).'});
       const match=matches.get(code)||new Objective(socket.id);
+      if(!matches.has(code)){match.mapId=Maps.has(data.map)?data.map:'castle';match.locations=World.getMap(match.mapId).points;match.reset();}
       const team=match.chooseTeam(room,data.team);
       if(!team)return ack({error:'That team is full (5 players). Choose the other team.'});
       leave(socket);
       const used=new Set([...room.values()].map(p=>p.spawnIndex));
       let spawnIndex=team==='red'?1:0;while(used.has(spawnIndex))spawnIndex+=2;
-      const player={id:socket.id,name:(typeof data.name==='string'?data.name:'Player').trim().slice(0,20)||'Player',...World.spawn(spawnIndex),hero:HeroRules.has(data.hero)?data.hero:'knight',team,connected:true,resumeToken:crypto.randomBytes(24).toString('hex'),input:{},lastInput:0,life:0};
-      if(!combats.has(code)){const combat=new Combat((event,data)=>io.to(code).emit(event,data));combat.heroes=new Heroes(combat);combat.potions=new Potions(combat);combats.set(code,combat);}
+      const player={id:socket.id,name:(typeof data.name==='string'?data.name:'Player').trim().slice(0,20)||'Player',...World.spawn(spawnIndex),map:match.mapId,hero:HeroRules.has(data.hero)?data.hero:'knight',team,connected:true,resumeToken:crypto.randomBytes(24).toString('hex'),input:{},lastInput:0,life:0};
+      if(!combats.has(code)){const combat=new Combat((event,data)=>io.to(code).emit(event,data));combat.map=match.mapId;combat.heroes=new Heroes(combat);combat.potions=new Potions(combat);combats.set(code,combat);}
       combats.get(code).init(player,spawnIndex,Date.now());
       matches.set(code,match);
       room.set(socket.id,player);rooms.set(code,room);socket.data.room=code;socket.join(code);
@@ -128,7 +130,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
       const timer=setTimeout(()=>leave(socket),reconnectGrace);timer.unref();disconnectTimers.set(socket.id,timer);
     });
   });
-  function pack(p) {return {id:p.id,name:p.name,team:p.team,connected:p.connected,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,vy:p.vy,grounded:p.grounded,hp:p.hp,maxHp:p.maxHp,hero:p.hero,pendingHero:p.pendingHero,canShield:p.canShield,windReady:p.windReady,abilityReady:p.abilityReady,ult:p.ult,status:p.status,speedScale:p.speedScale,attackSpeed:p.attackSpeed,motionSerial:p.motionSerial,inventory:p.inventory,selectedPotion:p.selectedPotion,potionReady:p.potionReady,potionAt:p.potionAt,potionKind:p.potionKind,drinking:p.drinking,armor:p.armor,weapon:p.weapon,blocking:p.blocking,shieldUntil:p.shieldUntil,nextAttack:p.nextAttack,drawAt:p.drawAt,attackAt:p.attackAt,attackSerial:p.attackSerial,deadUntil:p.deadUntil,protectedUntil:p.protectedUntil,kills:p.kills,deaths:p.deaths,kx:p.kx,kz:p.kz,life:p.life};}
+  function pack(p) {return {id:p.id,name:p.name,team:p.team,map:p.map,connected:p.connected,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,vy:p.vy,grounded:p.grounded,hp:p.hp,maxHp:p.maxHp,hero:p.hero,pendingHero:p.pendingHero,canShield:p.canShield,windReady:p.windReady,abilityReady:p.abilityReady,ult:p.ult,status:p.status,speedScale:p.speedScale,attackSpeed:p.attackSpeed,motionSerial:p.motionSerial,inventory:p.inventory,selectedPotion:p.selectedPotion,potionReady:p.potionReady,potionAt:p.potionAt,potionKind:p.potionKind,drinking:p.drinking,armor:p.armor,weapon:p.weapon,blocking:p.blocking,shieldUntil:p.shieldUntil,nextAttack:p.nextAttack,drawAt:p.drawAt,attackAt:p.attackAt,attackSerial:p.attackSerial,deadUntil:p.deadUntil,protectedUntil:p.protectedUntil,kills:p.kills,deaths:p.deaths,kx:p.kx,kz:p.kz,life:p.life};}
   let ticks=0;
   const clock=fixedClock(performance.now());
   const timer=setInterval(()=>clock.advance(performance.now(),dt=>{
