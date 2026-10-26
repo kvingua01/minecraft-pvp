@@ -18,7 +18,8 @@
     "test:new-heroes-browser": "node scripts/new-heroes-smoke.cjs",
     "test:maps-browser": "node scripts/maps-smoke.cjs",
     "test:lobby-browser": "node scripts/lobby-smoke.cjs",
-    "test:loadouts-browser": "node scripts/loadouts-smoke.cjs"
+    "test:loadouts-browser": "node scripts/loadouts-smoke.cjs",
+    "test:inventory-browser": "node scripts/inventory-smoke.cjs"
   },
   "engines": {
     "node": ">=20"

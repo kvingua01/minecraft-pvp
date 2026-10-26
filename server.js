@@ -8,6 +8,7 @@ const World = require('./shared/world');
 const {Objective}=require('./lib/objective');
 const {Heroes}=require('./lib/heroes');
 const {Potions}=require('./lib/potions');
+const Inventory=require('./lib/inventory');
 const HeroRules=require('./shared/heroes');
 const Maps=require('./shared/maps');
 const {fixedClock}=require('./lib/timing');
@@ -53,7 +54,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
       combats.get(code).init(player,spawnIndex,Date.now());
       matches.set(code,match);
       room.set(socket.id,player);rooms.set(code,room);socket.data.room=code;socket.join(code);
-      ack({id:socket.id,code,player:pack(player),resumeToken:player.resumeToken,match:match.snapshot()});
+      ack({id:socket.id,code,player:pack(player,true),resumeToken:player.resumeToken,match:match.snapshot()});
     });
     socket.on('resume',(data,ack=()=>{})=>{
       if(typeof ack!=='function')return;
@@ -72,17 +73,23 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
         for(const other of room.values())if(other.chargeHits)other.chargeHits=other.chargeHits.map(id=>id===oldId?p.id:id);
       }
       p.connected=true;p.jumpQueued=false;p.input={};p.lastInput=0;socket.data.room=data.code;socket.join(data.code);
-      ack({id:p.id,code:data.code,player:pack(p),resumeToken:p.resumeToken,match:match.snapshot()});
+      ack({id:p.id,code:data.code,player:pack(p,true),resumeToken:p.resumeToken,match:match.snapshot()});
     });
     socket.on('input',data=> {
       const p=rooms.get(socket.data.room)?.get(socket.id);
-      if(!p||!data||typeof data!=='object') return;
+      if(!p||p.inventoryOpen||!data||typeof data!=='object') return;
       if(data.jump===true&&!p.input.jump)p.jumpQueued=true;
       p.input={};
       for(const key of ['forward','back','left','right','jump','sprint','block']) p.input[key]=data[key]===true;
       if(Number.isFinite(data.yaw)) p.input.yaw=data.yaw%(2*Math.PI);
       if(Number.isFinite(data.pitch)) p.input.pitch=Math.max(-1.5,Math.min(1.5,data.pitch));
       p.lastInput=Date.now();
+    });
+    function inventoryReply(p,result,ack){ack({...result,state:Inventory.snapshot(p)});}
+    for(const event of ['inventory-open','inventory-click','inventory-close','hotbar-select'])socket.on(event,(data,ack=()=>{})=>{
+      if(typeof ack!=='function')return;const p=rooms.get(socket.data.room)?.get(socket.id);if(!p)return ack({error:'Join a room first.'});
+      let result;if(event==='inventory-open')result=Inventory.open(p);else if(event==='inventory-close')result=Inventory.close(p);else if(event==='inventory-click')result=Inventory.click(p,data?.index,data?.revision);else result=p.inventoryOpen?{error:'Close inventory before switching hotbar slots.'}:Inventory.select(p,data?.index);
+      inventoryReply(p,result,ack);
     });
     socket.on('equip',key=>{const p=rooms.get(socket.data.room)?.get(socket.id);if(p)combats.get(socket.data.room).select(p,key);});
     socket.on('action',data=>{const room=rooms.get(socket.data.room),p=room?.get(socket.id);if(p&&data&&typeof data==='object')combats.get(socket.data.room).attack(room,p,data.kind,Date.now(),data.time);});
@@ -97,9 +104,9 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
       if(typeof ack!=='function')return;const p=rooms.get(socket.data.room)?.get(socket.id);
       if(!p)return ack({error:'Join a room first.'});ack(combats.get(socket.data.room).potions.select(p,id));
     });
-    socket.on('potion-use',(_data,ack=()=>{})=>{
+    socket.on('potion-use',(data,ack=()=>{})=>{
       if(typeof ack!=='function')return;const room=rooms.get(socket.data.room),p=room?.get(socket.id);
-      if(!p)return ack({error:'Join a room first.'});ack(combats.get(socket.data.room).potions.use(room,p,Date.now()));
+      if(!p)return ack({error:'Join a room first.'});const potions=combats.get(socket.data.room).potions;if(data?.id!==undefined){const result=potions.select(p,data.id);if(result.error)return ack(result);}ack(potions.use(room,p,Date.now()));
     });
     socket.on('ability',(key,ack=()=>{})=>{
       if(typeof ack!=='function')return;const code=socket.data.room,room=rooms.get(code),p=room?.get(socket.id);
@@ -132,12 +139,12 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
       const room=rooms.get(socket.data.room),p=room?.get(socket.id);
       if(!p)return;
       if(['client namespace disconnect','server namespace disconnect','server shutting down'].includes(reason)){leave(socket);return;}
-      p.connected=false;const match=matches.get(socket.data.room);if(match?.host===socket.id)match.host=[...room.values()].find(t=>t.connected!==false)?.id||null;p.jumpQueued=false;p.input={};p.lastInput=0;p.blocking=false;p.drawAt=0;p.drinking=null;p.dash=null;p.kx=p.kz=0;
+      Inventory.close(p);p.connected=false;const match=matches.get(socket.data.room);if(match?.host===socket.id)match.host=[...room.values()].find(t=>t.connected!==false)?.id||null;p.jumpQueued=false;p.input={};p.lastInput=0;p.blocking=false;p.drawAt=0;p.drinking=null;p.dash=null;p.kx=p.kz=0;
       console.warn('Player connection interrupted:',reason);
       const timer=setTimeout(()=>leave(socket),reconnectGrace);timer.unref();disconnectTimers.set(socket.id,timer);
     });
   });
-  function pack(p) {return {id:p.id,name:p.name,healingDone:p.healingDone||0,objectiveTime:p.objectiveTime||0,team:p.team,map:p.map,connected:p.connected,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,vy:p.vy,grounded:p.grounded,hp:p.hp,maxHp:p.maxHp,hero:p.hero,pendingHero:p.pendingHero,canShield:p.canShield,windReady:p.windReady,abilityReady:p.abilityReady,ult:p.ult,status:p.status,speedScale:p.speedScale,attackSpeed:p.attackSpeed,motionSerial:p.motionSerial,inventory:p.inventory,selectedPotion:p.selectedPotion,potionReady:p.potionReady,potionAt:p.potionAt,potionKind:p.potionKind,drinking:p.drinking,armor:p.armor,weapon:p.weapon,blocking:p.blocking,shieldUntil:p.shieldUntil,nextAttack:p.nextAttack,drawAt:p.drawAt,attackAt:p.attackAt,attackSerial:p.attackSerial,deadUntil:p.deadUntil,protectedUntil:p.protectedUntil,kills:p.kills,deaths:p.deaths,kx:p.kx,kz:p.kz,life:p.life};}
+  function pack(p,privateItems=false) {return {...(privateItems?Inventory.snapshot(p):{}),heldItem:Inventory.held(p),activeSlot:p.activeSlot,hasItemSlots:!!p.itemSlots,id:p.id,name:p.name,healingDone:p.healingDone||0,objectiveTime:p.objectiveTime||0,team:p.team,map:p.map,connected:p.connected,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,vy:p.vy,grounded:p.grounded,hp:p.hp,maxHp:p.maxHp,hero:p.hero,pendingHero:p.pendingHero,canShield:p.canShield,windReady:p.windReady,abilityReady:p.abilityReady,ult:p.ult,status:p.status,speedScale:p.speedScale,attackSpeed:p.attackSpeed,motionSerial:p.motionSerial,inventory:p.inventory,selectedPotion:p.selectedPotion,potionReady:p.potionReady,potionAt:p.potionAt,potionKind:p.potionKind,drinking:p.drinking,armor:p.armor,weapon:p.weapon,blocking:p.blocking,shieldUntil:p.shieldUntil,nextAttack:p.nextAttack,drawAt:p.drawAt,attackAt:p.attackAt,attackSerial:p.attackSerial,deadUntil:p.deadUntil,protectedUntil:p.protectedUntil,kills:p.kills,deaths:p.deaths,kx:p.kx,kz:p.kz,life:p.life};}
   let ticks=0;
   const clock=fixedClock(performance.now());
   const timer=setInterval(()=>clock.advance(performance.now(),dt=>{
@@ -146,7 +153,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
       const now=Date.now(),combat=combats.get(code),match=matches.get(code);combat.tick(room,now,dt);match.tick(room,dt);
       if(!combat.inLobby&&!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.connected!==false&&p.hp>0&&match.points.some(point=>match.inside(p,point)))combat.heroes.charge(p,3*dt,now);
       combat.matchOver=!!match.winner;
-      if(ticks%3===0)io.to(code).volatile.emit('state',{serverTime:now,players:[...room.values()].map(pack),units:combat.heroes.units.snapshot(),projectiles:combat.snapshot(now),effects:combat.heroes.snapshot(),match:match.snapshot()});
+      if(ticks%3===0){io.to(code).volatile.emit('state',{serverTime:now,players:[...room.values()].map(p=>pack(p)),units:combat.heroes.units.snapshot(),projectiles:combat.snapshot(now),effects:combat.heroes.snapshot(),match:match.snapshot()});for(const p of room.values())if(p.connected!==false&&p.lastInventorySent!==p.inventoryRevision){p.lastInventorySent=p.inventoryRevision;io.to(p.id).emit('inventory-state',Inventory.snapshot(p));}}
     }
     ticks++;
   }),8);

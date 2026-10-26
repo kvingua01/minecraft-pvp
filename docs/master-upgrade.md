@@ -68,3 +68,16 @@ Unit coverage:85 passing tests, including all class kits, rejection of unowned
 weapons, increasing drop heights, grounded attacks and a delayed landing strike.
 The all14-class three-slot browser check, two-browser combat regression and
 production-container checks also passed for this update.
+
+## Later hotbar / inventory update
+
+Class kits remain three weapons each, but the item hotbar now has nine slots shared
+by weapons and potions. Storage has27 slots; overflow potions go there. Number keys
+1–9 and wheel input select a hotbar item. Z opens a click-pickup/place/swap interface.
+Carried items are returned on close/disconnect. Moves are revision-checked and
+server-owned, and item layouts are private. Empty/potion slots cannot use a hidden
+weapon. Same-class layouts are retained while potion charges refill on respawn.
+93 server tests cover slot counts, overflow, click swaps, replay/invalid requests,
+no-loss closing, no hidden attacks, private replication and reconnect preservation.
+The real-browser inventory, all14 class-kit, combat, potion/audio and reconnect
+regressions passed; the production image built and passed its smoke checks.

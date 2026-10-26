@@ -30,8 +30,9 @@ healing and time on objectives; Return to Lobby lets the room choose another map
 | --- | --- |
 | WASD / mouse | Move / look, always first-person |
 | Space / Shift | Jump / sprint |
-| 1 / 2 / 3 | Personal weapon / melee backup / ranged backup |
-| Left click | Attack; hold/release to draw/fire a bow |
+| 1–9 / mouse wheel | Select a hotbar slot |
+| Z | Open / close the 27-slot storage inventory |
+| Left click | Attack, use a held potion, or hold/release a bow |
 | Right click | Throw offhand wind charge, with any weapon |
 | Q / E / R | Two class abilities / earned ultimate |
 | F / G / Shift+G | Use potion / cycle forward / backward |
@@ -50,6 +51,24 @@ that point, freezing its capture and income; other points continue. Enemy points
 must be neutralized first. Each owned point earns one score per second; first to
 300 wins. Capture/income pause while a team has no connected players. Respawns
 take six seconds. Spawn sanctuaries protect players and prevent attacks inside.
+
+## Hotbar and inventory
+
+Every class still owns just three weapons: its personal weapon, one melee backup,
+and one ranged backup. Those start in hotbar slots1–3; six potion types fill the
+remaining slots. Overflow goes into the27-slot storage area. Healing's two charges
+share a stack. Press **Z**, click an item to pick it up, then click an empty slot
+to place it or an occupied slot to swap. Storage and hotbar items can be moved
+freely. Numbers1–9 and the scroll wheel select the hotbar, including potion and
+empty slots. Click a held potion to use it; F also works. Empty slots cannot swing
+a hidden weapon.
+
+Z or Close returns to play; Escape closes into the pause menu. Closing while
+carrying returns the item to an available slot. Movement and attacks stop while
+the inventory is open, but the match and incoming damage continue. Item locations
+survive reconnects and same-class respawns; potion charges refill as before.
+Changing class rebuilds its allowed weapons. Moves, quantities and ownership are
+server-validated; full item layouts and carried items are only sent to their owner.
 
 ## Heroes
 
@@ -127,6 +146,7 @@ npm run test:heroes-browser
 npm run test:new-heroes-browser
 npm run test:hero-picker-browser
 npm run test:loadouts-browser
+npm run test:inventory-browser
 npm run test:potions-browser
 npm run test:wind-browser
 npm run test:reconnect-browser

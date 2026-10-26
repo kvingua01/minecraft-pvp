@@ -10,6 +10,7 @@ import {skinMaterial,heroColors} from '/skins.js';
 import {createParticles} from '/particles.js';
 import {createUnitsView} from '/units-view.js';
 import {createLobby} from '/lobby.js';
+import {createInventoryView} from '/inventory-view.js';
 const $=s=>document.querySelector(s), World=window.VoxelWorld;
 const menu=$('#menu'), pause=$('#pause'), canvas=$('#world'), loading=$('#loading');
 let renderer;
@@ -36,15 +37,16 @@ const particles=createParticles({scene,socket,getPlayers:()=>self?[self,...[...r
 const movementKeys=new Set(['KeyW','KeyA','KeyS','KeyD','Space','ShiftLeft','ShiftRight']);
 let self=null, ownId=null,roomCode='',yaw=0,pitch=0,locked=false,tab=false,accumulator=0,last=performance.now(),sendTime=0,lastRender=0;
 let correction=new THREE.Vector3(),walkTime=0,reconnecting=false,resumeToken='',serverUpdating=false;
-const combat=createCombatView({camera:viewCamera,scene,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished});
+const combat=createCombatView({camera:viewCamera,scene,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!inventoryView.open&&!reconnecting&&socket.connected&&!objective.finished});
 const hand=combat.hand;
-const potionView=createPotionView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished,serverNow:combat.serverNow,hand});
+const potionView=createPotionView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!inventoryView.open&&!reconnecting&&socket.connected&&!objective.finished,serverNow:combat.serverNow,hand});
 const audio=createAudio({socket,getSelf:()=>self,getPlayers:()=>self?[self,...[...remotes.values()].map(r=>r.target)]:[],isActive:()=>locked&&!reconnecting&&!objective.finished});
-const heroView=createHeroView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished,serverNow:combat.serverNow});
+const heroView=createHeroView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!inventoryView.open&&!reconnecting&&socket.connected&&!objective.finished,serverNow:combat.serverNow});
 const runtime=createRuntime({renderer,socket,getSelf:()=>self,isActive:()=>locked&&!reconnecting&&!objective.finished,syncClock:combat.syncClock});
 const objective=createObjectiveView({scene,socket,getSelf:()=>self,clearKeys:()=>keys.clear()});
 const lobby=createLobby({socket,getSelf:()=>self,onStarted:()=>{pause.hidden=false;$('#pause-error').textContent='Match started. Click resume to play.';}});
-function controls(){const active=objective.match?.phase!=='lobby'&&locked&&!document.hidden&&!reconnecting&&socket.connected&&self?.hp>0;return {forward:active&&keys.has('KeyW'),back:active&&keys.has('KeyS'),left:active&&keys.has('KeyA'),right:active&&keys.has('KeyD'),jump:active&&keys.has('Space'),sprint:active&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:active&&combat.isBlocking()};}
+const inventoryView=createInventoryView({socket,getSelf:()=>self,isAvailable:()=>!!self&&self.hp>0&&!reconnecting&&!objective.finished,onOpen:()=>{keys.clear();combat.cancelInput();pause.hidden=true;document.exitPointerLock();if(socket.connected)socket.emit('input',controls());},onClose:resume=>{if(!self||objective.match?.phase==='lobby'||objective.finished)return;if(resume&&!reconnecting)requestLock();else pause.hidden=false;},onSelect:()=>combat.cancelInput()});
+function controls(){const active=!inventoryView.open&&objective.match?.phase!=='lobby'&&locked&&!document.hidden&&!reconnecting&&socket.connected&&self?.hp>0;return {forward:active&&keys.has('KeyW'),back:active&&keys.has('KeyS'),left:active&&keys.has('KeyA'),right:active&&keys.has('KeyD'),jump:active&&keys.has('Space'),sprint:active&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:active&&combat.isBlocking()};}
 function acceptSession(result,recovered=false){
  setMap(result.match?.map);
  ownId=result.id;roomCode=result.code;resumeToken=result.resumeToken;self={...result.player};yaw=self.yaw;pitch=self.pitch||0;keys.clear();correction.set(0,0,0);reconnecting=false;
@@ -83,19 +85,20 @@ function join(create) {
 $('#create').onclick=()=>join(true);$('#join-form').onsubmit=e=>{e.preventDefault();join(false);};
 function requestLock(){ if(!socket.connected||reconnecting)return;$('#pause-error').textContent='';try{const promise=canvas.requestPointerLock();promise?.catch(()=>{$('#pause-error').textContent='Click resume to allow mouse capture.';});}catch{$('#pause-error').textContent='Mouse capture unavailable. Use a desktop browser.';}}
 $('#resume').onclick=requestLock;canvas.onclick=()=>{if(self&&!locked)requestLock();};
-document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;keys.clear();pause.hidden=!self||locked||objective.finished||objective.match?.phase==='lobby';if(self)socket.volatile.emit('input',controls());});
+document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;keys.clear();pause.hidden=!self||locked||inventoryView.open||objective.finished||objective.match?.phase==='lobby';if(self)socket.volatile.emit('input',controls());});
 document.addEventListener('pointerlockerror',()=>{$('#pause-error').textContent='Mouse capture was denied. Click resume and allow it in your browser.';});
-document.addEventListener('mousemove',e=>{if(locked){const sensitivity=Number($('#sensitivity').value)*.0005;yaw-=e.movementX*sensitivity;pitch=THREE.MathUtils.clamp(pitch-e.movementY*sensitivity,-1.5,1.5);}});
+document.addEventListener('mousemove',e=>{if(locked&&!inventoryView.open){const sensitivity=Number($('#sensitivity').value)*.0005;yaw-=e.movementX*sensitivity;pitch=THREE.MathUtils.clamp(pitch-e.movementY*sensitivity,-1.5,1.5);}});
 window.addEventListener('keydown',e=>{if(!self)return;if(e.code==='Escape'){document.exitPointerLock();return;}if(['Tab','Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code))e.preventDefault();if(e.code==='Tab'){tab=true;updateRoster();}if(locked){keys.add(e.code);if(e.code==='Space'&&!e.repeat&&self.hp>0)self.jumpQueued=true;if(movementKeys.has(e.code)&&!e.repeat&&socket.connected&&!reconnecting)socket.emit('input',controls());}});
 window.addEventListener('keyup',e=>{keys.delete(e.code);if(self&&locked&&movementKeys.has(e.code)&&socket.connected&&!reconnecting)socket.emit('input',controls());if(e.code==='Tab'){tab=false;updateRoster();}});
 window.addEventListener('blur',()=>{keys.clear();tab=false;updateRoster();if(self)socket.volatile.emit('input',controls());});
 canvas.oncontextmenu=e=>e.preventDefault();
 function removeRemote(remote){scene.remove(remote.group);remote.group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});}
-function clearPlayers(){unitsView.clear();particles.clear();audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
+function clearPlayers(){inventoryView.clear();unitsView.clear();particles.clear();audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
 $('#leave').onclick=()=>{if(socket.connected)socket.emit('leave');endSession();};
 socket.on('server-restarting',()=>{serverUpdating=true;endSession('The game server is restarting for an update. Create or join a new arena shortly.');});
 socket.on('connect',()=>{if(self&&resumeToken)resumeSession();});
 socket.on('disconnect',reason=>{
+ inventoryView.clear();
  if(!self)return;
  if(reason==='io server disconnect'){endSession('The server closed your session. Please rejoin your arena.');return;}
  reconnecting=true;keys.clear();correction.set(0,0,0);document.exitPointerLock();pause.hidden=objective.finished;
@@ -166,7 +169,7 @@ function frame(now){
  for(const r of remotes.values()) {
   r.group.visible=r.target.hp>0;if(!r.group.visible)continue;
   const potionAge=combat.serverNow()-r.target.potionAt,potionActive=r.target.potionAt&&potionAge>=0&&potionAge<(window.PotionRules.items[r.target.potionKind]?.splash?400:650);
-  const visualKey=potionActive?'flask:'+r.target.potionKind:r.target.weapon;
+  const visualKey=potionActive?'flask:'+r.target.potionKind:r.target.heldItem?.kind==='potion'?'flask:'+r.target.heldItem.id:r.target.weapon;r.weapon.visible=potionActive||!r.target.hasItemSlots||!!r.target.heldItem;
   if(r.weaponKey!==visualKey){r.weaponKey=visualKey;combat.buildWeapon(r.weapon,r.weaponKey,true);r.styleKey=null;}
   r.weapon.position.y=.9;
   const cooldown=window.CombatRules.weapons[r.target.weapon].cooldown,duration=['crossbow','toxicbow'].includes(r.weaponKey)?cooldown:Math.min(cooldown,800);
@@ -187,8 +190,8 @@ function frame(now){
   r.group.position.set(pose.x,pose.y,pose.z);r.group.rotation.y=pose.yaw;r.head.rotation.x=pose.pitch;
   r.legs[0].rotation.x=r.speed>.1?Math.sin(now*.012)*.4:0;r.legs[1].rotation.x=-r.legs[0].rotation.x;
  }
- unitsView.frame(now);particles.frame(now,dt);combat.frame(now);heroView.frame(now);potionView.frame(now);audio.frame(now);if(objective.finished)$('#death').hidden=true;renderer.info.reset();renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(viewScene,viewCamera);
+ inventoryView.frame();unitsView.frame(now);particles.frame(now,dt);combat.frame(now);heroView.frame(now);potionView.frame(now);audio.frame(now);if(objective.finished)$('#death').hidden=true;renderer.info.reset();renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(viewScene,viewCamera);
 }
 loading.hidden=true;requestAnimationFrame(frame);
 // Read-only diagnostics for smoke tests; no client state can override the server.
-window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),map:activeMap,unitCount:unitsView.count(),visuals:voxelLook.diagnostics(),drawCalls:renderer.info.render.calls});
+window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,itemSlots:self?.itemSlots,activeSlot:self?.activeSlot,heldItem:self?.heldItem,cursorItem:self?.cursorItem,inventoryOpen:inventoryView.open,inventoryRevision:self?.inventoryRevision,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),map:activeMap,unitCount:unitsView.count(),visuals:voxelLook.diagnostics(),drawCalls:renderer.info.render.calls});

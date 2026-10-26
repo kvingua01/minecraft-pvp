@@ -1,5 +1,5 @@
 import * as THREE from '/vendor/three.module.js';
-import {pixelTool,itemIcon} from '/pixel-items.js';
+import {pixelTool} from '/pixel-items.js';
 import {paintVitals} from '/hud-icons.js';
 const C=window.CombatRules;
 export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLocked}){
@@ -43,12 +43,13 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
   window.addEventListener('mousedown',e=>{
     if(!isLocked()||!getSelf()||getSelf().hp<=0)return;
     if(e.button===2){throwWind();return;}
+    if(e.button===0&&getSelf().hasItemSlots&&getSelf().heldItem?.kind!=='weapon'){const item=getSelf().heldItem;if(item?.kind==='potion'){socket.emit('input',getInput());socket.timeout(4000).emit('potion-use',{id:item.id},(error,result)=>{document.querySelector('#combat-note').textContent=error?'Potion request timed out.':result?.error||'POTION USED';windNoticeAt=performance.now();});}return;}
     if(e.button===0){if(getSelf().weapon==='bow'){drawHeld=true;action('draw');}else action('attack');}
   });
   window.addEventListener('mouseup',e=>{if(e.button===0&&drawHeld){action('release');drawHeld=false;}if(e.button===2){blocking=false;if(getSelf())socket.volatile.emit('input',getInput());}});
   window.addEventListener('blur',release);
   document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement){release();if(getSelf())socket.volatile.emit('input',{...getInput(),block:false});}});
-  window.addEventListener('keydown',e=>{if(!isLocked()||e.repeat)return;const index=Number(e.key)-1;if(index>=0&&index<3){drawHeld=false;blocking=false;socket.emit('equip',window.HeroRules.loadout(getSelf().hero)[index]);}});
+
   socket.on('combat',event=>{
     const p=getSelf();if(!p)return;
     if(event.type==='wind-burst'){const mesh=new THREE.Mesh(new THREE.RingGeometry(.65,1,12),new THREE.MeshBasicMaterial({color:0xd9faff,side:THREE.DoubleSide,transparent:true,opacity:.8,depthWrite:false}));mesh.rotation.x=-Math.PI/2;mesh.position.set(event.x,event.y+.08,event.z);scene.add(mesh);bursts.add({mesh,start:performance.now()});}
@@ -94,16 +95,16 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     const throwAge=now-windThrownAt;wind.position.y=-.23-(throwAge<300?Math.sin(throwAge/300*Math.PI)*.16:0);
     wind.scale.setScalar(p.windReady>time?.9:1);
     if(windNoticeAt&&now-windNoticeAt>2400){document.querySelector('#combat-note').textContent='';windNoticeAt=0;}
-    hand.visible=p.hp>0;
+    hand.visible=p.hp>0&&(!p.hasItemSlots||p.heldItem?.kind==='weapon');
     paintVitals(p);
     document.querySelector('#health').max=p.maxHp||100;document.querySelector('#health').value=p.hp;document.querySelector('#health-label').textContent=`${Math.ceil(p.hp)} / ${p.maxHp||100}`;
     document.querySelector('#armor-label').textContent=`ARMOR ${Math.round(p.armor*100)}% · 4 PIECES`;
     const remaining=Math.max(0,p.nextAttack-time);document.querySelector('#attack-ready').value=1-remaining/(w.cooldown/(p.attackSpeed||1));
-    document.querySelector('#weapon-status').textContent=p.drawAt?`DRAW ${Math.min(100,Math.round((time-p.drawAt)/10))}%`:remaining>0?(['crossbow','toxicbow'].includes(weapon)?'RELOADING ':'READY IN ')+(remaining/1000).toFixed(1)+'s':C.inSpawn(p)?'SPAWN SANCTUARY':p.protectedUntil>time?'SPAWN PROTECTION':'READY';
-    const stamp=p.hero+':'+weapon;if(stamp!==hotbarStamp){hotbarStamp=stamp;document.querySelectorAll('[data-weapon]').forEach((el,i)=>{el.dataset.weapon=window.HeroRules.loadout(p.hero)[i];el.title=['Personal weapon','Melee backup','Ranged backup'][i];el.replaceChildren();const image=document.createElement('img');image.src=itemIcon(el.dataset.weapon);image.alt='';el.append(image,document.createTextNode(`${i+1} ${C.weapons[el.dataset.weapon].name}`));el.classList.toggle('selected',el.dataset.weapon===weapon);});}
+    document.querySelector('#weapon-status').textContent=p.hasItemSlots&&p.heldItem?.kind!=='weapon'?(p.heldItem?.kind==='potion'?window.PotionRules.items[p.heldItem.id].name.toUpperCase()+' · CLICK / F TO USE':'EMPTY HOTBAR SLOT'):p.drawAt?`DRAW ${Math.min(100,Math.round((time-p.drawAt)/10))}%`:remaining>0?(['crossbow','toxicbow'].includes(weapon)?'RELOADING ':'READY IN ')+(remaining/1000).toFixed(1)+'s':C.inSpawn(p)?'SPAWN SANCTUARY':p.protectedUntil>time?'SPAWN PROTECTION':'READY';
+
     document.querySelector('#shield-status').textContent=C.inSpawn(p)?'WIND CHARGE · LEAVE SPAWN TO THROW':p.windReady>time?`WIND CHARGE ${((p.windReady-time)/1000).toFixed(1)}s`:'RMB: WIND CHARGE · AIM AT YOUR FEET';
     document.querySelector('#damage').style.opacity=now-flash<400?1:0;document.querySelector('#hit-marker').style.opacity=now-hit<250?1:0;
     document.querySelector('#death').hidden=p.hp>0;document.querySelector('#respawn-time').textContent=`${Math.max(0,Math.ceil((p.deadUntil-time)/1000))}s`;
   }
-  return {syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},hand,offhand:()=>({wind:wind.visible,shield:false}),buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>false};
+  return {syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},cancelInput:release,hand,offhand:()=>({wind:wind.visible,shield:false}),buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>false};
 }
