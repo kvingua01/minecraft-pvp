@@ -27,7 +27,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     }else if(key==='bow'){
       for(const side of [-1,1]){const limb=cube(group,.07,.42,.09,0xb98a4f,0,side*.23+.15,0);limb.rotation.z=side*-.3;}
       group.userData.string=cube(group,.02,.77,.02,0xebe1c3,.1,.15,0);group.userData.arrow=cube(group,.035,.035,.6,0xc7bea1,.08,.15,0);
-    }else if(key==='staff'){cube(group,.09,.9,.09,0x767e94,0,.22,0);cube(group,.25,.25,.25,0xa0e5f7,0,.75,0);
+    }else if(['staff','darkstaff','firestaff','naturestaff'].includes(key)){cube(group,.09,.9,.09,0x767e94,0,.22,0);cube(group,.25,.25,.25,({darkstaff:0x9b74ce,firestaff:0xf6a34c,naturestaff:0x8ecb65}[key]||0xa0e5f7),0,.75,0);
     }else if(key==='launcher'){cube(group,.25,.25,.55,0x799b88,0,.15,0);cube(group,.15,.24,.17,0xbcdf9a,0,.34,.05);
     }else {
       cube(group,.12,.16,.6,0x805e3c,0,.18,0);cube(group,.65,.08,.12,0xc6c7ac,0,.22,-.18);cube(group,.4,.025,.025,0xd7d7bd,0,.22,.05);
@@ -70,7 +70,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
       seen.add(a.id);let m=arrows.get(a.id);
       if(!m){
         m=new THREE.Group();const flask=a.kind==='wind'||a.kind==='potion'||a.kind?.startsWith('flask:'),size=flask ? .22 : .06;
-        const color=a.kind==='wind'?0xe6fbff:a.kind?.startsWith('flask:')?window.PotionRules.items[a.kind.slice(6)].color:a.kind==='ice'||a.kind==='frost'?0x9ee6ff:a.kind==='potion'?0xa9e5a1:a.kind==='explosive'?0xf4b273:0xe8d2a2;
+        const color=a.kind==='wind'?0xe6fbff:['ember','fireball'].includes(a.kind)?0xf59a3c:['toxic','dart','nature'].includes(a.kind)?0x8cc965:a.kind==='dark'?0xa87bd4:a.kind?.startsWith('flask:')?window.PotionRules.items[a.kind.slice(6)].color:a.kind==='ice'||a.kind==='frost'?0x9ee6ff:a.kind==='potion'?0xa9e5a1:a.kind==='explosive'?0xf4b273:0xe8d2a2;
         cube(m,size,size,flask ? .22 : .65,color,0,0,0);scene.add(m);arrows.set(a.id,m);
       }
       m.position.set(a.x,a.y,a.z);m.lookAt(a.x+a.vx,a.y+a.vy,a.z+a.vz);
@@ -85,7 +85,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     if(key==='axe'){group.rotation.z=-.22+a*.9;group.rotation.x=-a*1.1;}
     if(key==='mace'){group.rotation.x=-a*1.6;group.position.y-=a*.08;}
     if(key==='crossbow')group.rotation.x=-a*.55;
-    if(key==='staff'||key==='launcher')group.rotation.x=-a*.3;
+    if(['staff','darkstaff','firestaff','naturestaff'].includes(key)||key==='launcher')group.rotation.x=-a*.3;
   }
   function frame(now){
     for(const b of bursts){const age=(now-b.start)/500;b.mesh.scale.setScalar(1+age*3);b.mesh.material.opacity=Math.max(0,.8*(1-age));if(age>=1){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();bursts.delete(b);}}

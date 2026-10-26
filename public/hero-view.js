@@ -38,7 +38,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   if(e.source===getSelf()?.id&&(e.type==='ability'||e.type==='slam')){flashedAt=performance.now();$('#ability-message').textContent=e.name||'GROUND SLAM';flash.style.background=e.hero==='frost'?'#83cfff22':'#d5e58a22';}
  });
  function build(e){const group=new THREE.Group();group.position.set(e.x,e.y,e.z);
-  const color=e.kind==='wall'?e.color:e.kind==='splash'?window.PotionRules.items[e.potionKind].color:e.kind==='poison'?0x94c661:e.kind==='blizzard'?0x9cdbff:e.kind==='storm'?0xe1bb8d:0x9ce4bd;
+  const color=e.kind==='wall'?e.color:['inferno','firetrail'].includes(e.kind)?0xf59a42:['plague','vines'].includes(e.kind)?0x78a63b:e.kind==='splash'?window.PotionRules.items[e.potionKind].color:e.kind==='poison'?0x94c661:e.kind==='blizzard'?0x9cdbff:e.kind==='storm'?0xe1bb8d:0x9ce4bd;
   if(e.kind==='wall'){
    const alongX=e.w>e.d,cols=Math.round(alongX?e.w:e.d),rows=Math.round(e.h),mesh=new THREE.InstancedMesh(blockGeometry,new THREE.MeshLambertMaterial({color}),cols*rows),dummy=new THREE.Object3D();
    mesh.userData.ownedMaterial=true;
@@ -50,7 +50,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   else {
    const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false});const ring=new THREE.Mesh(new THREE.RingGeometry(e.radius-.12,e.radius,40),mat);ring.rotation.x=-Math.PI/2;ring.position.y=.04;group.add(ring);
    const column=new THREE.Mesh(new THREE.CylinderGeometry(e.radius,e.radius,1.5,20,1,true),mat.clone());column.material.opacity=.07;column.position.y=.75;group.add(column);
-   if(['storm','blizzard'].includes(e.kind)){const rain=new THREE.InstancedMesh(blockGeometry,new THREE.MeshLambertMaterial({color}),12);rain.userData.ownedMaterial=true;rain.userData.radius=e.radius;rain.instanceMatrix.setUsage(THREE.DynamicDrawUsage);group.userData.rain=rain;group.add(rain);}
+   if(['storm','blizzard','inferno','plague','roots','firetrail','vines'].includes(e.kind)){const rain=new THREE.InstancedMesh(blockGeometry,new THREE.MeshLambertMaterial({color}),12);rain.userData.ownedMaterial=true;rain.userData.radius=e.radius;rain.instanceMatrix.setUsage(THREE.DynamicDrawUsage);group.userData.rain=rain;group.add(rain);}
   }
   scene.add(group);return {group,kind:e.kind};
  }

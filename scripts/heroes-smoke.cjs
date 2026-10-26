@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),{createGameServer}=require('../server'),a
  try{
   const a=await browser.newPage({viewport:{width:1280,height:800}}),b=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];
   for(const p of [a,b]){p.setDefaultTimeout(15000);p.on('pageerror',e=>errors.push(e.message));await p.goto(url);await p.waitForFunction(()=>window.arenaDiagnostics);}
-  assert.equal(await a.locator('#hero option').count(),8);await a.locator('#hero-options [data-hero="frost"]').click();assert.match(await a.locator('#hero-description').textContent(),/Ice Bolt/);
+  assert.equal(await a.locator('#hero option').count(),14);await a.locator('#hero-options [data-hero="frost"]').click();assert.match(await a.locator('#hero-description').textContent(),/Ice Bolt/);
   await a.fill('#name','Frost tester');await a.selectOption('#team','red');await a.click('#create');await a.waitForFunction(()=>window.arenaDiagnostics().joined);
   const info=await a.evaluate(()=>window.arenaDiagnostics());await b.fill('#name','Target');await b.selectOption('#team','blue');await b.fill('#code',info.room);await b.click('.join-row button');await b.waitForFunction(()=>window.arenaDiagnostics().remotes.length===1);
   const room=game.rooms.get(info.room),pa=room.get(info.id),pb=room.get((await b.evaluate(()=>window.arenaDiagnostics())).id);
@@ -14,7 +14,7 @@ const {chromium}=require('playwright'),{createGameServer}=require('../server'),a
   async function aim(){await a.evaluate(()=>{const d=window.arenaDiagnostics();document.dispatchEvent(new MouseEvent('mousemove',{movementX:d.yaw/.002,movementY:d.pitch/.002}));});}
   await resume();place();await a.waitForFunction(()=>window.arenaDiagnostics().position.z>9.9&&Math.abs(window.arenaDiagnostics().position.x)<.1);await aim();
   await a.keyboard.press('r');await a.waitForFunction(()=>document.querySelector('#ability-message').textContent.includes('100%'));assert.equal(pa.ult,0);
-  await a.keyboard.press('q');await b.waitForFunction(()=>window.arenaDiagnostics().hp<180);assert.ok(pb.status.slow>Date.now());await a.waitForFunction(()=>document.querySelector('#ability-q').textContent.match(/\ds/));console.log('Eight classes, Frost primary, Q damage/slow and server cooldown HUD passed');
+  await a.keyboard.press('q');await b.waitForFunction(()=>window.arenaDiagnostics().hp<180);assert.ok(pb.status.slow>Date.now());await a.waitForFunction(()=>document.querySelector('#ability-q').textContent.match(/\ds/));console.log('Fourteen classes, Frost primary, Q damage/slow and server cooldown HUD passed');
   pb.x=10;await a.keyboard.press('e');await a.waitForFunction(()=>document.querySelector('#ability-e').textContent.match(/\ds/));assert.equal(game.combats.get(info.room).heroes.solids().length,1);
   await a.keyboard.down('w');await a.waitForFunction(()=>window.arenaDiagnostics().position.z<8);await a.waitForTimeout(500);await a.keyboard.up('w');assert.ok((await a.evaluate(()=>window.arenaDiagnostics())).position.z>=7.619);console.log('Server ice wall is visible and blocks predicted movement');
   pa.ult=100;await a.waitForFunction(()=>window.arenaDiagnostics().ult===100);await a.keyboard.press('r');await a.waitForFunction(()=>window.arenaDiagnostics().ult===0);assert.ok(game.combats.get(info.room).heroes.effects.some(e=>e.kind==='blizzard'));console.log('R consumes validated charge and creates a real Blizzard zone');

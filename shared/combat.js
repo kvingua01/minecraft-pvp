@@ -1,5 +1,9 @@
 (function(root){
   const weapons={
+    darkstaff:{name:'Dark Staff',damage:18,cooldown:700,projectile:'dark'},
+    firestaff:{name:'Fire Staff',damage:16,cooldown:700,projectile:'ember'},
+    naturestaff:{name:'Nature Staff',damage:15,cooldown:700,projectile:'nature'},
+    toxicbow:{name:'Poison Crossbow',damage:25,cooldown:1800,projectile:'toxic'},
     katana:{name:'Katana',damage:17,cooldown:330,range:3.25},
     dagger:{name:'Daggers',damage:12,cooldown:220,range:2.4},
     pickaxe:{name:'Iron Pickaxe',damage:23,cooldown:750,range:3},

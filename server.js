@@ -105,7 +105,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
     });
     socket.on('hero-select',(hero,ack=()=>{})=>{
       if(typeof ack!=='function')return;const p=rooms.get(socket.data.room)?.get(socket.id);
-      if(!p||!HeroRules.has(hero))return ack({error:'Select one of the eight heroes.'});p.pendingHero=hero;ack({ok:true});
+      if(!p||!HeroRules.has(hero))return ack({error:'Select one of the fourteen heroes.'});p.pendingHero=hero;ack({ok:true});
     });
     socket.on('restart',(_data,ack=()=>{})=>{
       if(typeof ack!=='function')return;
@@ -137,7 +137,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500}={}) {
       const now=Date.now(),combat=combats.get(code),match=matches.get(code);combat.tick(room,now,dt);match.tick(room,dt);
       if(!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.connected!==false&&p.hp>0&&match.points.some(point=>match.inside(p,point)))combat.heroes.charge(p,3*dt,now);
       combat.matchOver=!!match.winner;
-      if(ticks%3===0)io.to(code).volatile.emit('state',{serverTime:now,players:[...room.values()].map(pack),projectiles:combat.snapshot(now),effects:combat.heroes.snapshot(),match:match.snapshot()});
+      if(ticks%3===0)io.to(code).volatile.emit('state',{serverTime:now,players:[...room.values()].map(pack),units:combat.heroes.units.snapshot(),projectiles:combat.snapshot(now),effects:combat.heroes.snapshot(),match:match.snapshot()});
     }
     ticks++;
   }),8);

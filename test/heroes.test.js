@@ -5,20 +5,19 @@ function setup(hero='knight'){
  function player(id,team,x,z,cls='knight'){const p={id,name:id,team,hero:cls,life:0,...W.spawn(),x,y:0,z,yaw:0,pitch:0,input:{},lastInput:10000};combat.init(p,room.size,10000);p.protectedUntil=0;room.set(id,p);return p;}
  const a=player('a','red',0,10,hero),b=player('b','blue',0,7),ally=player('ally','red',2,10);return {combat,h:combat.heroes,room,a,b,ally,events};
 }
-test('all eight heroes spawn with distinct, authoritative class stats and an empty ultimate',()=>{
- assert.equal(Object.keys(H.heroes).length,8);for(const [id,def]of Object.entries(H.heroes)){const {a}=setup(id);assert.equal(a.hp,def.health);assert.equal(a.weapon,def.weapon);assert.equal(a.armor,def.armor);assert.equal(a.ult,0);assert.ok(def.q.name&&def.e.name&&def.r.name);}
+test('all fourteen heroes spawn with distinct, authoritative class stats and an empty ultimate',()=>{
+ assert.equal(Object.keys(H.heroes).length,14);for(const [id,def]of Object.entries(H.heroes)){const {a}=setup(id);assert.equal(a.hp,def.health);assert.equal(a.weapon,def.weapon);assert.equal(a.armor,def.armor);assert.equal(a.ult,0);assert.ok(def.q.name&&def.e.name&&def.r.name);}
 });
 test('server rejects cooldown spam, invalid keys, unearned ultimates, death and spawn casts',()=>{
  const {h,room,a}=setup('berserker');assert.ok(h.use(room,a,'r',10000).error);assert.ok(h.use(room,a,'hack',10000).error);assert.ok(h.use(room,a,'q',10000).ok);assert.ok(h.use(room,a,'q',10001).error);a.hp=0;assert.ok(h.use(room,a,'e',11000).error);a.hp=130;a.x=25;a.z=0;assert.ok(h.use(room,a,'e',11000).error);
 });
-test('knight charges enemies, grants ally resistance, and places a solid fortress',()=>{
+test('knight charges enemies, grants ally resistance, and protects nearby allies with a magical fortress',()=>{
  const {h,combat,room,a,b,ally}=setup();h.use(room,a,'q',10000);assert.ok(a.dash);b.z=9;h.before(room,10001);h.after(room,10001,1/60);assert.ok(b.hp<b.maxHp);assert.ok(Math.abs(b.kz)>=15);
  h.use(room,a,'e',10002);h.before(room,10003);assert.equal(ally.resist,.25);
- a.ult=100;b.x=10;assert.ok(h.use(room,a,'r',10004).ok);assert.equal(h.solids().length,1);assert.equal(a.ult,0);
- const p={...a,x:0,z:10,y:0,solids:h.solids()};W.move(p,{x:0,y:0,z:-10});assert.ok(p.z>7);h.before(room,20000);assert.equal(h.solids().length,0);
+ a.ult=100;b.x=10;assert.ok(h.use(room,a,'r',10004).ok);assert.ok(h.effects.some(e=>e.kind==='fortress'));assert.equal(a.ult,0);h.before(room,10005);assert.equal(ally.resist,.55);h.before(room,20000);assert.equal(h.effects.length,0);
 });
 test('occupied wall placement rejects without consuming the ultimate or trapping players',()=>{
- const {h,room,a}=setup();a.ult=100;assert.ok(h.use(room,a,'r',10000).error);assert.equal(a.ult,100);assert.equal(h.solids().length,0);
+ const {h,room,a}=setup('frost');const ready=a.abilityReady.e;assert.ok(h.use(room,a,'e',10000).error);assert.equal(a.abilityReady.e,ready);assert.equal(h.solids().length,0);
 });
 test('berserker rage accelerates attacks, leap slams on landing, and rampage buffs damage and speed',()=>{
  const {h,combat,room,a,b}=setup('berserker');h.use(room,a,'q',10000);h.before(room,10001);assert.equal(a.attackSpeed,1.5);combat.attack(room,a,'attack',10001);assert.ok(a.nextAttack-10001<950);
