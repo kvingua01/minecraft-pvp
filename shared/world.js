@@ -36,27 +36,26 @@
   // Enemy spawn rooms are solid to players; allies can leave and return freely.
   const enemySpawns={red:{x:27,y:32,z:0,w:10,h:64,d:12,solid:true},blue:{x:-27,y:32,z:0,w:10,h:64,d:12,solid:true}};
   const epsilon=1e-7;
-  function bounds(p,axis) {
-    return axis==='y'?[p.y,p.y+height]:[p[axis]-radius,p[axis]+radius];
-  }
-  // Sweep each axis against faces, keeping the other axes free to slide.
-  // Never resolve a floor overlap by teleporting sideways to the floor's edge.
+  function compile(list){return list.filter(b=>b.solid).map(b=>({minX:b.x-b.w/2,maxX:b.x+b.w/2,minY:b.y-b.h/2,maxY:b.y+b.h/2,minZ:b.z-b.d/2,maxZ:b.z+b.d/2}));}
+  const staticBounds=compile(boxes),spawnBounds={red:compile([enemySpawns.red]),blue:compile([enemySpawns.blue])},dynamicCache=new WeakMap();
+  function dynamicBounds(solids){if(!solids?.length)return null;let cached=dynamicCache.get(solids);if(!cached){cached=compile(solids);dynamicCache.set(solids,cached);}return cached;}
+  // Sweep against precompiled faces without allocating bounds/closures per block.
   function move(p,delta) {
-    const moved={x:0,y:0,z:0},size={x:'w',y:'h',z:'d'};
-    const solids=[...boxes,...(p.solids||[]),...(enemySpawns[p.team]?[enemySpawns[p.team]]:[])];
-    for(const axis of ['x','z','y']) {
-      let distance=delta[axis]||0;
-      if(!distance)continue;
-      const [low,high]=bounds(p,axis),other=['x','y','z'].filter(a=>a!==axis);
-      for(const b of solids) {
-        if(!b.solid)continue;
-        if(!other.every(a=>{const [lo,hi]=bounds(p,a);return hi>b[a]-b[size[a]]/2+epsilon&&lo<b[a]+b[size[a]]/2-epsilon;}))continue;
-        if(distance>0) {
-          const gap=b[axis]-b[size[axis]]/2-high;
-          if(gap>=-epsilon)distance=Math.min(distance,Math.max(0,gap));
-        }else {
-          const gap=b[axis]+b[size[axis]]/2-low;
-          if(gap<=epsilon)distance=Math.max(distance,Math.min(0,gap));
+    const moved={x:0,y:0,z:0},dynamic=dynamicBounds(p.solids),gate=spawnBounds[p.team];
+    for(const axis of ['x','z','y']){
+      let distance=delta[axis]||0;if(!distance)continue;
+      const minX=p.x-radius,maxX=p.x+radius,minY=p.y,maxY=p.y+height,minZ=p.z-radius,maxZ=p.z+radius;
+      const low=axis==='x'?minX:axis==='y'?minY:minZ,high=axis==='x'?maxX:axis==='y'?maxY:maxZ;
+      for(let group=0;group<3;group++){
+        const list=group===0?staticBounds:group===1?dynamic:gate;if(!list)continue;
+        for(let i=0;i<list.length;i++){
+          const b=list[i];
+          if(axis!=='x'&&(maxX<=b.minX+epsilon||minX>=b.maxX-epsilon))continue;
+          if(axis!=='y'&&(maxY<=b.minY+epsilon||minY>=b.maxY-epsilon))continue;
+          if(axis!=='z'&&(maxZ<=b.minZ+epsilon||minZ>=b.maxZ-epsilon))continue;
+          const near=axis==='x'?b.minX:axis==='y'?b.minY:b.minZ,far=axis==='x'?b.maxX:axis==='y'?b.maxY:b.maxZ;
+          if(distance>0){const gap=near-high;if(gap>=-epsilon)distance=Math.min(distance,Math.max(0,gap));}
+          else {const gap=far-low;if(gap<=epsilon)distance=Math.max(distance,Math.min(0,gap));}
         }
       }
       p[axis]+=distance;moved[axis]=distance;

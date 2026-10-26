@@ -4,7 +4,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
   const hand=new THREE.Group(),shield=new THREE.Group();camera.add(hand,shield);
   hand.position.set(.4,-.36,-.65);hand.scale.setScalar(.65);shield.position.set(-.47,-.52,-.76);shield.scale.setScalar(.65);
   cube(shield,.52,.68,.12,0x697f8e,0,0,0);cube(shield,.36,.51,.14,0xba9c62,0,0,0);
-  let weapon='',blocking=false,clockOffset=0,swing=0,flash=0,hit=0,drawHeld=false;
+  let hotbarStamp='',weapon='',blocking=false,clockOffset=0,clockSynced=false,swing=0,flash=0,hit=0,drawHeld=false;
   const arrows=new Map(),feed=document.querySelector('#kill-feed');
   function buildWeapon(group,key,remote=false){
     if(remote)group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});group.clear();const scale=remote ? .8 : 1;group.userData.string=null;group.userData.arrow=null;
@@ -47,7 +47,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     }
   });
   function snapshot(state){
-    clockOffset=state.serverTime-Date.now();const seen=new Set();
+    if(!clockSynced)clockOffset=state.serverTime-Date.now();const seen=new Set();
     for(const a of state.projectiles||[]){
       seen.add(a.id);let m=arrows.get(a.id);
       if(!m){
@@ -59,7 +59,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     }
     for(const [id,m]of arrows)if(!seen.has(id)){scene.remove(m);arrows.delete(id);}
   }
-  function clear(){release();for(const m of arrows.values())scene.remove(m);arrows.clear();feed.replaceChildren();document.querySelector('#death').hidden=true;document.querySelector('#damage').style.opacity=0;document.querySelector('#hit-marker').style.opacity=0;}
+  function clear(){hotbarStamp='';clockSynced=false;release();for(const m of arrows.values())scene.remove(m);arrows.clear();feed.replaceChildren();document.querySelector('#death').hidden=true;document.querySelector('#damage').style.opacity=0;document.querySelector('#hit-marker').style.opacity=0;}
   function animateWeapon(group,key,phase){
     const a=Math.sin(Math.PI*phase);
     group.rotation.set(0,0,-.22);
@@ -82,10 +82,10 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     document.querySelector('#armor-label').textContent=`ARMOR ${Math.round(p.armor*100)}% · 4 PIECES`;
     const remaining=Math.max(0,p.nextAttack-time);document.querySelector('#attack-ready').value=1-remaining/(w.cooldown/(p.attackSpeed||1));
     document.querySelector('#weapon-status').textContent=p.drawAt?`DRAW ${Math.min(100,Math.round((time-p.drawAt)/10))}%`:remaining>0?(weapon==='crossbow'?'RELOADING ':'READY IN ')+(remaining/1000).toFixed(1)+'s':C.inSpawn(p)?'SPAWN SANCTUARY':p.protectedUntil>time?'SPAWN PROTECTION':'READY';
-    document.querySelectorAll('[data-weapon]').forEach((el,i)=>{el.dataset.weapon=window.HeroRules.loadout(p.hero)[i];el.textContent=`${i+1} ${C.weapons[el.dataset.weapon].name}`;el.classList.toggle('selected',el.dataset.weapon===weapon);});
+    const stamp=p.hero+':'+weapon;if(stamp!==hotbarStamp){hotbarStamp=stamp;document.querySelectorAll('[data-weapon]').forEach((el,i)=>{el.dataset.weapon=window.HeroRules.loadout(p.hero)[i];el.textContent=`${i+1} ${C.weapons[el.dataset.weapon].name}`;el.classList.toggle('selected',el.dataset.weapon===weapon);});}
     document.querySelector('#shield-status').textContent=p.shieldUntil>time?`SHIELD DISABLED ${((p.shieldUntil-time)/1000).toFixed(1)}s`:p.blocking?'BLOCKING':shield.visible?'RMB: SHIELD':'RANGED WEAPON';
     document.querySelector('#damage').style.opacity=now-flash<400?1:0;document.querySelector('#hit-marker').style.opacity=now-hit<250?1:0;
     document.querySelector('#death').hidden=p.hp>0;document.querySelector('#respawn-time').textContent=`${Math.max(0,Math.ceil((p.deadUntil-time)/1000))}s`;
   }
-  return {hand,buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>blocking};
+  return {syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},hand,buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>blocking};
 }

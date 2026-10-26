@@ -4,6 +4,7 @@ import {createObjectiveView} from '/objective-view.js';
 import {createHeroView} from '/hero-view.js';
 import {createPotionView} from '/potion-view.js';
 import {createAudio} from '/audio.js';
+import {createRuntime} from '/runtime.js';
 const $=s=>document.querySelector(s), World=window.VoxelWorld;
 const menu=$('#menu'), pause=$('#pause'), canvas=$('#world'), loading=$('#loading');
 let renderer;
@@ -29,15 +30,16 @@ for(const color of new Set(World.boxes.map(b=>b.color))) {
 function cube(parent,w,h,d,color,x,y,z) {const m=new THREE.Mesh(geometry,material(color));m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
 const socket=io({autoConnect:false}), remotes=new Map(),keys=new Set();
 const movementKeys=new Set(['KeyW','KeyA','KeyS','KeyD','Space','ShiftLeft','ShiftRight']);
-let self=null, ownId=null,roomCode='',yaw=0,pitch=0,locked=false,tab=false,accumulator=0,last=performance.now(),sendTime=0;
-let correction=new THREE.Vector3(),walkTime=0,reconnecting=false,resumeToken='';
+let self=null, ownId=null,roomCode='',yaw=0,pitch=0,locked=false,tab=false,accumulator=0,last=performance.now(),sendTime=0,lastRender=0;
+let correction=new THREE.Vector3(),walkTime=0,reconnecting=false,resumeToken='',serverUpdating=false;
 const combat=createCombatView({camera:viewCamera,scene,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished});
 const hand=combat.hand;
 const potionView=createPotionView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished,serverNow:combat.serverNow,hand});
 const audio=createAudio({socket,getSelf:()=>self,getPlayers:()=>self?[self,...[...remotes.values()].map(r=>r.target)]:[],isActive:()=>locked&&!reconnecting&&!objective.finished});
 const heroView=createHeroView({scene,camera:viewCamera,cube,socket,getSelf:()=>self,getInput:controls,isLocked:()=>locked&&!reconnecting&&socket.connected&&!objective.finished,serverNow:combat.serverNow});
+const runtime=createRuntime({renderer,socket,getSelf:()=>self,isActive:()=>locked&&!reconnecting&&!objective.finished,syncClock:combat.syncClock});
 const objective=createObjectiveView({scene,socket,getSelf:()=>self,clearKeys:()=>keys.clear()});
-function controls(){const active=locked&&!reconnecting&&socket.connected&&self?.hp>0;return {forward:active&&keys.has('KeyW'),back:active&&keys.has('KeyS'),left:active&&keys.has('KeyA'),right:active&&keys.has('KeyD'),jump:active&&keys.has('Space'),sprint:active&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:active&&combat.isBlocking()};}
+function controls(){const active=locked&&!document.hidden&&!reconnecting&&socket.connected&&self?.hp>0;return {forward:active&&keys.has('KeyW'),back:active&&keys.has('KeyS'),left:active&&keys.has('KeyA'),right:active&&keys.has('KeyD'),jump:active&&keys.has('Space'),sprint:active&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:active&&combat.isBlocking()};}
 function acceptSession(result,recovered=false){
  ownId=result.id;roomCode=result.code;resumeToken=result.resumeToken;self={...result.player};yaw=self.yaw;pitch=self.pitch||0;keys.clear();correction.set(0,0,0);reconnecting=false;
  for(const selector of ['#resume','#next-hero','#restart'])$(selector).disabled=false;
@@ -62,7 +64,7 @@ function resumeSession(attempt=0){
 function setButtons(disabled){document.querySelectorAll('#join-form button').forEach(b=>b.disabled=disabled);}
 function join(create) {
  if(!create&&!$('#code').value.trim()) {$('#error').textContent='Enter your friend’s room code.';return;}
- $('#error').textContent='Connecting…';setButtons(true);socket.connect();
+ serverUpdating=false;$('#error').textContent='Connecting…';setButtons(true);socket.connect();
  socket.timeout(6000).emit('join',{create,code:$('#code').value,name:$('#name').value,team:$('#team').value,hero:$('#hero').value},(err,result)=>{
   setButtons(false);
   if(err||result?.error){$('#error').textContent=result?.error||'Could not connect. Please retry.';return;}
@@ -82,6 +84,7 @@ canvas.oncontextmenu=e=>e.preventDefault();
 function removeRemote(remote){scene.remove(remote.group);remote.group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});}
 function clearPlayers(){audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
 $('#leave').onclick=()=>{if(socket.connected)socket.emit('leave');endSession();};
+socket.on('server-restarting',()=>{serverUpdating=true;endSession('The game server is restarting for an update. Create or join a new arena shortly.');});
 socket.on('connect',()=>{if(self&&resumeToken)resumeSession();});
 socket.on('disconnect',reason=>{
  if(!self)return;
@@ -94,9 +97,9 @@ socket.on('disconnect',reason=>{
 });
 socket.on('connect_error',()=>{
  if(self){$('#network-banner').hidden=false;$('#network-banner').textContent='Connection interrupted. Still trying to reconnect…';}
- else{$('#error').textContent='Server unavailable. Check your connection and retry.';setButtons(false);}
+ else{$('#error').textContent=serverUpdating?'The game server is updating. Try again after the restart.':'Server unavailable. Check your connection and retry.';setButtons(false);}
 });
-function makeAvatar(p) {
+function makeAvatar(p,time) {
  const group=new THREE.Group(),color=p.team==='red'?0xdd8d73:0x70a9bd;
  cube(group,.62,.65,.34,color,0,1.04,0);const head=cube(group,.48,.48,.48,0xd4a181,0,1.61,0);
  cube(head,.12,.1,.025,0x253c3d,-.22,.05,-.51);cube(head,.12,.1,.025,0x253c3d,.22,.05,-.51);
@@ -106,12 +109,12 @@ function makeAvatar(p) {
  const shield=new THREE.Group();shield.position.set(-.5,1,-.15);group.add(shield);cube(shield,.4,.6,.12,0x849ba5,0,0,0);
  // Four original armor pieces: helmet, chestplate, leggings, and boots.
  cube(group,.53,.18,.53,0x8da4ad,0,1.83,0);cube(group,.65,.4,.38,0x8da4ad,0,1.15,0);cube(group,.49,.18,.3,0x687e8b,0,.67,0);for(const x of [-.17,.17])cube(group,.26,.16,.32,0x687e8b,x,.08,0);
- group.position.set(p.x,p.y,p.z);group.rotation.y=p.yaw;scene.add(group);return {group,head,legs,weapon,shield,weaponKey:p.weapon,target:p,stamp:performance.now(),previous:p};
+ group.position.set(p.x,p.y,p.z);group.rotation.y=p.yaw;scene.add(group);const history=[];window.ArenaNetwork.remember(history,p,time);return {group,head,legs,weapon,shield,weaponKey:p.weapon,target:p,history,lastTime:time,speed:0};
 }
 function updateRoster(){
  const roster=$('#roster');roster.hidden=!tab;
  const players=self?[self,...[...remotes.values()].map(r=>r.target)]:[];
- roster.textContent=['red','blue'].map(team=>`${team.toUpperCase()} TEAM\n`+players.filter(p=>p.team===team).map(p=>`${p.name} [${window.HeroRules.heroes[p.hero]?.name||'Hero'}]${p.id===ownId?' (you)':p.connected===false?' (reconnecting)':''} · ${p.kills} K / ${p.deaths} D`).join('\n')).join('\n\n');
+ if(tab)roster.textContent=['red','blue'].map(team=>`${team.toUpperCase()} TEAM\n`+players.filter(p=>p.team===team).map(p=>`${p.name} [${window.HeroRules.heroes[p.hero]?.name||'Hero'}]${p.id===ownId?' (you)':p.connected===false?' (reconnecting)':''} · ${p.kills} K / ${p.deaths} D`).join('\n')).join('\n\n');
  $('#connection').textContent=`${players.filter(p=>p.connected!==false).length}/10 players connected`;
 }
 socket.on('state',state=>{
@@ -128,14 +131,14 @@ socket.on('state',state=>{
    continue;
   }
   ids.add(p.id);let remote=remotes.get(p.id);
-  if(!remote){remote=makeAvatar(p);remotes.set(p.id,remote);}else {remote.previous={x:remote.group.position.x,y:remote.group.position.y,z:remote.group.position.z,yaw:remote.group.rotation.y};remote.target=p;remote.stamp=performance.now();}
+  if(!remote){remote=makeAvatar(p,state.serverTime);remotes.set(p.id,remote);}else {const reset=p.life!==remote.target.life||Math.hypot(p.x-remote.target.x,p.y-remote.target.y,p.z-remote.target.z)>12;remote.speed=reset?0:Math.hypot(p.x-remote.target.x,p.z-remote.target.z)/Math.max(.001,(state.serverTime-remote.lastTime)/1000);window.ArenaNetwork.remember(remote.history,p,state.serverTime,reset);remote.target=p;remote.lastTime=state.serverTime;}
  }
  for(const [id,r]of remotes)if(!ids.has(id)){removeRemote(r);remotes.delete(id);}heroView.snapshot(state);audio.snapshot(state);updateRoster();objective.update(state.match,state.players);
 });
-$('#quality').onchange=()=>renderer.setPixelRatio(Math.min(devicePixelRatio,Number($('#quality').value)));
+document.addEventListener('visibilitychange',()=>{keys.clear();if(self)self.jumpQueued=false;if(document.hidden){document.exitPointerLock();if(self&&socket.connected&&!reconnecting)socket.emit('input',controls());}last=performance.now();accumulator=0;});
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();viewCamera.aspect=camera.aspect;viewCamera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 function frame(now){
- requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.1);last=now;
+ requestAnimationFrame(frame);const rawMs=now-last,dt=Math.min(rawMs/1000,.1);last=now;if(document.hidden)return;
  if(self){
   accumulator+=dt;const input=controls();while(accumulator>=1/60){if(self.hp>0&&!objective.finished&&!reconnecting)World.step(self,self.blocking?{...input,sprint:false}:input,1/60);accumulator-=1/60;}
   const factor=1-Math.exp(-8*dt);
@@ -148,11 +151,12 @@ function frame(now){
   camera.position.set(self.x,self.y+1.62,self.z);camera.rotation.set(pitch,yaw,0,'YXZ');
   const moving=input.forward||input.back||input.left||input.right;walkTime+=dt*(input.sprint?13:9);hand.position.y=-.36+(moving&&self.grounded?Math.sin(walkTime)*.025:0);
  }else {camera.position.set(13,8,24);camera.lookAt(0,1,0);}
+ const active=!!self&&self.hp>0&&locked&&!reconnecting&&!objective.finished;if(!active&&now-lastRender<1000/30)return;lastRender=now;runtime.frame(now,rawMs);
  for(const r of remotes.values()) {
   r.group.visible=r.target.hp>0;if(!r.group.visible)continue;
   const potionAge=combat.serverNow()-r.target.potionAt,potionActive=r.target.potionAt&&potionAge>=0&&potionAge<(window.PotionRules.items[r.target.potionKind]?.splash?400:650);
   const visualKey=potionActive?'flask:'+r.target.potionKind:r.target.weapon;
-  if(r.weaponKey!==visualKey){r.weaponKey=visualKey;combat.buildWeapon(r.weapon,r.weaponKey,true);}
+  if(r.weaponKey!==visualKey){r.weaponKey=visualKey;combat.buildWeapon(r.weapon,r.weaponKey,true);r.styleKey=null;}
   r.weapon.position.y=.9;
   const cooldown=window.CombatRules.weapons[r.target.weapon].cooldown,duration=r.weaponKey==='crossbow'?cooldown:Math.min(cooldown,800);
   const phase=Math.min(1,Math.max(0,(combat.serverNow()-(r.target.attackAt||0))/duration));combat.animateWeapon(r.weapon,r.weaponKey,phase);
@@ -162,13 +166,17 @@ function frame(now){
    r.weapon.userData.string.position.z=charge*.2;r.weapon.userData.arrow.position.z=charge*.2;r.weapon.rotation.y=-charge*.2;
   }
   r.shield.visible=!potionActive&&r.target.canShield!==false&&['sword','axe','mace'].includes(r.weaponKey);r.shield.position.y=r.target.blocking?1.35:.95;
-  const hidden=r.target.status?.vanish>combat.serverNow();r.group.traverse(m=>{if(m.isMesh){if(!m.userData.avatarMaterial){m.material=m.material.clone();m.userData.avatarMaterial=true;}m.material.transparent=hidden;m.material.opacity=hidden?.15:1;const s=r.target.status||{},time=combat.serverNow();if(m.material.emissive)m.material.emissive.setHex(s.rampage>time||s.rage>time?0x662211:s.holy>time||s.divine>time?0x665622:s.slow>time?0x224466:0x000000);}});
-  const t=Math.min(1,(now-r.stamp)/50);r.group.position.set(THREE.MathUtils.lerp(r.previous.x,r.target.x,t),THREE.MathUtils.lerp(r.previous.y,r.target.y,t),THREE.MathUtils.lerp(r.previous.z,r.target.z,t));
-  const turn=Math.atan2(Math.sin(r.target.yaw-r.previous.yaw),Math.cos(r.target.yaw-r.previous.yaw));r.group.rotation.y=r.previous.yaw+turn*t;r.head.rotation.x=r.target.pitch;
-  const moving=Math.hypot(r.target.x-r.previous.x,r.target.z-r.previous.z)>.02;r.legs[0].rotation.x=moving?Math.sin(now*.012)*.4:0;r.legs[1].rotation.x=-r.legs[0].rotation.x;
+  const time=combat.serverNow(),s=r.target.status||{},hidden=s.vanish>time;
+  const emissive=s.rampage>time||s.rage>time?0x662211:s.holy>time||s.divine>time?0x665622:s.slow>time||s.slowPotion>time?0x224466:s.burning>time?0x663311:0;
+  const styleKey=`${hidden}:${emissive}`;
+  if(r.styleKey!==styleKey){r.styleKey=styleKey;r.group.traverse(m=>{if(m.isMesh){if(!m.userData.avatarMaterial){m.material=m.material.clone();m.userData.avatarMaterial=true;}if(m.material.transparent!==hidden){m.material.transparent=hidden;m.material.needsUpdate=true;}m.material.opacity=hidden?.15:1;if(m.material.emissive)m.material.emissive.setHex(emissive);}});}
+
+  const pose=window.ArenaNetwork.sample(r.history,combat.serverNow()-runtime.interpolationDelay());
+  r.group.position.set(pose.x,pose.y,pose.z);r.group.rotation.y=pose.yaw;r.head.rotation.x=pose.pitch;
+  r.legs[0].rotation.x=r.speed>.1?Math.sin(now*.012)*.4:0;r.legs[1].rotation.x=-r.legs[0].rotation.x;
  }
  combat.frame(now);heroView.frame(now);potionView.frame(now);audio.frame(now);if(objective.finished)$('#death').hidden=true;renderer.info.reset();renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(viewScene,viewCamera);
 }
 loading.hidden=true;requestAnimationFrame(frame);
 // Read-only diagnostics for smoke tests; no client state can override the server.
-window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,drawCalls:renderer.info.render.calls});
+window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,hero:r.target.hero,position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,runtime:runtime.diagnostics(),drawCalls:renderer.info.render.calls});

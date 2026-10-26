@@ -1,4 +1,4 @@
-# Blockward — Phase 5
+# Blockward — Phase 6
 
 An original first-person multiplayer voxel arena, built with Three.js, Express,
 and Socket.io. The original click-target game remains available at `/practice/`.
@@ -22,8 +22,7 @@ bots: at least one real player on each team is required to advance the match.
 | --- | --- |
 | WASD / mouse | Move / look (always first-person) |
 | Space / Shift | Jump / sprint |
-| 1 / 2 / 3 | Sword / axe / mace |
-| 4 / 5 | Bow / crossbow |
+| 1–5 | Class primary and backup weapons |
 | Left click | Melee attack or fire crossbow |
 | Hold and release left click | Draw and fire bow |
 | Hold right click | Raise offhand shield with a melee weapon |
@@ -160,13 +159,17 @@ or charge; unit/network tests independently verify how charge is earned.
 
 The symmetric arena includes keeps, gate tunnels, cover, stairs, elevated terraces,
 and wooden crossings. No mining, crafting, building, or third-person gameplay.
-The menu has sensitivity and graphics resolution controls; performance mode lowers
-resolution. Static map geometry is instanced by material. Physics runs at 60 Hz;
+The main and pause menus offer sensitivity, Auto/manual graphics resolution,
+volume and optional measured FPS/ping. Auto lowers resolution under sustained
+slow frames and restores it gradually when there is headroom. Static map geometry is instanced by material. Physics runs at 60 Hz;
 snapshots at 20 Hz. Clients predict local movement and interpolate remote avatars.
 Rooms support up to ten players and are removed when empty. All room state lives
 in memory; restarting the server ends active rooms.
 
-Final deployment/performance polish remains for Phase 6. Consumable potions and
+Phase 6 adds cached collision bounds, fixed-step server timing, packet-time remote
+interpolation, clock synchronization and reduced idle rendering. Hidden tabs stop
+rendering and clear held movement. See [performance evidence](docs/performance.md)
+for measurements and their limits. Consumable potions and
 procedural sound effects are implemented; Alchemist abilities and the potion
 launcher remain separate from this limited-charge inventory.
 The initial combat values are provisional and need real-player balance testing.
@@ -273,11 +276,27 @@ do not replay, and simulates room-state loss to verify the restart message.
 
 ## Railway
 
-Deploy this repository as a Node.js service. Use `npm ci` to install and `npm start`
-to launch. The server binds `0.0.0.0` and Railway's `PORT`; health endpoint: `/health`.
-Generate a domain under the service's Networking settings. Use one replica for now:
-rooms are process-local and horizontal scaling is not supported. WebSockets must
-be enabled by the hosting proxy. No API keys or external assets are required.
+Railway detects the pinned Node 24 `Dockerfile`; `railway.toml` selects that build,
+sets `/health` as its readiness check and retries failed processes. The production
+image runs as the unprivileged `node` user, includes production dependencies only,
+and starts Node directly so deployment signals reach the server. The server binds
+`0.0.0.0` and Railway's `PORT`. `/health` reports version and commit revision when
+Railway supplies `RAILWAY_GIT_COMMIT_SHA`.
 
-GitHub publication and a successful Railway deployment are separate. Inspect
-Railway's deployment status before assuming the public site is updated.
+Keep **one replica**: rooms are process-local. Generate a domain under Networking
+and keep WebSocket forwarding enabled. No game API keys or external assets are
+required. A process restart clears matches; connected clients receive an update
+message before a graceful shutdown and can create a new arena afterward.
+
+```sh
+npm run build:production
+npm run test:production
+npm run test:network-browser
+```
+
+The first two commands require Docker. The network test requires Chromium and
+runs ten real Socket.io clients through a latency/jitter proxy, with a real browser
+checking rendering, interpolation, controls and delayed combat. No production bots
+are added. See [deployment checks](docs/deployment.md) for the release procedure.
+GitHub publication and a successful Railway deployment are separate; inspect the
+latest deployment status before assuming the public site is updated.

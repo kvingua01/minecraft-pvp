@@ -2,7 +2,7 @@ import * as THREE from '/vendor/three.module.js';
 const H=window.HeroRules;
 export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLocked,serverNow}){
  const blockGeometry=new THREE.BoxGeometry(1,1,1),rainDummy=new THREE.Object3D();
- const $=s=>document.querySelector(s),effects=new Map(),flash=$('#ability-flash');let flashedAt=0;
+ const $=s=>document.querySelector(s),effects=new Map(),flash=$('#ability-flash');let flashedAt=0,solidsKey='',cachedSolids=[];
  let queuedHero=null;
  function paintPicker(selector,value){
   const grid=$(selector+'-options');if($(selector).value===value&&grid.dataset.selected===value)return;
@@ -56,7 +56,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
  function remove(effect){scene.remove(effect.group);effect.group.traverse(m=>{if(m.userData.ownedMaterial)m.material.dispose();if(m.isMesh&&m.geometry!==undefined&&!m.isInstancedMesh){if(m.geometry.type!=='BoxGeometry')m.geometry.dispose();if(['RingGeometry','CylinderGeometry'].includes(m.geometry.type))m.material.dispose();}});}
  function snapshot(state){const ids=new Set();for(const e of state.effects||[]){ids.add(e.id);let effect=effects.get(e.id);if(!effect){effect=build(e);effects.set(e.id,effect);}effect.group.position.set(e.x,e.y,e.z);}
   for(const [id,e]of effects)if(!ids.has(id)){remove(e);effects.delete(id);}
-  const solids=(state.effects||[]).filter(e=>e.kind==='wall').map(e=>({...e,solid:true}));const p=getSelf();if(p)p.solids=solids;
+  const walls=(state.effects||[]).filter(e=>e.kind==='wall'),key=JSON.stringify(walls.map(e=>[e.id,e.x,e.y,e.z,e.w,e.h,e.d]));if(key!==solidsKey){solidsKey=key;cachedSolids=walls.map(e=>({...e,solid:true}));}const p=getSelf();if(p)p.solids=cachedSolids;
  }
  function frame(now){const p=getSelf();dagger.visible=!!p&&p.hp>0&&p.hero==='assassin'&&p.weapon==='sword';burst.visible=!!p&&now-flashedAt<450&&flashedAt>0;
   if(burst.visible){const t=(now-flashedAt)/450;burst.scale.setScalar(.2+t);burst.material.opacity=.35*(1-t);}flash.style.opacity=now-flashedAt<600?.8:0;$('#ability-message').style.opacity=now-flashedAt<1800?1:0;
@@ -67,6 +67,6 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   if(queuedHero===p.pendingHero)queuedHero=null;paintPicker('#next-hero',queuedHero||p.pendingHero||p.hero);
   for(const e of effects.values()){const rain=e.group.userData.rain;if(!rain)continue;for(let i=0;i<12;i++){rainDummy.position.set(Math.sin(i*2.4)*rain.userData.radius*.8,1+((now*.004+i*.5)%5),Math.cos(i*2.4)*rain.userData.radius*.8);rainDummy.scale.set(.05,e.kind==='storm'?.65:.15,.05);rainDummy.updateMatrix();rain.setMatrixAt(i,rainDummy.matrix);}rain.instanceMatrix.needsUpdate=true;}
  }
- function clear(){queuedHero=null;for(const e of effects.values())remove(e);effects.clear();dagger.visible=false;burst.visible=false;$('#hero-hud').hidden=true;$('#class-note').textContent='';flashedAt=0;}
+ function clear(){queuedHero=null;solidsKey='';cachedSolids=[];for(const e of effects.values())remove(e);effects.clear();dagger.visible=false;burst.visible=false;$('#hero-hud').hidden=true;$('#class-note').textContent='';flashedAt=0;}
  return {snapshot,frame,clear};
 }

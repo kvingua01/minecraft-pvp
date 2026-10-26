@@ -9,7 +9,11 @@
     "test:heroes-browser": "node scripts/heroes-smoke.cjs",
     "test:reconnect-browser": "node scripts/reconnect-smoke.cjs",
     "test:hero-picker-browser": "node scripts/hero-picker-smoke.cjs",
-    "test:potions-browser": "node scripts/potions-smoke.cjs"
+    "test:potions-browser": "node scripts/potions-smoke.cjs",
+    "test:network-browser": "node scripts/network-smoke.cjs",
+    "test:production": "node scripts/production-smoke.cjs",
+    "benchmark:physics": "node scripts/benchmark-physics.cjs",
+    "build:production": "node scripts/build-production.cjs"
   },
   "engines": {
     "node": ">=20"

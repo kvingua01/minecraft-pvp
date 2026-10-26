@@ -10,7 +10,7 @@
   mace:{name:'Mace Warrior',role:'Damage / tank',health:160,armor:.3,speed:.9,weapon:'mace',shield:true,q:ability('Rocket Jump',8000,'Launch upward without landing damage.'),e:ability('Ground Slam',9000,'Dive down and damage nearby enemies on landing.'),r:ability('Meteor Strike',0,'Launch high and land with a devastating shockwave.')},
   frost:{name:'Frost Mage',role:'Control',health:105,armor:.12,speed:1,weapon:'staff',q:ability('Ice Bolt',7000,'Fire a bolt that slows an enemy for 3s.'),e:ability('Ice Wall',12000,'Create a 7s solid wall of ice.'),r:ability('Blizzard',0,'Create a 6s damaging, slowing storm.')}
  };
- const has=id=>Object.hasOwn(heroes,id);
+ const has=id=>typeof id==='string'&&Object.hasOwn(heroes,id);
  const loadout=id=>{const primary=heroes[has(id)?id:'knight'].weapon;return [primary,...['sword','axe','mace','bow','crossbow'].filter(w=>w!==primary)].slice(0,5);};
  const api={heroes,has,loadout};if(typeof module!=='undefined')module.exports=api;else root.HeroRules=api;
 })(globalThis);
