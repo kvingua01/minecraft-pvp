@@ -99,7 +99,8 @@ static cover is checked on the server. Projectiles use current server positions.
 
 ## Heroes and abilities
 
-Choose a hero before joining. To queue another class, press Escape and change
+All eight heroes are shown as clickable cards before joining; selecting a card
+previews its health, armor, weapon and abilities. To queue another class, press Escape and change
 **Next respawn hero**. The change applies on your next respawn or rematch, never
 restoring health in the middle of a fight. Maximum health and the health bar adjust
 to the chosen class. All balance values are provisional for real-player testing.
@@ -142,6 +143,10 @@ Frost's basic staff bolts briefly slow, with Q applying a longer slow.
 ```sh
 npm run test:heroes-browser
 ```
+
+`npm run test:hero-picker-browser` also clicks all eight visible cards and verifies
+that each joins with the correct class, health and primary weapon on a
+Chromebook-sized viewport.
 
 This second two-browser test checks class descriptions, Frost abilities and solid
 ice walls, charge validation, Blizzard, queued respawn class changes, real remote

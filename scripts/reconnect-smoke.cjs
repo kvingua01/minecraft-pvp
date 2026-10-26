@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),{createGameServer}=require('../server'),a
  try{
  const a=await browser.newPage({viewport:{width:1280,height:800}}),b=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];
  for(const p of [a,b]){p.setDefaultTimeout(15000);p.on('pageerror',e=>errors.push(e.message));await p.goto(url);await p.waitForFunction(()=>window.arenaDiagnostics);}
- await a.selectOption('#hero','frost');await a.selectOption('#team','red');await a.click('#create');await a.waitForFunction(()=>window.arenaDiagnostics().joined);const initial=await a.evaluate(()=>window.arenaDiagnostics());
+ await a.locator('#hero-options [data-hero="frost"]').click();await a.selectOption('#team','red');await a.click('#create');await a.waitForFunction(()=>window.arenaDiagnostics().joined);const initial=await a.evaluate(()=>window.arenaDiagnostics());
  await b.selectOption('#team','blue');await b.fill('#code',initial.room);await b.click('.join-row button');await b.waitForFunction(()=>window.arenaDiagnostics().remotes.length===1);
  const p=game.rooms.get(initial.room).get(initial.id);Object.assign(p,{x:0,y:0,z:10,hp:77,kills:2,ult:43,protectedUntil:0});
  await a.bringToFront();if(!await a.evaluate(()=>window.arenaDiagnostics().locked))await a.click('#resume');await a.waitForFunction(()=>window.arenaDiagnostics().hp===77);

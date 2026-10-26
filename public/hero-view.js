@@ -3,12 +3,31 @@ const H=window.HeroRules;
 export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLocked,serverNow}){
  const blockGeometry=new THREE.BoxGeometry(1,1,1),rainDummy=new THREE.Object3D();
  const $=s=>document.querySelector(s),effects=new Map(),flash=$('#ability-flash');let flashedAt=0;
- for(const selector of ['#hero','#next-hero']){
-  const select=$(selector);for(const [id,h]of Object.entries(H.heroes)){const option=document.createElement('option');option.value=id;option.textContent=`${h.name} · ${h.role}`;select.append(option);}
+ let queuedHero=null;
+ function paintPicker(selector,value){
+  $(selector).value=value;
+  for(const button of $(selector+'-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.hero===value));
  }
  function describe(){const h=H.heroes[$('#hero').value];$('#hero-description').textContent=`${h.health} HP · ${Math.round(h.armor*100)}% armor · ${h.weapon}\nQ — ${h.q.name}: ${h.q.description}\nE — ${h.e.name}: ${h.e.description}\nR — ${h.r.name}: ${h.r.description}`;}
- $('#hero').onchange=describe;describe();
- $('#next-hero').onchange=()=>socket.timeout(4000).emit('hero-select',$('#next-hero').value,(error,result)=>{$('#class-note').textContent=error?'Connection timed out.':result?.error||'Hero queued for your next respawn.';});
+ function queueHero(id){
+  if(!socket.connected||!getSelf()){$('#class-note').textContent='Reconnect before choosing your next hero.';return;}
+  queuedHero=id;paintPicker('#next-hero',id);$('#class-note').textContent=`${H.heroes[id].name} selected for your next respawn.`;
+  socket.timeout(4000).emit('hero-select',id,(error,result)=>{
+   if(error||result?.error){queuedHero=null;$('#class-note').textContent=error?'Connection timed out. Please choose again.':result.error;}
+  });
+ }
+ for(const selector of ['#hero','#next-hero']){
+  const select=$(selector),grid=$(selector+'-options');
+  for(const [id,h]of Object.entries(H.heroes)){
+   const option=document.createElement('option');option.value=id;option.textContent=`${h.name} · ${h.role}`;select.append(option);
+   const button=document.createElement('button');button.type='button';button.dataset.hero=id;button.className='hero-card';button.setAttribute('aria-pressed','false');
+   const name=document.createElement('strong'),role=document.createElement('span'),stats=document.createElement('small');name.textContent=h.name;role.textContent=h.role;stats.textContent=`${h.health} HP · ${Math.round(h.armor*100)}% armor`;
+   button.append(name,role,stats);button.onclick=()=>{if(selector==='#hero'){paintPicker(selector,id);describe();}else queueHero(id);};grid.append(button);
+  }
+  paintPicker(selector,select.value);
+ }
+ $('#hero').onchange=()=>{paintPicker('#hero',$('#hero').value);describe();};describe();
+ $('#next-hero').onchange=()=>queueHero($('#next-hero').value);
  window.addEventListener('keydown',e=>{if(e.repeat||!isLocked()||!['KeyQ','KeyE','KeyR'].includes(e.code))return;e.preventDefault();socket.emit('input',getInput());socket.timeout(4000).emit('ability',e.code.at(-1).toLowerCase(),(error,result)=>{if(error||result?.error){$('#ability-message').textContent=result?.error||'Connection timed out.';flashedAt=performance.now();}});});
  const dagger=new THREE.Group();camera.add(dagger);dagger.position.set(-.38,-.38,-.7);cube(dagger,.12,.32,.14,0xb98e71,0,0,0);cube(dagger,.08,.5,.04,0xd9e3e2,0,.37,0);dagger.rotation.z=.25;
  const burst=new THREE.Mesh(new THREE.RingGeometry(.2,1,24),new THREE.MeshBasicMaterial({color:0xb9ecfc,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false}));burst.position.z=-.8;camera.add(burst);burst.visible=false;
@@ -44,9 +63,9 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   for(const key of ['q','e']){const wait=Math.max(0,(p.abilityReady?.[key]||0)-time);$('#ability-'+key).textContent=`${key.toUpperCase()} · ${h[key].name} · ${wait?(wait/1000).toFixed(1)+'s':'READY'}`;}
   $('#ultimate').value=p.ult||0;$('#ability-r').textContent=`R · ${h.r.name} · ${Math.floor(p.ult||0)}%`;
   const active=Object.entries(p.status||{}).filter(([_,end])=>end>time).map(([name])=>name.toUpperCase());$('#hero-status').textContent=active.join(' · ');
-  if(document.activeElement!==$('#next-hero'))$('#next-hero').value=p.pendingHero||p.hero;
+  if(queuedHero===p.pendingHero)queuedHero=null;paintPicker('#next-hero',queuedHero||p.pendingHero||p.hero);
   for(const e of effects.values()){const rain=e.group.userData.rain;if(!rain)continue;for(let i=0;i<12;i++){rainDummy.position.set(Math.sin(i*2.4)*rain.userData.radius*.8,1+((now*.004+i*.5)%5),Math.cos(i*2.4)*rain.userData.radius*.8);rainDummy.scale.set(.05,e.kind==='storm'?.65:.15,.05);rainDummy.updateMatrix();rain.setMatrixAt(i,rainDummy.matrix);}rain.instanceMatrix.needsUpdate=true;}
  }
- function clear(){for(const e of effects.values())remove(e);effects.clear();dagger.visible=false;burst.visible=false;$('#hero-hud').hidden=true;$('#class-note').textContent='';flashedAt=0;}
+ function clear(){queuedHero=null;for(const e of effects.values())remove(e);effects.clear();dagger.visible=false;burst.visible=false;$('#hero-hud').hidden=true;$('#class-note').textContent='';flashedAt=0;}
  return {snapshot,frame,clear};
 }
