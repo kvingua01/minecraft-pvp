@@ -11,6 +11,7 @@ import {createParticles} from '/particles.js';
 import {createUnitsView} from '/units-view.js';
 import {createLobby} from '/lobby.js';
 import {createInventoryView} from '/inventory-view.js';
+import {createEnemyHealth} from '/enemy-health.js';
 const $=s=>document.querySelector(s), World=window.VoxelWorld;
 const menu=$('#menu'), pause=$('#pause'), canvas=$('#world'), loading=$('#loading');
 let renderer;
@@ -92,7 +93,7 @@ window.addEventListener('keydown',e=>{if(!self||!locked&&e.target?.closest?.('in
 window.addEventListener('keyup',e=>{keys.delete(e.code);if(self&&locked&&movementKeys.has(e.code)&&socket.connected&&!reconnecting)socket.emit('input',controls());if(e.code==='Tab'){tab=false;updateRoster();}});
 window.addEventListener('blur',()=>{keys.clear();tab=false;updateRoster();if(self)socket.volatile.emit('input',controls());});
 canvas.oncontextmenu=e=>e.preventDefault();
-function removeRemote(remote){scene.remove(remote.group);remote.group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});}
+function removeRemote(remote){remote.healthBar.dispose();scene.remove(remote.group);remote.group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});}
 function clearPlayers(){inventoryView.clear();unitsView.clear();particles.clear();audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
 $('#leave').onclick=()=>{if(socket.connected)socket.emit('leave');endSession();};
 socket.on('server-restarting',()=>{serverUpdating=true;endSession('The game server is restarting for an update. Create or join a new arena shortly.');});
@@ -122,7 +123,7 @@ function makeAvatar(p,time) {
 
  // Four original armor pieces: helmet, chestplate, leggings, and boots.
  cube(group,.53,.18,.53,color,0,1.83,0);cube(group,.65,.4,.38,color,0,1.15,0);cube(group,.49,.18,.3,0x687e8b,0,.67,0);for(const x of [-.17,.17])cube(group,.26,.16,.32,0x687e8b,x,.08,0);
- group.position.set(p.x,p.y,p.z);group.rotation.y=p.yaw;scene.add(group);const history=[];window.ArenaNetwork.remember(history,p,time);return {group,head,legs,weapon,wind,weaponKey:p.weapon,target:p,history,lastTime:time,speed:0};
+ group.position.set(p.x,p.y,p.z);group.rotation.y=p.yaw;scene.add(group);const history=[];window.ArenaNetwork.remember(history,p,time);return {group,head,legs,weapon,wind,healthBar:createEnemyHealth(scene),weaponKey:p.weapon,target:p,history,lastTime:time,speed:0};
 }
 function updateRoster(){
  const roster=$('#roster');roster.hidden=!tab;
@@ -167,7 +168,7 @@ function frame(now){
  }else {camera.position.set(13,8,24);camera.lookAt(0,1,0);}
  const active=!!self&&self.hp>0&&locked&&!reconnecting&&!objective.finished;if(!active&&now-lastRender<1000/30)return;lastRender=now;runtime.frame(now,rawMs);
  for(const r of remotes.values()) {
-  r.group.visible=r.target.hp>0&&r.target.connected!==false;if(!r.group.visible)continue;
+  r.group.visible=r.target.hp>0&&r.target.connected!==false;if(!r.group.visible){r.healthBar.update(r.target,self,r.group.position,combat.serverNow(),objective.match?.phase==='lobby');continue;}
   const potionAge=combat.serverNow()-r.target.potionAt,potionActive=r.target.potionAt&&potionAge>=0&&potionAge<(window.PotionRules.items[r.target.potionKind]?.splash?400:650);
   const visualKey=potionActive?'flask:'+r.target.potionKind:r.target.heldItem?.kind==='potion'?'flask:'+r.target.heldItem.id:r.target.weapon;r.weapon.visible=!(r.target.weapon==='trident'&&r.target.status?.tridentOut>combat.serverNow())&&(potionActive||!r.target.hasItemSlots||!!r.target.heldItem);
   if(r.weaponKey!==visualKey){r.weaponKey=visualKey;combat.buildWeapon(r.weapon,r.weaponKey,true);r.styleKey=null;}
@@ -187,11 +188,11 @@ function frame(now){
   if(r.styleKey!==styleKey){r.styleKey=styleKey;r.group.traverse(m=>{if(m.isMesh){if(!m.userData.avatarMaterial){m.material=m.material.clone();m.userData.avatarMaterial=true;}if(m.material.transparent!==hidden){m.material.transparent=hidden;m.material.needsUpdate=true;}m.material.opacity=hidden?.15:1;if(m.material.emissive)m.material.emissive.setHex(emissive);}});}
 
   const pose=window.ArenaNetwork.sample(r.history,combat.serverNow()-runtime.interpolationDelay());
-  r.group.position.set(pose.x,pose.y,pose.z);r.group.rotation.y=pose.yaw;r.head.rotation.x=pose.pitch;
+  r.group.position.set(pose.x,pose.y,pose.z);r.healthBar.update(r.target,self,r.group.position,time,objective.match?.phase==='lobby');r.group.rotation.y=pose.yaw;r.head.rotation.x=pose.pitch;
   r.legs[0].rotation.x=r.speed>.1?Math.sin(now*.012)*.4:0;r.legs[1].rotation.x=-r.legs[0].rotation.x;
  }
  inventoryView.frame();unitsView.frame(now);particles.frame(now,dt);combat.frame(now);heroView.frame(now);objective.frame(combat.serverNow());potionView.frame(now);audio.frame(now);if(objective.finished)$('#death').hidden=true;renderer.info.reset();renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(viewScene,viewCamera);
 }
 loading.hidden=true;requestAnimationFrame(frame);
 // Read-only diagnostics for smoke tests; no client state can override the server.
-window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,visible:r.group.visible,connected:r.target.connected,isBot:r.target.isBot,hero:r.target.hero,weaponPose:{position:r.weapon.position.toArray(),rotation:r.weapon.rotation.toArray().slice(0,3)},position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,weaponPose:combat.weaponPose(),blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,mode:self?.mode,soloSide:self?.soloSide,roundLocked:self?.roundLocked,classLocked:self?.classLocked,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,itemSlots:self?.itemSlots,activeSlot:self?.activeSlot,heldItem:self?.heldItem,cursorItem:self?.cursorItem,inventoryOpen:inventoryView.open,inventoryRevision:self?.inventoryRevision,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),map:activeMap,unitCount:unitsView.count(),unitKinds:unitsView.kinds(),kitEffects:heroView.diagnostics(),projectileKinds:combat.projectileKinds(),visuals:voxelLook.diagnostics(),drawCalls:renderer.info.render.calls});
+window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,healthBar:r.healthBar.diagnostics(),visible:r.group.visible,connected:r.target.connected,isBot:r.target.isBot,hero:r.target.hero,weaponPose:{position:r.weapon.position.toArray(),rotation:r.weapon.rotation.toArray().slice(0,3)},position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,weaponPose:combat.weaponPose(),blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,mode:self?.mode,soloSide:self?.soloSide,roundLocked:self?.roundLocked,classLocked:self?.classLocked,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,itemSlots:self?.itemSlots,activeSlot:self?.activeSlot,heldItem:self?.heldItem,cursorItem:self?.cursorItem,inventoryOpen:inventoryView.open,inventoryRevision:self?.inventoryRevision,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),map:activeMap,unitCount:unitsView.count(),unitKinds:unitsView.kinds(),kitEffects:heroView.diagnostics(),projectileKinds:combat.projectileKinds(),visuals:voxelLook.diagnostics(),drawCalls:renderer.info.render.calls});
