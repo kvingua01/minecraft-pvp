@@ -18,6 +18,7 @@
     "test:new-heroes-browser": "node scripts/new-heroes-smoke.cjs",
     "test:map-expansion-browser": "node scripts/map-expansion-smoke.cjs",
     "test:maps-browser": "node scripts/maps-smoke.cjs",
+    "test:modes-browser": "node scripts/game-modes-smoke.cjs",
     "test:lobby-browser": "node scripts/lobby-smoke.cjs",
     "test:loadouts-browser": "node scripts/loadouts-smoke.cjs",
     "test:inventory-browser": "node scripts/inventory-smoke.cjs",

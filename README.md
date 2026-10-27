@@ -303,3 +303,25 @@ death, inventory and targeting validation apply; bots receive no free ultimates.
 `npm run test:bot-abilities-browser` checks actual autonomous casts, replicated
 summons/projectiles and healing in Chromium. `npm test` covers all 63 kit abilities
 plus protections, real damage/healing, charge consumption and safe movement.
+
+## Game modes
+
+The host selects **Game Mode** at the bottom of the existing lobby; everyone sees
+it, and the choice persists when returning from results.
+
+- **Normal CTF:** existing Red/Blue rules, three points, 300 score, normal respawns.
+- **1v1 Duels:** exactly two human players, both press **Ready**, three-second round
+  countdown, full round resets, first to two wins. Disconnect forfeits the match.
+- **Random Kit:** Normal CTF with a random starting class and a different class on
+  every respawn. All 21 kits are available; manual in-match kit selection is locked.
+- **Free-for-All:** no teams, seven-minute server timer, ranked kills/deaths. Most
+  kills wins; fewer deaths breaks ties, then shared victory. Normal respawn delay
+  and safe spawn selection apply. Active late joins do not reset the clock.
+
+Team-balancing bots remain available in Normal CTF and Random Kit. Duels and FFA
+use humans. Extra duel participants are not kicked; starting is prevented until
+exactly two are present and Ready. Individual modes disable capture objectives.
+Switching back to Normal CTF restores its teams, objectives and clean scores.
+
+`npm run test:modes-browser` exercises all four modes with two browser clients.
+See [the mode report](docs/game-modes.md) for files, policies and validation details.

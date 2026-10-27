@@ -12,6 +12,7 @@ const Inventory=require('./lib/inventory');
 const {BalanceBots}=require('./lib/bots');
 const HeroRules=require('./shared/heroes');
 const Maps=require('./shared/maps');
+const ModeRules=require('./shared/modes'),{GameModes}=require('./lib/game-modes');
 const {fixedClock}=require('./lib/timing');
 const {version}=require('./package.json');
 function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}={}) {
@@ -29,7 +30,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
   function leave(socket) {
     clearTimeout(disconnectTimers.get(socket.id));disconnectTimers.delete(socket.id);
     const code=socket.data.room,room=rooms.get(code),match=matches.get(code),combat=combats.get(code);
-    if(room){room.delete(socket.id);socket.leave(code);if(![...room.values()].some(p=>!p.isBot)){for(const bot of [...room.values()])combat?.bots.remove(room,bot);rooms.delete(code);combats.delete(code);matches.delete(code);}else{if(match?.host===socket.id)match.host=[...room.values()].find(p=>!p.isBot&&p.connected!==false)?.id||null;combat?.bots.reconcile(room,match,Date.now());}}
+    if(room){const leaving=room.get(socket.id);if(leaving)match?.modes?.disconnected(room,leaving);room.delete(socket.id);socket.leave(code);if(![...room.values()].some(p=>!p.isBot)){for(const bot of [...room.values()])combat?.bots.remove(room,bot);rooms.delete(code);combats.delete(code);matches.delete(code);}else{if(match?.host===socket.id)match.host=[...room.values()].find(p=>!p.isBot&&p.connected!==false)?.id||null;combat?.bots.reconcile(room,match,Date.now());}}
     socket.data.room=null;
   }
   io.on('connection',socket=> {
@@ -44,7 +45,10 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
       if([...room.values()].filter(p=>!p.isBot).length>=10) return ack({error:'This room is full (10 players).'});
       const match=matches.get(code)||new Objective(socket.id);
       if(!matches.has(code)){match.phase=autoStart?'playing':'lobby';match.lobbyEnabled=!autoStart;match.mapId=Maps.has(data.map)?data.map:'castle';match.locations=World.getMap(match.mapId).points;match.reset();}
-      const team=match.chooseTeam(room,data.team);
+      if(match.mode==='ffa'&&match.phase==='playing'&&(match.winner||match.modes?.canAct(Date.now())===false))return ack({error:'This FFA match has ended. Join when the room returns to the lobby.'});
+      if(match.mode==='duel_1v1'&&match.phase!=='lobby')return ack({error:'This duel is in progress. Join after the room returns to its lobby.'});
+      const individual=['duel_1v1','ffa'].includes(match.mode);
+      const team=match.chooseTeam(individual?new Map([...room].map(([id,p])=>[id,{...p,team:p.lobbyTeam||'red'}])):room,individual?undefined:data.team);
       if(!team)return ack({error:'That team is full (5 players). Choose the other team.'});
       leave(socket);
       combats.get(code)?.bots.reserveSeat(room,team);
@@ -52,9 +56,10 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
       let spawnIndex=team==='red'?1:0;while(used.has(spawnIndex))spawnIndex+=2;
       const player={id:socket.id,name:(typeof data.name==='string'?data.name:'Player').trim().slice(0,20)||'Player',...World.spawn(spawnIndex),map:match.mapId,hero:HeroRules.has(data.hero)?data.hero:'knight',team,connected:true,resumeToken:crypto.randomBytes(24).toString('hex'),input:{},lastInput:0,life:0};
       if(!combats.has(code)){const combat=new Combat((event,data)=>io.to(code).emit(event,data));combat.map=match.mapId;combat.inLobby=!autoStart;combat.heroes=new Heroes(combat);combat.potions=new Potions(combat);combat.bots=new BalanceBots(combat);combats.set(code,combat);}
+      if(!match.modes)new GameModes(match,combats.get(code));
       combats.get(code).init(player,spawnIndex,Date.now());
       matches.set(code,match);
-      room.set(socket.id,player);rooms.set(code,room);combats.get(code).bots.reconcile(room,match,Date.now());socket.data.room=code;socket.join(code);
+      room.set(socket.id,player);rooms.set(code,room);match.modes.join(room,player,Date.now());combats.get(code).bots.reconcile(room,match,Date.now());socket.data.room=code;socket.join(code);
       ack({id:socket.id,code,player:pack(player,true),resumeToken:player.resumeToken,match:match.snapshot()});
     });
     socket.on('resume',(data,ack=()=>{})=>{
@@ -73,12 +78,12 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
         for(const history of combat.history)if(history.poses.has(oldId)){history.poses.set(p.id,history.poses.get(oldId));history.poses.delete(oldId);}
         for(const other of room.values())if(other.chargeHits)other.chargeHits=other.chargeHits.map(id=>id===oldId?p.id:id);
       }
-      p.connected=true;if(!match.host)match.host=p.id;combat.bots.reconcile(room,match,Date.now());p.jumpQueued=false;p.input={};p.lastInput=0;socket.data.room=data.code;socket.join(data.code);
+      p.connected=true;match.modes?.record(p);if(!match.host)match.host=p.id;combat.bots.reconcile(room,match,Date.now());p.jumpQueued=false;p.input={};p.lastInput=0;socket.data.room=data.code;socket.join(data.code);
       ack({id:p.id,code:data.code,player:pack(p,true),resumeToken:p.resumeToken,match:match.snapshot()});
     });
     socket.on('input',data=> {
       const p=rooms.get(socket.data.room)?.get(socket.id);
-      if(!p||p.inventoryOpen||!data||typeof data!=='object') return;
+      if(!p||p.roundLocked||p.inventoryOpen||!data||typeof data!=='object') return;
       if(data.jump===true&&!p.input.jump)p.jumpQueued=true;
       p.input={};
       for(const key of ['forward','back','left','right','jump','sprint','block']) p.input[key]=data[key]===true;
@@ -115,14 +120,16 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
     });
     socket.on('hero-select',(hero,ack=()=>{})=>{
       if(typeof ack!=='function')return;const p=rooms.get(socket.data.room)?.get(socket.id);
-      if(!p||!HeroRules.has(hero))return ack({error:'Select one of the fourteen heroes.'});p.pendingHero=hero;if(matches.get(socket.data.room).phase==='lobby')combats.get(socket.data.room).heroes.spawn(p,Date.now());ack({ok:true});
+      if(!p||!HeroRules.has(hero))return ack({error:'Select a valid kit.'});if(p.classLocked)return ack({error:'Kit selection is locked for this game mode.'});p.duelReady=false;p.pendingHero=hero;if(matches.get(socket.data.room).phase==='lobby')combats.get(socket.data.room).heroes.spawn(p,Date.now());ack({ok:true});
     });
     function lobbyContext(ack){const code=socket.data.room,room=rooms.get(code),match=matches.get(code),combat=combats.get(code);if(!room||!match){ack({error:'Join a lobby first.'});return null;}return {room,match,combat};}
-    function resetRoom(room,match,combat){match.locations=World.getMap(match.mapId).points;match.reset();combat.map=match.mapId;combat.matchOver=false;combat.projectiles=[];combat.history=[];combat.heroes.clear();for(const p of room.values()){Object.assign(p,World.spawn(p.spawnIndex),{map:match.mapId,input:{},lastInput:0,life:p.life+1});combat.init(p,p.spawnIndex,Date.now());}}
+    function resetRoom(room,match,combat){match.locations=World.getMap(match.mapId).points;match.reset();combat.map=match.mapId;combat.matchOver=false;combat.projectiles=[];combat.history=[];combat.heroes.clear();for(const p of room.values()){Object.assign(p,World.spawn(p.spawnIndex),{map:match.mapId,input:{},lastInput:0,life:p.life+1});combat.init(p,p.spawnIndex,Date.now());}match.modes?.lobby(room,Date.now());}
+    socket.on('lobby-mode',(id,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(match.host!==socket.id||match.phase!=='lobby')return ack({error:'Only the host can change the game mode in the lobby.'});if(!ModeRules.has(id))return ack({error:'Choose a valid game mode.'});match.mode=id;match.modes.teamsFor(room);combat.bots.reconcile(room,match,Date.now());resetRoom(room,match,combat);combat.bots.reconcile(room,match,Date.now());ack({ok:true});});
+    socket.on('lobby-ready',(ready,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const p=ctx.room.get(socket.id);if(ctx.match.mode!=='duel_1v1'||ctx.match.phase!=='lobby'||typeof ready!=='boolean')return ack({error:'Ready is available in a duel lobby.'});p.duelReady=ready;ack({ok:true});});
     socket.on('lobby-map',(id,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(match.host!==socket.id||match.phase!=='lobby')return ack({error:'Only the host can change maps while in the lobby.'});if(!Maps.has(id))return ack({error:'Choose a valid map.'});match.mapId=id;resetRoom(room,match,combat);ack({ok:true});});
-    socket.on('lobby-bots',(enabled,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(match.host!==socket.id||match.phase!=='lobby')return ack({error:'Only the host can change balancing bots before the match starts.'});if(typeof enabled!=='boolean')return ack({error:'Choose whether balancing bots are enabled.'});match.balanceBots=enabled;combat.bots.reconcile(room,match,Date.now());ack({ok:true});});
-    socket.on('match-start',(_data,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(match.host!==socket.id||match.phase!=='lobby')return ack({error:'Only the host can start a waiting lobby.'});combat.bots.reconcile(room,match,Date.now());if(!['red','blue'].every(t=>[...room.values()].some(p=>p.connected!==false&&p.team===t)))return ack({error:'Add a player to each team or enable balancing bots.'});resetRoom(room,match,combat);match.phase='playing';combat.inLobby=false;ack({ok:true});});
-    socket.on('lobby-team',(team,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match}=ctx,p=room.get(socket.id);if(match.phase!=='lobby'||!['red','blue'].includes(team))return ack({error:'Choose a team in the lobby.'});const others=new Map([...room].filter(([id,t])=>id!==p.id&&!t.isBot));if(!match.chooseTeam(others,team))return ack({error:'That team is full.'});combats.get(socket.data.room).bots.reserveSeat(room,team);p.team=team;const used=new Set([...others.values()].map(t=>t.spawnIndex));let index=team==='red'?1:0;while(used.has(index))index+=2;p.spawnIndex=index;Object.assign(p,World.spawn(index));combats.get(socket.data.room).bots.reconcile(room,match,Date.now());ack({ok:true});});
+    socket.on('lobby-bots',(enabled,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(match.host!==socket.id||match.phase!=='lobby')return ack({error:'Only the host can change balancing bots before the match starts.'});if(!match.modes.teams)return ack({error:'Team-balancing bots are available in Normal CTF and Random Kit.'});if(typeof enabled!=='boolean')return ack({error:'Choose whether balancing bots are enabled.'});match.balanceBots=enabled;combat.bots.reconcile(room,match,Date.now());ack({ok:true});});
+    socket.on('match-start',(_data,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(match.host!==socket.id||match.phase!=='lobby')return ack({error:'Only the host can start a waiting lobby.'});combat.bots.reconcile(room,match,Date.now());const error=match.modes.validateStart(room);if(error)return ack({error});resetRoom(room,match,combat);match.phase='playing';combat.inLobby=false;match.modes.start(room,Date.now());ack({ok:true});});
+    socket.on('lobby-team',(team,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match}=ctx,p=room.get(socket.id);if(!match.modes.teams)return ack({error:'This game mode has no teams.'});if(match.phase!=='lobby'||!['red','blue'].includes(team))return ack({error:'Choose a team in the lobby.'});const others=new Map([...room].filter(([id,t])=>id!==p.id&&!t.isBot));if(!match.chooseTeam(others,team))return ack({error:'That team is full.'});combats.get(socket.data.room).bots.reserveSeat(room,team);p.team=team;p.lobbyTeam=team;p.duelReady=false;const used=new Set([...others.values()].map(t=>t.spawnIndex));let index=team==='red'?1:0;while(used.has(index))index+=2;p.spawnIndex=index;Object.assign(p,World.spawn(index));combats.get(socket.data.room).bots.reconcile(room,match,Date.now());ack({ok:true});});
     socket.on('lobby-return',(_data,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(!match.winner)return ack({error:'Finish the match before returning the room to its lobby.'});match.phase='lobby';combat.inLobby=true;resetRoom(room,match,combat);ack({ok:true});});
     socket.on('restart',(_data,ack=()=>{})=>{
       if(typeof ack!=='function')return;
@@ -130,6 +137,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
       if(!room||!match||match.host!==socket.id)return ack({error:'Only the current room host can start a rematch.'});
       if(!match.winner)return ack({error:'This match is still running.'});
       if(match.lobbyEnabled){match.phase='lobby';combat.inLobby=true;}
+      if(match.lobbyEnabled){resetRoom(room,match,combat);return ack({ok:true});}
       match.reset();combat.matchOver=false;combat.projectiles=[];combat.history=[];combat.heroes.clear();
       for(const p of room.values()){
         Object.assign(p,World.spawn(p.spawnIndex),{input:{},lastInput:0,life:p.life+1});combat.init(p,p.spawnIndex,Date.now());
@@ -141,19 +149,19 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
       const room=rooms.get(socket.data.room),p=room?.get(socket.id);
       if(!p)return;
       if(['client namespace disconnect','server namespace disconnect','server shutting down'].includes(reason)){leave(socket);return;}
-      Inventory.close(p);p.connected=false;const match=matches.get(socket.data.room);if(match?.host===socket.id)match.host=[...room.values()].find(t=>!t.isBot&&t.connected!==false)?.id||null;p.jumpQueued=false;p.input={};p.lastInput=0;p.blocking=false;p.drawAt=0;p.drinking=null;p.dash=null;p.kx=p.kz=0;
+      Inventory.close(p);p.connected=false;const match=matches.get(socket.data.room);match?.modes?.disconnected(room,p);if(match?.host===socket.id)match.host=[...room.values()].find(t=>!t.isBot&&t.connected!==false)?.id||null;p.jumpQueued=false;p.input={};p.lastInput=0;p.blocking=false;p.drawAt=0;p.drinking=null;p.dash=null;p.kx=p.kz=0;
       console.warn('Player connection interrupted:',reason);
       const timer=setTimeout(()=>leave(socket),reconnectGrace);timer.unref();disconnectTimers.set(socket.id,timer);
     });
   });
-  function pack(p,privateItems=false) {return {...(privateItems?Inventory.snapshot(p):{}),heldItem:Inventory.held(p),activeSlot:p.activeSlot,hasItemSlots:!!p.itemSlots,isBot:!!p.isBot,id:p.id,name:p.name,healingDone:p.healingDone||0,objectiveTime:p.objectiveTime||0,team:p.team,map:p.map,connected:p.connected,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,vy:p.vy,flightLift:p.flightLift??null,grounded:p.grounded,hp:p.hp,maxHp:p.maxHp,hero:p.hero,pendingHero:p.pendingHero,canShield:p.canShield,windReady:p.windReady,abilityReady:p.abilityReady,ult:p.ult,status:p.status,speedScale:p.speedScale,attackSpeed:p.attackSpeed,motionSerial:p.motionSerial,inventory:p.inventory,selectedPotion:p.selectedPotion,potionReady:p.potionReady,potionAt:p.potionAt,potionKind:p.potionKind,drinking:p.drinking,armor:p.armor,weapon:p.weapon,blocking:p.blocking,shieldUntil:p.shieldUntil,nextAttack:p.nextAttack,drawAt:p.drawAt,attackAt:p.attackAt,attackSerial:p.attackSerial,deadUntil:p.deadUntil,protectedUntil:p.protectedUntil,kills:p.kills,deaths:p.deaths,kx:p.kx,kz:p.kz,life:p.life};}
+  function pack(p,privateItems=false) {return {...(privateItems?Inventory.snapshot(p):{}),heldItem:Inventory.held(p),activeSlot:p.activeSlot,hasItemSlots:!!p.itemSlots,isBot:!!p.isBot,mode:p.mode||'normal_ctf',soloSide:p.soloSide,classLocked:!!p.classLocked,roundLocked:!!p.roundLocked,duelReady:!!p.duelReady,id:p.id,name:p.name,healingDone:p.healingDone||0,objectiveTime:p.objectiveTime||0,team:['duel_1v1','ffa'].includes(p.mode)?null:p.team,map:p.map,connected:p.connected,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,vy:p.vy,flightLift:p.flightLift??null,grounded:p.grounded,hp:p.hp,maxHp:p.maxHp,hero:p.hero,pendingHero:p.pendingHero,canShield:p.canShield,windReady:p.windReady,abilityReady:p.abilityReady,ult:p.ult,status:p.status,speedScale:p.speedScale,attackSpeed:p.attackSpeed,motionSerial:p.motionSerial,inventory:p.inventory,selectedPotion:p.selectedPotion,potionReady:p.potionReady,potionAt:p.potionAt,potionKind:p.potionKind,drinking:p.drinking,armor:p.armor,weapon:p.weapon,blocking:p.blocking,shieldUntil:p.shieldUntil,nextAttack:p.nextAttack,drawAt:p.drawAt,attackAt:p.attackAt,attackSerial:p.attackSerial,deadUntil:p.deadUntil,protectedUntil:p.protectedUntil,kills:p.kills,deaths:p.deaths,kx:p.kx,kz:p.kz,life:p.life};}
   let ticks=0;
   const clock=fixedClock(performance.now());
   const timer=setInterval(()=>clock.advance(performance.now(),dt=>{
     if(draining)return;
     for(const [code,room] of rooms){
-      const now=Date.now(),combat=combats.get(code),match=matches.get(code);combat.bots.reconcile(room,match,now);combat.bots.tick(room,match,now);combat.tick(room,now,dt);match.tick(room,dt);
-      if(!combat.inLobby&&!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.connected!==false&&p.hp>0&&match.points.some(point=>match.inside(p,point)))combat.heroes.charge(p,3*dt,now);
+      const now=Date.now(),combat=combats.get(code),match=matches.get(code);match.modes.beforeTick(room,now);combat.bots.reconcile(room,match,now);combat.bots.tick(room,match,now);combat.tick(room,now,dt);if(match.modes.teams)match.tick(room,dt);else match.modes.afterTick(room,now);
+      if(match.modes.teams&&!combat.inLobby&&!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.connected!==false&&p.hp>0&&match.points.some(point=>match.inside(p,point)))combat.heroes.charge(p,3*dt,now);
       combat.matchOver=!!match.winner;
       if(ticks%3===0){io.to(code).volatile.emit('state',{serverTime:now,players:[...room.values()].map(p=>pack(p)),units:combat.heroes.units.snapshot(),projectiles:combat.snapshot(now),effects:combat.heroes.snapshot(),match:match.snapshot()});for(const p of room.values())if(!p.isBot&&p.connected!==false&&p.lastInventorySent!==p.inventoryRevision){p.lastInventorySent=p.inventoryRevision;io.to(p.id).emit('inventory-state',Inventory.snapshot(p));}}
     }

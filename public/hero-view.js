@@ -13,6 +13,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
  }
  function describe(){const h=H.heroes[$('#hero').value];$('#hero-description').textContent=`${h.health} HP · ${Math.round(h.armor*100)}% armor · ${h.weapon} · backups: ${h.melee} / ${h.ranged}\nQ — ${h.q.name}: ${h.q.description}\nE — ${h.e.name}: ${h.e.description}\nR — ${h.r.name}: ${h.r.description}`;}
  function queueHero(id){
+  if(getSelf()?.classLocked){$('#class-note').textContent='Kit selection is locked for this mode.';return;}
   if(!socket.connected||!getSelf()){$('#class-note').textContent='Reconnect before choosing your next hero.';return;}
   queuedHero=id;paintPicker('#next-hero',id);$('#class-note').textContent=`${H.heroes[id].name} selected for your next respawn.`;
   socket.timeout(4000).emit('hero-select',id,(error,result)=>{
@@ -34,6 +35,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
  window.addEventListener('keydown',e=>{if(e.repeat||!isLocked()||!['KeyQ','KeyE','KeyR'].includes(e.code))return;e.preventDefault();socket.emit('input',getInput());socket.timeout(4000).emit('ability',e.code.at(-1).toLowerCase(),(error,result)=>{if(error||result?.error){$('#ability-message').textContent=result?.error||'Connection timed out.';flashedAt=performance.now();}});});
  const dagger=new THREE.Group();camera.add(dagger);dagger.position.set(-.38,-.38,-.7);cube(dagger,.12,.32,.14,0xb98e71,0,0,0);cube(dagger,.08,.5,.04,0xd9e3e2,0,.37,0);dagger.rotation.z=.25;
  const burst=new THREE.Mesh(new THREE.RingGeometry(.2,1,24),new THREE.MeshBasicMaterial({color:0xb9ecfc,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false}));burst.position.z=-.8;camera.add(burst);burst.visible=false;
+ socket.on('mode',e=>{if(e.type==='kit-change'&&e.target===getSelf()?.id){flashedAt=performance.now();$('#ability-message').textContent='NEW KIT: '+e.name;flash.style.background='#a7d9fb22';}});
  socket.on('hero',e=>{
   if(e.type==='heal'&&e.target===getSelf()?.id){flashedAt=performance.now();flash.style.background='#72f5c222';$('#ability-message').textContent=`+${Math.ceil(e.amount)} HEALTH`;}
   if(e.source===getSelf()?.id&&(e.type==='ability'||e.type==='slam')){flashedAt=performance.now();$('#ability-message').textContent=e.name||'GROUND SLAM';flash.style.background=e.hero==='frost'?'#83cfff22':'#d5e58a22';}
@@ -66,6 +68,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   for(const key of ['q','e']){const wait=Math.max(0,(p.abilityReady?.[key]||0)-time);$('#ability-'+key).textContent=`${key.toUpperCase()} · ${h[key].name} · ${wait?(wait/1000).toFixed(1)+'s':'READY'}`;}
   $('#ultimate').value=p.ult||0;$('#ability-r').textContent=`R · ${h.r.name} · ${Math.floor(p.ult||0)}%`;
   const active=Object.entries(p.status||{}).filter(([_,end])=>end>time).map(([name])=>({slowPotion:'SLOWED',fireResistance:'FIRE RESISTANCE',regeneration:'REGENERATION'}[name]||name.toUpperCase()));$('#hero-status').textContent=active.join(' · ');
+  $('#next-hero').disabled=!!p.classLocked;for(const button of $('#next-hero-options').querySelectorAll('button'))button.disabled=!!p.classLocked;if(p.classLocked){queuedHero=null;$('#class-note').dataset.modeLocked='1';$('#class-note').textContent=p.mode==='random_kit'?'Your next kit is chosen automatically on respawn.':'Duel kits are locked until the match ends.';}else if($('#class-note').dataset.modeLocked){$('#class-note').textContent='';delete $('#class-note').dataset.modeLocked;}
   if(queuedHero===p.pendingHero)queuedHero=null;paintPicker('#next-hero',queuedHero||p.pendingHero||p.hero);
   for(const e of effects.values()){updateKitEffect(e.state,e,now,time);const rain=e.group.userData.rain;if(!rain)continue;for(let i=0;i<12;i++){rainDummy.position.set(Math.sin(i*2.4)*rain.userData.radius*.8,1+((now*.004+i*.5)%5),Math.cos(i*2.4)*rain.userData.radius*.8);rainDummy.scale.set(.05,e.kind==='storm'?.65:.15,.05);rainDummy.updateMatrix();rain.setMatrixAt(i,rainDummy.matrix);}rain.instanceMatrix.needsUpdate=true;}
  }

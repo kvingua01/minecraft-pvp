@@ -100,6 +100,7 @@
   function recover(p){let changed=false;for(let pass=0;pass<8;pass++){let best=null;for(const source of [mapBounds(p.map),dynamicBounds(p.solids),spawnBounds[p.team]])if(source)for(const b of nearby(source,p)){if(p.x+radius<=b.minX+epsilon||p.x-radius>=b.maxX-epsilon||p.z+radius<=b.minZ+epsilon||p.z-radius>=b.maxZ-epsilon||p.y+height<=b.minY+epsilon||p.y>=b.maxY-epsilon)continue;if(source===spawnBounds[p.team]){const amount=p.team==='red'?b.minX-p.x-radius:b.maxX-p.x+radius;best={axis:'x',amount};continue;}for(const [axis,amount]of [['x',b.minX-p.x-radius],['x',b.maxX-p.x+radius],['z',b.minZ-p.z-radius],['z',b.maxZ-p.z+radius],['y',b.minY-p.y-height],['y',b.maxY-p.y]])if(!best||Math.abs(amount)<Math.abs(best.amount))best={axis,amount};}if(!best)break;p[best.axis]+=best.amount;if(best.axis==='y')p.vy=0;changed=true;}return changed;}
   function spawn(index=0) { return {x:index%2?-25:25,y:.61,z:(Math.floor(index/2)%5-2)*1.4,vy:0,yaw:index%2?-Math.PI/2:Math.PI/2,pitch:0,grounded:false,jumpQueued:false}; }
   function step(p,input,dt) {
+    if(p.roundLocked){p.jumpQueued=false;return p;}
     recover(p);
     p.yaw=Number.isFinite(input.yaw)?input.yaw:p.yaw;
     p.pitch=Math.max(-1.5,Math.min(1.5,Number.isFinite(input.pitch)?input.pitch:p.pitch));
@@ -116,7 +117,7 @@
     // Only the new timed flight abilities set flightLift; normal movement is unchanged.
     if(p.flightLift!==undefined&&p.flightLift!==null){dx=Math.max(-30.6-p.x,Math.min(30.6-p.x,dx));dz=Math.max(-30.6-p.z,Math.min(30.6-p.z,dz));}
     p.vy=p.flightLift!==undefined&&p.flightLift!==null?p.flightLift:Math.max(-30,p.vy-23*dt);
-    if(data.bounded){dx=Math.max(-30.6-p.x,Math.min(30.6-p.x,dx));dz=Math.max(-30.6-p.z,Math.min(30.6-p.z,dz));}
+    if(data.bounded||p.mode==='ffa'||p.mode==='duel_1v1'){dx=Math.max(-30.6-p.x,Math.min(30.6-p.x,dx));dz=Math.max(-30.6-p.z,Math.min(30.6-p.z,dz));}
     const dy=p.vy*dt,moved=move(p,{x:dx,y:dy,z:dz});let stepped=false;
     // Minecraft-like half-block stepping, still swept against walls and ceilings.
     if(p.grounded&&(Math.abs(moved.x-dx)>epsilon||Math.abs(moved.z-dz)>epsilon)){
