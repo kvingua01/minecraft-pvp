@@ -172,10 +172,10 @@ function frame(now){
   const visualKey=potionActive?'flask:'+r.target.potionKind:r.target.heldItem?.kind==='potion'?'flask:'+r.target.heldItem.id:r.target.weapon;r.weapon.visible=!(r.target.weapon==='trident'&&r.target.status?.tridentOut>combat.serverNow())&&(potionActive||!r.target.hasItemSlots||!!r.target.heldItem);
   if(r.weaponKey!==visualKey){r.weaponKey=visualKey;combat.buildWeapon(r.weapon,r.weaponKey,true);r.styleKey=null;}
   r.weapon.position.set(.48,.9,-.3);
-  const cooldown=window.CombatRules.weapons[r.target.weapon].cooldown,duration=['crossbow','toxicbow'].includes(r.weaponKey)?cooldown:Math.min(cooldown,800);
+  const w=window.CombatRules.weapons[r.target.weapon],cooldown=w.cooldown,duration=w.animationDuration||(['crossbow','toxicbow'].includes(r.weaponKey)?cooldown:Math.min(cooldown,800));
   const phase=Math.min(1,Math.max(0,(combat.serverNow()-(r.target.attackAt||0))/duration));combat.animateWeapon(r.weapon,r.weaponKey,phase);if(r.weaponKey==='trident'&&r.target.status?.riptide>combat.serverNow())r.weapon.rotation.z=now*.04;
   if(potionActive){const t=potionAge/(window.PotionRules.items[r.target.potionKind].splash?400:650);r.weapon.position.y=.9+Math.sin(t*Math.PI)*.5;r.weapon.rotation.x=-Math.sin(t*Math.PI)*.9;}
-  if(r.weaponKey==='bow'){
+  if(window.CombatRules.weapons[r.weaponKey]?.charge){
    const charge=r.target.drawAt?Math.min(1,(combat.serverNow()-r.target.drawAt)/1000):0;
    r.weapon.userData.string.position.z=charge*.2;r.weapon.userData.arrow.position.z=charge*.2;r.weapon.rotation.y=-charge*.2;
   }

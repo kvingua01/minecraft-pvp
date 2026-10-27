@@ -227,7 +227,7 @@ exactly the existing selection cards, lobby, controls, 9-slot hotbar and invento
 | New kit | Personal weapon | Q / E / R |
 | --- | --- | --- |
 | Demolitionist | TNT Launcher | TNT Toss / Blast Jump / TNT Barrage |
-| Trident Warrior | Trident | Riptide / Trident Throw / Tidal Wave |
+| Trident Warrior | Returning thrown Trident | Riptide / Tidal Mend / Tidal Wave |
 | Illusionist | Enchanted Bow | Decoy / Mirror Swap / Hall of Mirrors |
 | Wither Mage | Wither Staff | Wither Skull / Soul Flight / Wither Barrage |
 | Blaze | Blaze Rods | Fire Spin / Flame Rise / Blaze Storm |
@@ -238,7 +238,7 @@ Damage, cooldowns, ultimate charge, projectiles, flight, teleportation and summo
 remain server-owned. TNT and fang ultimates have replicated advance warnings;
 explosions respect cover and do not destroy terrain or hurt teammates. Soul Flight
 ends after 4 seconds and Flame Rise after 3 seconds, with swept ceiling collisions
-and arena bounds. Trident Throw prevents another throw or personal-weapon attack
+and arena bounds. The primary trident throw prevents another throw or personal-weapon attack
 until its visible return completes. Decoys are attackable, harmless summon entities;
 they never count as players, capture or contest points. Mirror Swap requires a live
 decoy and two clear, visible destinations. Wither has a single non-stacking damage
@@ -253,3 +253,13 @@ primary inputs, all 21 Q/E/R activations, selection entries and replicated effec
 and summons. Production checks remain `npm run build:production` followed by
 `npm run test:production`. No map, capture, scoring, team-size, HUD-layout,
 texture-resolution or Railway configuration changes are part of this addition.
+
+
+Trident Warrior now throws its returning trident with primary attack; E is Tidal
+Mend, healing 35 HP on a 10-second cooldown (no cooldown is spent at full health).
+Normal and enchanted bows have no post-shot cooldown, but every shot still needs a
+server-timed draw: 1 second for full power, at least 150 ms for a weaker shot.
+Crossbow reloads are unchanged. Pyromancer Fireball base damage is slightly reduced
+from 32 to 30; its other abilities, weapon, health and cooldowns are unchanged.
+`node scripts/trident-bows-smoke.cjs` verifies primary throwing, return, healing and
+immediate consecutive charged bow shots using two browser clients.

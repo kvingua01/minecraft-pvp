@@ -49,7 +49,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     if(!isLocked()||!getSelf()||getSelf().hp<=0)return;
     if(e.button===2){throwWind();return;}
     if(e.button===0&&getSelf().hasItemSlots&&getSelf().heldItem?.kind!=='weapon'){const item=getSelf().heldItem;if(item?.kind==='potion'){socket.emit('input',getInput());socket.timeout(4000).emit('potion-use',{id:item.id},(error,result)=>{document.querySelector('#combat-note').textContent=error?'Potion request timed out.':result?.error||'POTION USED';windNoticeAt=performance.now();});}return;}
-    if(e.button===0){if(getSelf().weapon==='bow'){drawHeld=true;action('draw');}else action('attack');}
+    if(e.button===0){if(C.weapons[getSelf().weapon].charge){drawHeld=true;action('draw');}else action('attack');}
   });
   window.addEventListener('mouseup',e=>{if(e.button===0&&drawHeld){action('release');drawHeld=false;}if(e.button===2){blocking=false;if(getSelf())socket.volatile.emit('input',getInput());}});
   window.addEventListener('blur',release);
@@ -88,9 +88,9 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     const p=getSelf();hand.visible=wind.visible=!!p;if(!p)return;
     const time=Date.now()+clockOffset,w=C.weapons[p.weapon];
     if(weapon!==p.weapon){weapon=p.weapon;buildWeapon(hand,weapon);}
-    const duration=['crossbow','toxicbow'].includes(weapon)?w.cooldown:Math.min(w.cooldown,800),phase=Math.min(1,(now-swing)/duration);
+    const duration=w.animationDuration||(['crossbow','toxicbow'].includes(weapon)?w.cooldown:Math.min(w.cooldown,800)),phase=Math.min(1,(now-swing)/duration);
     hand.position.set(.4,-.36,-.65);animateWeapon(hand,weapon,swing?phase:0);if(weapon==='trident'&&p.status?.riptide>time)hand.rotation.z=now*.04;
-    if(p.drawAt&&weapon==='bow'){const charge=Math.min(1,(time-p.drawAt)/1000);hand.position.z=-.65+charge*.12;hand.rotation.y=-charge*.2;hand.userData.string.position.z=charge*.2;hand.userData.arrow.position.z=charge*.2;}else {if(hand.userData.string){hand.userData.string.position.z=0;hand.userData.arrow.position.z=0;}}
+    if(p.drawAt&&w.charge){const charge=Math.min(1,(time-p.drawAt)/1000);hand.position.z=-.65+charge*.12;hand.rotation.y=-charge*.2;hand.userData.string.position.z=charge*.2;hand.userData.arrow.position.z=charge*.2;}else {if(hand.userData.string){hand.userData.string.position.z=0;hand.userData.arrow.position.z=0;}}
     wind.visible=p.hp>0;wind.rotation.y=now*.002;
     const throwAge=now-windThrownAt;wind.position.y=-.23-(throwAge<300?Math.sin(throwAge/300*Math.PI)*.16:0);
     wind.scale.setScalar(p.windReady>time?.9:1);
@@ -99,7 +99,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     paintVitals(p);
     document.querySelector('#health').max=p.maxHp||100;document.querySelector('#health').value=p.hp;document.querySelector('#health-label').textContent=`${Math.ceil(p.hp)} / ${p.maxHp||100}`;
     document.querySelector('#armor-label').textContent=`ARMOR ${Math.round(p.armor*100)}% · 4 PIECES`;
-    const remaining=Math.max(0,p.nextAttack-time);document.querySelector('#attack-ready').value=1-remaining/(w.cooldown/(p.attackSpeed||1));
+    const remaining=Math.max(0,p.nextAttack-time);document.querySelector('#attack-ready').value=w.cooldown?1-remaining/(w.cooldown/(p.attackSpeed||1)):1;
     document.querySelector('#weapon-status').textContent=p.hasItemSlots&&p.heldItem?.kind!=='weapon'?(p.heldItem?.kind==='potion'?window.PotionRules.items[p.heldItem.id].name.toUpperCase()+' · CLICK / F TO USE':'EMPTY HOTBAR SLOT'):p.drawAt?`DRAW ${Math.min(100,Math.round((time-p.drawAt)/10))}%`:remaining>0?(['crossbow','toxicbow'].includes(weapon)?'RELOADING ':'READY IN ')+(remaining/1000).toFixed(1)+'s':C.inSpawn(p)?'SPAWN SANCTUARY':p.protectedUntil>time?'SPAWN PROTECTION':'READY';
 
     document.querySelector('#shield-status').textContent=C.inSpawn(p)?'WIND CHARGE · LEAVE SPAWN TO THROW':p.windReady>time?`WIND CHARGE ${((p.windReady-time)/1000).toFixed(1)}s`:'RMB: WIND CHARGE · AIM AT YOUR FEET';

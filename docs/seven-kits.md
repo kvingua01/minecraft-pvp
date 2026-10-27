@@ -40,13 +40,14 @@ TNT and skull barrages have advance area warnings and real falling projectiles.
 Explosions cannot alter terrain or hurt teammates and check line of sight. Fangs
 require valid visible ground; each ultimate ring can damage a victim once.
 Mirror Swap refuses obstructed or invalid destinations without spending cooldown.
-The trident cannot be thrown twice or used for melee until it has returned.
+The primary attack now throws the trident and cannot throw again until it returns.
+E is Tidal Mend: 35 self-healing on a 10-second cooldown.
 Soul Flight ends at four seconds and Flame Rise at three seconds; normal gravity
 resumes afterward. Wither uses one damage timer rather than stacking tick streams.
 
 ## Validation
 
-- `npm test`: 132 tests passed, including 25 focused new-kit tests and all existing
+- `npm test`: 137 tests passed, including 28 focused new-kit tests and all existing
   server tests for combat, classes, inventory, movement, captures, rooms and bots.
 - `npm run test:seven-kits-browser`: two connected Chromium pages verified 21 class
   cards and lobby options, all seven primary inputs, all Q/E/R inputs, cooldowns,
@@ -70,3 +71,11 @@ After the commit reaches GitHub main, Railway should automatically redeploy thro
 the existing repository connection. Wait for that deployment to be Active, refresh,
 and create a lobby to see all 21 classes. Deployment itself is not verified from
 this environment.
+
+
+The follow-up balance update removes post-shot cooldowns from normal and enchanted
+bows while requiring a fresh server-timed charge for every arrow. Their animations
+use a separate duration so zero cooldown does not produce invalid poses or HUD
+values. Crossbow reloads stay unchanged. Trident Warrior E is now the 35-HP Tidal
+Mend self-heal, and primary attack throws the returning trident. Pyromancer receives
+only a Fireball base-damage reduction from 32 to 30.

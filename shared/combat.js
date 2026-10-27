@@ -1,8 +1,8 @@
 (function(root){
   const weapons={
     tntlauncher:{name:'TNT Launcher',damage:26,cooldown:1000,projectile:'tnt'},
-    trident:{name:'Trident',damage:24,cooldown:650,range:3.6},
-    enchantedbow:{name:'Enchanted Bow',damage:23,cooldown:750,projectile:'enchanted'},
+    trident:{name:'Trident',damage:35,cooldown:650,projectile:'trident'},
+    enchantedbow:{name:'Enchanted Bow',damage:23,cooldown:0,charge:1000,animationDuration:400,projectile:'enchanted'},
     witherstaff:{name:'Wither Staff',damage:18,cooldown:750,projectile:'witherbolt'},
     blazerods:{name:'Blaze Rods',damage:16,cooldown:700,projectile:'blazefire'},
     slimefists:{name:'Slime Fists',damage:21,cooldown:600,range:2.8},
@@ -17,7 +17,7 @@
     sword:{name:'Sword',damage:20,cooldown:450,range:3.2},
     axe:{name:'Axe',damage:32,cooldown:950,range:3.1},
     mace:{name:'Mace',damage:28,fallDamagePerBlock:10,cooldown:1150,range:3.1},
-    bow:{name:'Bow',damage:32,cooldown:400,charge:1000},
+    bow:{name:'Bow',damage:32,cooldown:0,charge:1000,animationDuration:400},
     crossbow:{name:'Crossbow',damage:38,cooldown:1800},
     launcher:{name:'Potion Launcher',damage:16,cooldown:750},
     staff:{name:'Frost Staff',damage:16,cooldown:650}

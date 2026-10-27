@@ -31,6 +31,6 @@ test('every bot kit uses its personal weapon at the correct distance and its own
   const bot=bots(room)[0],human=room.get('human-red-0');Object.assign(bot,{x:0,y:0,z:10,protectedUntil:0});Object.assign(human,{x:0,y:0,z:10-distance,protectedUntil:0});
   const attacks=[];c.attack=(room,p,kind)=>attacks.push(kind);c.bots.tick(room,match,15000);
   const h=H.heroes[hero],expected=distance<2?(C.weapons[h.weapon].range?h.weapon:h.melee):(C.weapons[h.weapon].range?h.ranged:h.weapon);
-  assert.equal(bot.weapon,expected,hero+' distance '+distance);assert.deepEqual(attacks,[expected==='bow'?'draw':'attack']);
+  assert.equal(bot.weapon,expected,hero+' distance '+distance);assert.deepEqual(attacks,[C.weapons[expected].charge?'draw':'attack']);
  }
 });

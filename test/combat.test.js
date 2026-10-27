@@ -28,7 +28,7 @@ test('static cover blocks melee and arrows; projectiles hit the nearest player',
 test('bow requires server-timed draw; release and reload cannot be forged or spammed',()=>{
  const {engine,room,a,b}=setup();engine.select(a,'bow');assert.equal(engine.attack(room,a,'release',10000),false);
  engine.attack(room,a,'draw',10000);engine.attack(room,a,'draw',10999);engine.attack(room,a,'release',11000);assert.equal(engine.projectiles.length,1);assert.equal(engine.projectiles[0].damage,32);
- assert.equal(engine.attack(room,a,'draw',11001),false);engine.tick(room,11017,1/60);engine.tick(room,11034,1/60);engine.tick(room,11051,1/60);assert.equal(b.hp,74);
+ assert.equal(engine.attack(room,a,'draw',11001),true);engine.tick(room,11017,1/60);engine.tick(room,11034,1/60);engine.tick(room,11051,1/60);assert.equal(b.hp,74);
  engine.select(a,'crossbow');engine.attack(room,a,'attack',12000);assert.equal(engine.attack(room,a,'attack',12001),false);assert.equal(a.nextAttack,13800);
 });
 test('critical and falling mace attacks add damage; sprint increases knockback',()=>{
