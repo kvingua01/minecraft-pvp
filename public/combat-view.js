@@ -1,6 +1,7 @@
 import * as THREE from '/vendor/three.module.js';
 import {pixelTool} from '/pixel-items.js';
 import {paintVitals} from '/hud-icons.js';
+import {animateWeapon} from '/weapon-animation.js';
 const C=window.CombatRules;
 export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLocked}){
   const hand=new THREE.Group(),wind=new THREE.Group();camera.add(hand,wind);
@@ -82,23 +83,14 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     for(const [id,m]of arrows)if(!seen.has(id)){scene.remove(m);arrows.delete(id);}
   }
   function clear(){for(const b of bursts){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();}bursts.clear();hotbarStamp='';clockSynced=false;release();for(const m of arrows.values())scene.remove(m);arrows.clear();feed.replaceChildren();document.querySelector('#death').hidden=true;document.querySelector('#damage').style.opacity=0;document.querySelector('#hit-marker').style.opacity=0;}
-  function animateWeapon(group,key,phase){
-    const a=Math.sin(Math.PI*phase);
-    group.rotation.set(0,0,-.22);
-    if(['sword','katana','dagger'].includes(key)){group.rotation.z=-.22+a*1.4;group.rotation.x=-a*.6;}
-    if(key==='axe'){group.rotation.z=-.22+a*.9;group.rotation.x=-a*1.1;}
-    if(key==='mace'){group.rotation.x=-a*1.6;group.position.y-=a*.08;}
-    if(['crossbow','toxicbow'].includes(key))group.rotation.x=-a*.55;
-    if(['staff','darkstaff','firestaff','naturestaff','witherstaff','totemstaff'].includes(key)||key==='launcher')group.rotation.x=-a*.3;
-  }
   function frame(now){
     for(const b of bursts){const age=(now-b.start)/500;b.mesh.scale.setScalar(1+age*3);b.mesh.material.opacity=Math.max(0,.8*(1-age));if(age>=1){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();bursts.delete(b);}}
     const p=getSelf();hand.visible=wind.visible=!!p;if(!p)return;
     const time=Date.now()+clockOffset,w=C.weapons[p.weapon];
     if(weapon!==p.weapon){weapon=p.weapon;buildWeapon(hand,weapon);}
     const duration=['crossbow','toxicbow'].includes(weapon)?w.cooldown:Math.min(w.cooldown,800),phase=Math.min(1,(now-swing)/duration);
-    animateWeapon(hand,weapon,swing?phase:0);if(weapon==='trident'&&p.status?.riptide>time)hand.rotation.z=now*.04;
-    if(p.drawAt&&weapon==='bow'){const charge=Math.min(1,(time-p.drawAt)/1000);hand.position.z=-.65+charge*.12;hand.rotation.y=-charge*.2;hand.userData.string.position.z=charge*.2;hand.userData.arrow.position.z=charge*.2;}else {hand.position.z=-.65;if(hand.userData.string){hand.userData.string.position.z=0;hand.userData.arrow.position.z=0;}}
+    hand.position.set(.4,-.36,-.65);animateWeapon(hand,weapon,swing?phase:0);if(weapon==='trident'&&p.status?.riptide>time)hand.rotation.z=now*.04;
+    if(p.drawAt&&weapon==='bow'){const charge=Math.min(1,(time-p.drawAt)/1000);hand.position.z=-.65+charge*.12;hand.rotation.y=-charge*.2;hand.userData.string.position.z=charge*.2;hand.userData.arrow.position.z=charge*.2;}else {if(hand.userData.string){hand.userData.string.position.z=0;hand.userData.arrow.position.z=0;}}
     wind.visible=p.hp>0;wind.rotation.y=now*.002;
     const throwAge=now-windThrownAt;wind.position.y=-.23-(throwAge<300?Math.sin(throwAge/300*Math.PI)*.16:0);
     wind.scale.setScalar(p.windReady>time?.9:1);
@@ -114,5 +106,5 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     document.querySelector('#damage').style.opacity=now-flash<400?1:0;document.querySelector('#hit-marker').style.opacity=now-hit<250?1:0;
     document.querySelector('#death').hidden=p.hp>0;document.querySelector('#respawn-time').textContent=`${Math.max(0,Math.ceil((p.deadUntil-time)/1000))}s`;
   }
-  return {projectileKinds:()=>[...arrows.values()].map(m=>m.userData.projectileKind),syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},cancelInput:release,hand,offhand:()=>({wind:wind.visible,shield:false}),buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>false};
+  return {weaponPose:()=>({position:hand.position.toArray(),rotation:hand.rotation.toArray().slice(0,3),visible:hand.visible}),projectileKinds:()=>[...arrows.values()].map(m=>m.userData.projectileKind),syncClock:offset=>{if(Number.isFinite(offset)){clockOffset=clockSynced?clockOffset*.8+offset*.2:offset;clockSynced=true;}},cancelInput:release,hand,offhand:()=>({wind:wind.visible,shield:false}),buildWeapon,animateWeapon,snapshot,frame,clear,serverNow:()=>Date.now()+clockOffset,isBlocking:()=>false};
 }
