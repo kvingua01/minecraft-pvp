@@ -23,6 +23,7 @@
     "test:inventory-browser": "node scripts/inventory-smoke.cjs",
     "test:weapon-animation-browser": "node scripts/weapon-animation-smoke.cjs",
     "test:seven-kits-browser": "node scripts/seven-kits-smoke.cjs",
+    "test:bot-abilities-browser": "node scripts/bot-abilities-smoke.cjs",
     "test:bots-browser": "node scripts/bots-smoke.cjs"
   },
   "engines": {

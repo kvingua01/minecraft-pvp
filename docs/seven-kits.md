@@ -65,7 +65,7 @@ No map or terrain definitions, capture/scoring rules, team sizes, respawn rules,
 room codes, host permissions, HUD layout, textures, renderer or Railway
 configuration were changed. Existing shields remain disabled. No requested kit
 is incomplete. Bots can choose all 21 kits through their existing selection logic;
-Q/E/R bot decision-making remains outside this addition, as before.
+Bot Q/E/R decision-making was subsequently added for all 21 classes; bots use normal cooldowns and earned charge.
 
 After the commit reaches GitHub main, Railway should automatically redeploy through
 the existing repository connection. Wait for that deployment to be Active, refresh,

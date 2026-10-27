@@ -46,7 +46,7 @@ clearly label bots separately from humans.
 These are server-controlled players choosing from all 21 class kits, not decorative/fake participants.
 They navigate shared map collisions, move to objectives, fight using ordinary
 melee/bow rules, take damage, die and respawn normally. Bot pathfinding covers all
-all sixteen maps and avoids lava/void routes. They do not currently cast hero abilities.
+all sixteen maps and avoids lava/void routes. They now use class Q/E/R abilities with normal cooldowns and earned ultimate charge.
 
 ## Controls
 
@@ -245,7 +245,7 @@ decoy and two clear, visible destinations. Wither has a single non-stacking dama
 timer. Slime Bounce grants one additional bounce; Slime Split keeps the original
 player, inventory and health, with three temporary summons returning at expiry.
 Summons expire and are removed on their owner's death. Bots can select the new
-kits too; their existing AI uses weapons, not Q/E/R abilities.
+kits too; their AI uses class weapons and context-sensitive Q/E/R abilities.
 
 `npm test` covers the new kit mechanics and existing game regressions.
 `npm run test:seven-kits-browser` uses two real browser clients to check all seven
@@ -289,3 +289,17 @@ Remote interpolation resets for real teleports, respawns and connection changes.
 Use `npm test`, `npm run test:map-expansion-browser`, and the production checks.
 `npm run benchmark:physics -- castle` also accepts another map ID. Detailed map,
 fix, validation and deployment notes are in [the expansion report](docs/map-expansion.md).
+
+
+## Bot abilities
+
+All 21 bot classes can use Q, E and earned R ultimates automatically. Healing and
+support skills look for injured allies, offensive casts aim at enemies or valid
+ground, and summons are not repeatedly recreated while already alive. Mobility
+casts avoid obvious walls, lava and void gaps. Bots do not interrupt a bow draw
+with routine ability casts. Ordinary player cooldowns, charge, spawn protection,
+death, inventory and targeting validation apply; bots receive no free ultimates.
+
+`npm run test:bot-abilities-browser` checks actual autonomous casts, replicated
+summons/projectiles and healing in Chromium. `npm test` covers all 63 kit abilities
+plus protections, real damage/healing, charge consumption and safe movement.
