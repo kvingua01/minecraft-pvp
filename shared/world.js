@@ -65,6 +65,10 @@
   const enemySpawns={red:{x:27,y:32,z:0,w:10,h:64,d:12,solid:true},blue:{x:-27,y:32,z:0,w:10,h:64,d:12,solid:true}};
   const epsilon=1e-7;
   function compile(list){return list.filter(b=>b.solid).map(b=>({minX:b.x-b.w/2,maxX:b.x+b.w/2,minY:b.y-b.h/2,maxY:b.y+b.h/2,minZ:b.z-b.d/2,maxZ:b.z+b.d/2}));}
+  // Cache broad-phase cells and their query results; details outside a swept
+  // player's neighborhood never enter the narrow-phase collision loop.
+  const spatial=new WeakMap();
+  function nearby(list,p,dx=0,dz=0){if(list.length<12)return list;let index=spatial.get(list);if(!index){const cells=new Map();for(const b of list)for(let x=Math.floor(b.minX/4);x<=Math.floor(b.maxX/4);x++)for(let z=Math.floor(b.minZ/4);z<=Math.floor(b.maxZ/4);z++){const key=x+','+z;if(!cells.has(key))cells.set(key,[]);cells.get(key).push(b);}index={cells,queries:new Map()};spatial.set(list,index);}const x0=Math.floor((Math.min(p.x,p.x+dx)-radius)/4),x1=Math.floor((Math.max(p.x,p.x+dx)+radius)/4),z0=Math.floor((Math.min(p.z,p.z+dz)-radius)/4),z1=Math.floor((Math.max(p.z,p.z+dz)+radius)/4),key=[x0,x1,z0,z1].join(',');if(index.queries.has(key))return index.queries.get(key);const found=new Set();for(let x=x0;x<=x1;x++)for(let z=z0;z<=z1;z++)for(const b of index.cells.get(x+','+z)||[])found.add(b);const result=[...found];if(index.queries.size>4096)index.queries.clear();index.queries.set(key,result);return result;}
   const staticBounds=compile(boxes),spawnBounds={red:compile([enemySpawns.red]),blue:compile([enemySpawns.blue])},dynamicCache=new WeakMap();
   function dynamicBounds(solids){if(!solids?.length)return null;let cached=dynamicCache.get(solids);if(!cached){cached=compile(solids);dynamicCache.set(solids,cached);}return cached;}
   const boundsCache=new WeakMap();
@@ -78,7 +82,7 @@
       const minX=p.x-radius,maxX=p.x+radius,minY=p.y,maxY=p.y+height,minZ=p.z-radius,maxZ=p.z+radius;
       const low=axis==='x'?minX:axis==='y'?minY:minZ,high=axis==='x'?maxX:axis==='y'?maxY:maxZ;
       for(let group=0;group<3;group++){
-        const list=group===0?mapBounds(p.map):group===1?dynamic:gate;if(!list)continue;
+        const source=group===0?mapBounds(p.map):group===1?dynamic:gate;if(!source)continue;const list=nearby(source,p,delta.x||0,delta.z||0);
         for(let i=0;i<list.length;i++){
           const b=list[i];
           if(axis!=='x'&&(maxX<=b.minX+epsilon||minX>=b.maxX-epsilon))continue;
@@ -93,12 +97,15 @@
     }
     return moved;
   }
+  function recover(p){let changed=false;for(let pass=0;pass<8;pass++){let best=null;for(const source of [mapBounds(p.map),dynamicBounds(p.solids),spawnBounds[p.team]])if(source)for(const b of nearby(source,p)){if(p.x+radius<=b.minX+epsilon||p.x-radius>=b.maxX-epsilon||p.z+radius<=b.minZ+epsilon||p.z-radius>=b.maxZ-epsilon||p.y+height<=b.minY+epsilon||p.y>=b.maxY-epsilon)continue;if(source===spawnBounds[p.team]){const amount=p.team==='red'?b.minX-p.x-radius:b.maxX-p.x+radius;best={axis:'x',amount};continue;}for(const [axis,amount]of [['x',b.minX-p.x-radius],['x',b.maxX-p.x+radius],['z',b.minZ-p.z-radius],['z',b.maxZ-p.z+radius],['y',b.minY-p.y-height],['y',b.maxY-p.y]])if(!best||Math.abs(amount)<Math.abs(best.amount))best={axis,amount};}if(!best)break;p[best.axis]+=best.amount;if(best.axis==='y')p.vy=0;changed=true;}return changed;}
   function spawn(index=0) { return {x:index%2?-25:25,y:.61,z:(Math.floor(index/2)%5-2)*1.4,vy:0,yaw:index%2?-Math.PI/2:Math.PI/2,pitch:0,grounded:false,jumpQueued:false}; }
   function step(p,input,dt) {
+    recover(p);
     p.yaw=Number.isFinite(input.yaw)?input.yaw:p.yaw;
     p.pitch=Math.max(-1.5,Math.min(1.5,Number.isFinite(input.pitch)?input.pitch:p.pitch));
     const f=(input.forward?1:0)-(input.back?1:0), s=(input.right?1:0)-(input.left?1:0);
-    const norm=Math.hypot(f,s)||1, speed=(input.sprint?8:5)*(p.speedScale??1);
+    const data=getMap(p.map),terrainScale=(data.slow||[]).some(a=>p.y>=a.y-.1&&p.y<=a.y+.4&&Math.abs(p.x-a.x)<a.w/2&&Math.abs(p.z-a.z)<a.d/2)?.8:1;
+    const norm=Math.hypot(f,s)||1, speed=(input.sprint?8:5)*(p.speedScale??1)*terrainScale;
     let dx=((s*Math.cos(p.yaw)-f*Math.sin(p.yaw))/norm*speed+(p.kx||0))*dt;
     let dz=((-s*Math.sin(p.yaw)-f*Math.cos(p.yaw))/norm*speed+(p.kz||0))*dt;
     const onIce=getMap(p.map).ice.some(a=>p.y<1.2&&Math.abs(p.x-a.x)<a.w/2&&Math.abs(p.z-a.z)<a.d/2);
@@ -109,18 +116,19 @@
     // Only the new timed flight abilities set flightLift; normal movement is unchanged.
     if(p.flightLift!==undefined&&p.flightLift!==null){dx=Math.max(-30.6-p.x,Math.min(30.6-p.x,dx));dz=Math.max(-30.6-p.z,Math.min(30.6-p.z,dz));}
     p.vy=p.flightLift!==undefined&&p.flightLift!==null?p.flightLift:Math.max(-30,p.vy-23*dt);
-    const dy=p.vy*dt,moved=move(p,{x:dx,y:dy,z:dz});
+    if(data.bounded){dx=Math.max(-30.6-p.x,Math.min(30.6-p.x,dx));dz=Math.max(-30.6-p.z,Math.min(30.6-p.z,dz));}
+    const dy=p.vy*dt,moved=move(p,{x:dx,y:dy,z:dz});let stepped=false;
     // Minecraft-like half-block stepping, still swept against walls and ceilings.
     if(p.grounded&&(Math.abs(moved.x-dx)>epsilon||Math.abs(moved.z-dz)>epsilon)){
-      const probe={...p},up=move(probe,{y:.51});if(up.y>.5){const horizontal=move(probe,{x:dx-moved.x,z:dz-moved.z});if(Math.hypot(horizontal.x,horizontal.z)>.001){p.x=probe.x;p.y=probe.y;p.z=probe.z;}}
+      const probe={...p},up=move(probe,{y:.51});if(up.y>.5){const horizontal=move(probe,{x:dx-moved.x,z:dz-moved.z});if(Math.hypot(horizontal.x,horizontal.z)>.001){const down=move(probe,{y:-.51});p.x=probe.x;p.y=probe.y;p.z=probe.z;stepped=down.y>-.51+epsilon;}}
     }
-    p.grounded=dy<0&&Math.abs(moved.y-dy)>epsilon;
+    p.grounded=stepped||dy<0&&Math.abs(moved.y-dy)>epsilon;
     if(Math.abs(moved.y-dy)>epsilon)p.vy=0;
     if(Math.abs(moved.x-dx)>epsilon)p.kx=0;
     if(Math.abs(moved.z-dz)>epsilon)p.kz=0;
-    if(p.y < -20){if(p.map==='sky')p.voided=true;else Object.assign(p,spawn(p.spawnIndex));}
+    if(p.y < -20){if(p.map==='sky'||data.void)p.voided=true;else Object.assign(p,spawn(p.spawnIndex));}
     return p;
   }
-  const api={boxes,hazards,getMap,spawn,step,move,radius,height};
+  const api={boxes,hazards,getMap,spawn,step,move,recover,radius,height};
   if(typeof module!=='undefined') module.exports=api; else root.VoxelWorld=api;
 })(globalThis);

@@ -1,6 +1,6 @@
 import * as THREE from '/vendor/three.module.js';
 // Original, deterministic 16x16 artwork. Atlas tiles have a one-pixel gutter.
-const palette={grass:0x6ca33e,dirt:0x805536,stone:0x949994,cobble:0x7f8985,bricks:0x969f99,cracked:0x89918c,oak:0xaf8248,darkoak:0x60442b,log:0x705034,leaves:0x437d38,sand:0xdcc58b,sandstone:0xcbb27c,snow:0xe7f2f3,ice:0x9dcddf,water:0x397ebd,lava:0xe76519,glass:0x9acbc9,obsidian:0x332b46,fence:0x956a3a,torch:0xeab452,lantern:0xf4c362,door:0x9b743e,roof:0x714530,metal:0xb3c1c6};
+const palette={netherbrick:0x4b2c35,soulsand:0x69534a,soulfire:0x67c9cc,endstone:0xd7d99f,purpur:0xab7ead,endrod:0xf0e5bb,sail:0xe7e1d1,mycelium:0x8d7f8e,mushroomstem:0xddd5bf,redmushroom:0xc83c3b,brownmushroom:0x927450,glowshroom:0x94d5c0,prismarine:0x568c80,coral:0x63b6ae,coralpink:0xd784a1,sealantern:0xb5e1d6,basalt:0x5b5b60,bookshelf:0x9d704e,chocolate:0x66412e,cookie:0xc19760,frosting:0xf0e4df,candyred:0xd95e70,gumdrop:0xa08cc5,cake:0xd5ab85,copper:0xb17951,gold:0xd2b45b,clock:0xe3d5ab,grass:0x6ca33e,dirt:0x805536,stone:0x949994,cobble:0x7f8985,bricks:0x969f99,cracked:0x89918c,oak:0xaf8248,darkoak:0x60442b,log:0x705034,leaves:0x437d38,sand:0xdcc58b,sandstone:0xcbb27c,snow:0xe7f2f3,ice:0x9dcddf,water:0x397ebd,lava:0xe76519,glass:0x9acbc9,obsidian:0x332b46,fence:0x956a3a,torch:0xeab452,lantern:0xf4c362,door:0x9b743e,roof:0x714530,metal:0xb3c1c6};
 export function createVoxelLook(){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=512;const ctx=canvas.getContext('2d'),tiles=new Map(),items=new Map();let next=0;
  const atlas=new THREE.CanvasTexture(canvas);atlas.magFilter=atlas.minFilter=THREE.NearestFilter;atlas.generateMipmaps=false;atlas.colorSpace=THREE.SRGBColorSpace;
@@ -8,7 +8,7 @@ export function createVoxelLook(){
   const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;},rgb=[color>>16&255,color>>8&255,color&255];
   const small=document.createElement('canvas');small.width=small.height=16;const c=small.getContext('2d');
   for(let y=0;y<16;y++)for(let x=0;x<16;x++){let shade=.82+rand()*.3,base=rgb;
-   if(['bricks','stone','cracked','sandstone'].includes(kind)){if(y%8===0||(x+Math.floor(y/8)*8)%16===0)shade=.57;if(kind==='cracked'&&(x+y*3)%17===0)shade=.4;}
+   if(['bricks','stone','cracked','sandstone','netherbrick','purpur','prismarine','endstone'].includes(kind)){if(y%8===0||(x+Math.floor(y/8)*8)%16===0)shade=.57;if(kind==='cracked'&&(x+y*3)%17===0)shade=.4;}
    if(kind==='cobble'&&(y%5===0||(x+Math.floor(y/5)*3)%7===0))shade=.55;
    if(['oak','darkoak','fence','roof','door'].includes(kind)){if(y%4===0)shade=.6;if((x+Math.floor(y/4)*5)%16===0)shade*=.65;}
    if(kind==='log')shade=x%5===0?.55:.8+rand()*.3;
@@ -16,6 +16,14 @@ export function createVoxelLook(){
    if(kind==='grass-side')base=y<3+(x%3===0?2:0)?[91,148,48]:[123,85,54];
    if(['ice','glass','water'].includes(kind)){if(x===0||y===0)shade=.65;else if((x+y)%12<2)shade=1.3;}
    if(kind==='lava')shade=.65+Math.sin(x*2+y)*.2+rand()*.5;
+   if(kind==='redmushroom'&&(x*7+y*3)%19<4)base=[235,218,192];
+   if(kind==='cookie'&&(x*3+y*5)%17<2)base=[82,51,31];
+   if(kind==='candyred'&&(x+y)%9<3)base=[242,230,221];
+   if(kind==='cake'&&y<4)base=[239,226,220];
+   if(kind==='copper'&&(x*3+y*5)%13<3)base=[81,143,121];
+   if(kind==='bookshelf'){if(y%8===0)base=[105,73,41];else base=[[137,58,49],[67,114,81],[71,88,137],[176,151,83]][Math.floor(x/3)%4];}
+   if(['endrod','sealantern','glowshroom','soulfire'].includes(kind)&&(x+y)%4<2)shade=1.25;
+   if(kind==='clock'&&(x===8||y===8))base=[70,57,40];
    if(kind==='obsidian')shade=(x+y)%7===0?1.6:shade;
    if(kind==='torch'||kind==='lantern')base=x>3&&x<12&&y>2&&y<13?[255,208,89]:[85,65,43];
    c.fillStyle=`rgb(${base.map(v=>Math.min(255,Math.round(v*shade))).join(',')})`;c.fillRect(x,y,1,1);

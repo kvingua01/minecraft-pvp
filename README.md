@@ -46,7 +46,7 @@ clearly label bots separately from humans.
 These are server-controlled players choosing from all 21 class kits, not decorative/fake participants.
 They navigate shared map collisions, move to objectives, fight using ordinary
 melee/bow rules, take damage, die and respawn normally. Bot pathfinding covers all
-six maps and avoids lava/void routes. They do not currently cast hero abilities.
+all sixteen maps and avoids lava/void routes. They do not currently cast hero abilities.
 
 ## Controls
 
@@ -263,3 +263,29 @@ Crossbow reloads are unchanged. Pyromancer Fireball base damage is slightly redu
 from 32 to 30; its other abilities, weapon, health and cooldowns are unchanged.
 `node scripts/trident-bows-smoke.cjs` verifies primary throwing, return, healing and
 immediate consecutive charged bow shots using two browser clients.
+
+
+## Ten-map expansion and gameplay reliability
+
+The original six maps remain intact. The existing host map selectors now also
+include Nether Fortress, End City, Pirate Cove, Mushroom Kingdom, Underwater
+Ruins, Volcano Island, Haunted Mansion, Candy Land, Ancient Egypt and Steampunk
+City. Every map has three simultaneous A/B/C objectives, the same mirrored team
+spawns and alternate routes accessible without a kit movement ability.
+
+Nether soul sand slows slightly; Nether and Volcano lava damage players. End City
+has real void gaps and bounded movement. Pirate and Underwater water is scenic;
+there is no new swimming or oxygen system. Chocolate is harmless. New textures
+are original 16×16 atlas tiles; map geometry remains merged into one world mesh.
+
+Collision recovery handles small floor/wall penetrations, stairs settle onto their
+steps, and cached spatial queries reduce collision work. Death immediately clears
+active buffs, movement abilities, combos and held bow charge; owned projectiles,
+summons and effects are removed. Projectiles carry their owner's life generation.
+Disconnected avatars are hidden and reserved bodies no longer intercept attacks.
+Summon hitboxes follow their visible model sizes, and AI aims at those bodies.
+Remote interpolation resets for real teleports, respawns and connection changes.
+
+Use `npm test`, `npm run test:map-expansion-browser`, and the production checks.
+`npm run benchmark:physics -- castle` also accepts another map ID. Detailed map,
+fix, validation and deployment notes are in [the expansion report](docs/map-expansion.md).

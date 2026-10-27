@@ -40,7 +40,7 @@
     for(const b of boxes)if(b.solid){const distance=rayBox(origin,dir,{x:b.x-b.w/2,y:b.y-b.h/2,z:b.z-b.d/2},{x:b.x+b.w/2,y:b.y+b.h/2,z:b.z+b.d/2},nearest);if(distance!==null)nearest=distance;}
     return nearest;
   }
-  function playerDistance(origin,dir,p,limit,padding=0){return rayBox(origin,dir,{x:p.x-.32-padding,y:p.y,z:p.z-.32-padding},{x:p.x+.32+padding,y:p.y+1.8,z:p.z+.32+padding},limit);}
+  function playerDistance(origin,dir,p,limit,padding=0){const radius=p.hitbox?.radius??.32,height=p.hitbox?.height??1.8;return rayBox(origin,dir,{x:p.x-radius-padding,y:p.y,z:p.z-radius-padding},{x:p.x+radius+padding,y:p.y+height,z:p.z+radius+padding},limit);}
   function inSpawn(p){return Math.abs(p.x)>22&&Math.abs(p.z)<6;}
 
   const api={weapons,equipment,slots,maxHealth,armor,respawnDelay,direction,rayBox,wallDistance,playerDistance,inSpawn};
