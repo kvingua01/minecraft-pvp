@@ -325,3 +325,7 @@ Switching back to Normal CTF restores its teams, objectives and clean scores.
 
 `npm run test:modes-browser` exercises all four modes with two browser clients.
 See [the mode report](docs/game-modes.md) for files, policies and validation details.
+
+### Corner health packs
+
+Normal CTF and Random Kit matches have four health packs, one near each map corner on reachable ground. Walk into a pack while injured to restore up to 25 HP. Each pack disappears for 60 seconds after pickup; that cooldown is shared by all players and bots. Packs reset for a new match and are disabled in Duel and FFA. Run `npm run test:health-packs-browser` to check multiplayer pickups and respawning.

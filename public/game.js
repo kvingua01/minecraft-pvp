@@ -11,6 +11,7 @@ import {createParticles} from '/particles.js';
 import {createUnitsView} from '/units-view.js';
 import {createLobby} from '/lobby.js';
 import {createInventoryView} from '/inventory-view.js';
+import {createHealthPacksView} from '/health-packs-view.js';
 import {createEnemyHealth} from '/enemy-health.js';
 const $=s=>document.querySelector(s), World=window.VoxelWorld;
 const menu=$('#menu'), pause=$('#pause'), canvas=$('#world'), loading=$('#loading');
@@ -34,6 +35,7 @@ function setMap(id){if(!window.ArenaMaps.has(id)||id===activeMap)return;scene.re
 function cube(parent,w,h,d,color,x,y,z) {const m=new THREE.Mesh(geometry,material(color));m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
 const socket=io({autoConnect:false}), remotes=new Map(),keys=new Set();
 const unitsView=createUnitsView({scene,cube});
+const healthPacksView=createHealthPacksView({scene,cube});
 const particles=createParticles({scene,socket,getPlayers:()=>self?[self,...[...remotes.values()].map(r=>r.target)]:[]});
 const movementKeys=new Set(['KeyW','KeyA','KeyS','KeyD','Space','ShiftLeft','ShiftRight']);
 let self=null, ownId=null,roomCode='',yaw=0,pitch=0,locked=false,tab=false,accumulator=0,last=performance.now(),sendTime=0,lastRender=0;
@@ -94,7 +96,7 @@ window.addEventListener('keyup',e=>{keys.delete(e.code);if(self&&locked&&movemen
 window.addEventListener('blur',()=>{keys.clear();tab=false;updateRoster();if(self)socket.volatile.emit('input',controls());});
 canvas.oncontextmenu=e=>e.preventDefault();
 function removeRemote(remote){remote.healthBar.dispose();scene.remove(remote.group);remote.group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});}
-function clearPlayers(){inventoryView.clear();unitsView.clear();particles.clear();audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
+function clearPlayers(){healthPacksView.clear();inventoryView.clear();unitsView.clear();particles.clear();audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
 $('#leave').onclick=()=>{if(socket.connected)socket.emit('leave');endSession();};
 socket.on('server-restarting',()=>{serverUpdating=true;endSession('The game server is restarting for an update. Create or join a new arena shortly.');});
 socket.on('connect',()=>{if(self&&resumeToken)resumeSession();});
@@ -148,7 +150,7 @@ socket.on('state',state=>{
   ids.add(p.id);let remote=remotes.get(p.id);
   if(!remote||remote.target.hero!==p.hero||remote.target.team!==p.team){if(remote)removeRemote(remote);remote=makeAvatar(p,state.serverTime);remotes.set(p.id,remote);}else {const reset=p.life!==remote.target.life||p.motionSerial!==remote.target.motionSerial&&Math.hypot(p.x-remote.target.x,p.y-remote.target.y,p.z-remote.target.z)>.75||p.connected!==remote.target.connected||Math.hypot(p.x-remote.target.x,p.y-remote.target.y,p.z-remote.target.z)>12;remote.speed=reset?0:Math.hypot(p.x-remote.target.x,p.z-remote.target.z)/Math.max(.001,(state.serverTime-remote.lastTime)/1000);window.ArenaNetwork.remember(remote.history,p,state.serverTime,reset);remote.target=p;remote.lastTime=state.serverTime;}
  }
- for(const [id,r]of remotes)if(!ids.has(id)){removeRemote(r);remotes.delete(id);}heroView.snapshot(state);unitsView.snapshot(state);audio.snapshot(state);updateRoster();objective.update(state.match,state.players);lobby.update(state.match,state.players);
+ for(const [id,r]of remotes)if(!ids.has(id)){removeRemote(r);remotes.delete(id);}healthPacksView.snapshot(state);heroView.snapshot(state);unitsView.snapshot(state);audio.snapshot(state);updateRoster();objective.update(state.match,state.players);lobby.update(state.match,state.players);
 });
 document.addEventListener('visibilitychange',()=>{keys.clear();if(self)self.jumpQueued=false;if(document.hidden){document.exitPointerLock();if(self&&socket.connected&&!reconnecting)socket.emit('input',controls());}last=performance.now();accumulator=0;});
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();viewCamera.aspect=camera.aspect;viewCamera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
@@ -191,8 +193,8 @@ function frame(now){
   r.group.position.set(pose.x,pose.y,pose.z);r.healthBar.update(r.target,self,r.group.position,time,objective.match?.phase==='lobby');r.group.rotation.y=pose.yaw;r.head.rotation.x=pose.pitch;
   r.legs[0].rotation.x=r.speed>.1?Math.sin(now*.012)*.4:0;r.legs[1].rotation.x=-r.legs[0].rotation.x;
  }
- inventoryView.frame();unitsView.frame(now);particles.frame(now,dt);combat.frame(now);heroView.frame(now);objective.frame(combat.serverNow());potionView.frame(now);audio.frame(now);if(objective.finished)$('#death').hidden=true;renderer.info.reset();renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(viewScene,viewCamera);
+ healthPacksView.frame(now,combat.serverNow());inventoryView.frame();unitsView.frame(now);particles.frame(now,dt);combat.frame(now);heroView.frame(now);objective.frame(combat.serverNow());potionView.frame(now);audio.frame(now);if(objective.finished)$('#death').hidden=true;renderer.info.reset();renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(viewScene,viewCamera);
 }
 loading.hidden=true;requestAnimationFrame(frame);
 // Read-only diagnostics for smoke tests; no client state can override the server.
-window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,healthBar:r.healthBar.diagnostics(),visible:r.group.visible,connected:r.target.connected,isBot:r.target.isBot,hero:r.target.hero,weaponPose:{position:r.weapon.position.toArray(),rotation:r.weapon.rotation.toArray().slice(0,3)},position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,weaponPose:combat.weaponPose(),blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,mode:self?.mode,soloSide:self?.soloSide,roundLocked:self?.roundLocked,classLocked:self?.classLocked,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,itemSlots:self?.itemSlots,activeSlot:self?.activeSlot,heldItem:self?.heldItem,cursorItem:self?.cursorItem,inventoryOpen:inventoryView.open,inventoryRevision:self?.inventoryRevision,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),map:activeMap,unitCount:unitsView.count(),unitKinds:unitsView.kinds(),kitEffects:heroView.diagnostics(),projectileKinds:combat.projectileKinds(),visuals:voxelLook.diagnostics(),drawCalls:renderer.info.render.calls});
+window.arenaDiagnostics=()=>({joined:!!self,reconnecting,id:ownId,room:roomCode,position:self?{x:self.x,y:self.y,z:self.z}:null,remotes:[...remotes.keys()],remotePlayers:[...remotes.values()].map(r=>({id:r.target.id,healthBar:r.healthBar.diagnostics(),visible:r.group.visible,connected:r.target.connected,isBot:r.target.isBot,hero:r.target.hero,weaponPose:{position:r.weapon.position.toArray(),rotation:r.weapon.rotation.toArray().slice(0,3)},position:{x:r.group.position.x,y:r.group.position.y,z:r.group.position.z},windVisible:r.wind.visible,opacity:r.group.children[0]?.material.opacity})),locked,yaw,pitch,hp:self?.hp,weapon:self?.weapon,weaponPose:combat.weaponPose(),blocking:self?.blocking,kills:self?.kills,deaths:self?.deaths,team:self?.team,mode:self?.mode,soloSide:self?.soloSide,roundLocked:self?.roundLocked,classLocked:self?.classLocked,status:self?.status,speedScale:self?.speedScale,inventory:self?.inventory,itemSlots:self?.itemSlots,activeSlot:self?.activeSlot,heldItem:self?.heldItem,cursorItem:self?.cursorItem,inventoryOpen:inventoryView.open,inventoryRevision:self?.inventoryRevision,selectedPotion:self?.selectedPotion,potionReady:self?.potionReady,drinking:!!self?.drinking,audio:audio.diagnostics(),hero:self?.hero,pendingHero:self?.pendingHero,ult:self?.ult,abilityReady:self?.abilityReady,match:objective.match,windReady:self?.windReady,offhand:combat.offhand(),runtime:runtime.diagnostics(),map:activeMap,healthPacks:healthPacksView.diagnostics(),unitCount:unitsView.count(),unitKinds:unitsView.kinds(),kitEffects:heroView.diagnostics(),projectileKinds:combat.projectileKinds(),visuals:voxelLook.diagnostics(),drawCalls:renderer.info.render.calls});

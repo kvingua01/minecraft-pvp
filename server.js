@@ -161,9 +161,10 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
     if(draining)return;
     for(const [code,room] of rooms){
       const now=Date.now(),combat=combats.get(code),match=matches.get(code);match.modes.beforeTick(room,now);combat.bots.reconcile(room,match,now);combat.bots.tick(room,match,now);combat.tick(room,now,dt);if(match.modes.teams)match.tick(room,dt);else match.modes.afterTick(room,now);
+      combat.healthPacks.tick(room,match,now);
       if(match.modes.teams&&!combat.inLobby&&!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.connected!==false&&p.hp>0&&match.points.some(point=>match.inside(p,point)))combat.heroes.charge(p,3*dt,now);
       combat.matchOver=!!match.winner;
-      if(ticks%3===0){io.to(code).volatile.emit('state',{serverTime:now,players:[...room.values()].map(p=>pack(p)),units:combat.heroes.units.snapshot(),projectiles:combat.snapshot(now),effects:combat.heroes.snapshot(),match:match.snapshot()});for(const p of room.values())if(!p.isBot&&p.connected!==false&&p.lastInventorySent!==p.inventoryRevision){p.lastInventorySent=p.inventoryRevision;io.to(p.id).emit('inventory-state',Inventory.snapshot(p));}}
+      if(ticks%3===0){io.to(code).volatile.emit('state',{serverTime:now,healthPacks:combat.healthPacks.snapshot(match),players:[...room.values()].map(p=>pack(p)),units:combat.heroes.units.snapshot(),projectiles:combat.snapshot(now),effects:combat.heroes.snapshot(),match:match.snapshot()});for(const p of room.values())if(!p.isBot&&p.connected!==false&&p.lastInventorySent!==p.inventoryRevision){p.lastInventorySent=p.inventoryRevision;io.to(p.id).emit('inventory-state',Inventory.snapshot(p));}}
     }
     ticks++;
   }),8);
