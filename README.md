@@ -337,3 +337,7 @@ Open **Settings** on the main menu or press Esc during a match and open **Settin
 Bow hits apply six times a normal sword hit’s horizontal and upward knockback. Other ranged weapon hits apply three times normal knockback, including thrown tridents, class projectiles, and the TNT launcher's blast. Melee and ability knockback retain their existing behavior. Run `npm run test:settings-browser` to verify settings synchronization and persistence.
 
 Glass tunnel walls and roofs in Underwater Ruins, End City glass panels, and expanded-map windows have solid collision. Tunnel entrances stay open. `npm run test:wall-collision-browser` checks real client prediction and server movement against the underwater glass; the test suite audits solid wall faces on all 16 maps.
+
+### Seven game modes
+
+The existing lobby mode dropdown now also includes **Kit Ladder**, **Payload Escort**, and **Juggernaut**. The original Normal CTF, 1v1 Duels, Random Kit, and Free-for-All modes remain available. See [the seven-mode update report](docs/seven-modes-update.md) for rules, payload map availability, changed files, and validation commands. Run `npm run test:extended-modes-browser` for the new two-client gameplay checks.

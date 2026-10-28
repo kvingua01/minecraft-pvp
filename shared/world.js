@@ -117,7 +117,7 @@
     // Only the new timed flight abilities set flightLift; normal movement is unchanged.
     if(p.flightLift!==undefined&&p.flightLift!==null){dx=Math.max(-30.6-p.x,Math.min(30.6-p.x,dx));dz=Math.max(-30.6-p.z,Math.min(30.6-p.z,dz));}
     p.vy=p.flightLift!==undefined&&p.flightLift!==null?p.flightLift:Math.max(-30,p.vy-23*dt);
-    if(data.bounded||p.mode==='ffa'||p.mode==='duel_1v1'){dx=Math.max(-30.6-p.x,Math.min(30.6-p.x,dx));dz=Math.max(-30.6-p.z,Math.min(30.6-p.z,dz));}
+    if(data.bounded||['ffa','duel_1v1','kit_ladder','juggernaut'].includes(p.mode)){dx=Math.max(-30.6-p.x,Math.min(30.6-p.x,dx));dz=Math.max(-30.6-p.z,Math.min(30.6-p.z,dz));}
     const dy=p.vy*dt,moved=move(p,{x:dx,y:dy,z:dz});let stepped=false;
     // Minecraft-like half-block stepping, still swept against walls and ceilings.
     if(p.grounded&&(Math.abs(moved.x-dx)>epsilon||Math.abs(moved.z-dz)>epsilon)){

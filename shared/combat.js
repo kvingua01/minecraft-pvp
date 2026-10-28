@@ -41,7 +41,7 @@
     return nearest;
   }
   function playerDistance(origin,dir,p,limit,padding=0){const radius=p.hitbox?.radius??.32,height=p.hitbox?.height??1.8;return rayBox(origin,dir,{x:p.x-radius-padding,y:p.y,z:p.z-radius-padding},{x:p.x+radius+padding,y:p.y+height,z:p.z+radius+padding},limit);}
-  function inSpawn(p){if(p.mode==='ffa'||p.mode==='duel_1v1')return false;return Math.abs(p.x)>22&&Math.abs(p.z)<6;}
+  function inSpawn(p){if(['ffa','duel_1v1','kit_ladder','juggernaut'].includes(p.mode))return false;return Math.abs(p.x)>22&&Math.abs(p.z)<6;}
 
   const api={weapons,equipment,slots,maxHealth,armor,respawnDelay,direction,rayBox,wallDistance,playerDistance,inSpawn};
   if(typeof module!=='undefined')module.exports=api;else root.CombatRules=api;

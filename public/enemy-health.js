@@ -8,7 +8,7 @@ export function createEnemyHealth(scene){
  const sprite=new THREE.Sprite(material);sprite.scale.set(1.8,.45,1);sprite.visible=false;scene.add(sprite);
  let stamp='',hp=0,maxHp=0,label='';
  function update(player,self,position,now,inLobby){
-  const enemy=self&&(['ffa','duel_1v1'].includes(self.mode)||self.team!==player.team);
+  const enemy=self&&(['ffa','duel_1v1','kit_ladder'].includes(self.mode)||(self.mode==='juggernaut'?self.juggernaut!==player.juggernaut:self.team!==player.team));
   sprite.visible=!!enemy&&!inLobby&&player.hp>0&&player.connected!==false&&!(player.status?.vanish>now);
   sprite.position.set(position.x,position.y+2.3,position.z);
   hp=Math.max(0,player.hp||0);maxHp=Math.max(1,player.maxHp||100);label=Math.ceil(hp)+' / '+Math.ceil(maxHp);
