@@ -341,3 +341,7 @@ Glass tunnel walls and roofs in Underwater Ruins, End City glass panels, and exp
 ### Seven game modes
 
 The existing lobby mode dropdown now also includes **Kit Ladder**, **Payload Escort**, and **Juggernaut**. The original Normal CTF, 1v1 Duels, Random Kit, and Free-for-All modes remain available. See [the seven-mode update report](docs/seven-modes-update.md) for rules, payload map availability, changed files, and validation commands. Run `npm run test:extended-modes-browser` for the new two-client gameplay checks.
+
+### Testing any mode with bots
+
+As host, choose a mode in the lobby, click **Add bot** as many times as you want, then start. **Remove bot** removes the last manually added bot. Team modes offer an Auto/Red/Blue bot-team choice. Rooms support 10 players including bots (five per team); 1v1 Duels supports one opponent and bots are ready automatically. Manually added bots stay when automatic balancing is switched off and persist across lobby/map changes; switching to a duel trims bots to the two-player limit. Bots fight in FFA and Kit Ladder, advance kits on kills, escort/contest the payload, and can become Juggernaut. Run `npm run test:manual-bots-browser` for all seven solo-host lobby flows.
