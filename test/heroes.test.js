@@ -73,3 +73,12 @@ test('potion and explosive splashes work when their projectile hits the ground',
  const arrow={x:1,y:0,z:8,vx:0,vy:-10,vz:0,heroKind:'potion'};h.impact(room,arrow,a,null,10000);assert.equal(ally.hp,ally.maxHp-16);assert.equal(b.hp,b.maxHp-10);
  const before=b.hp;h.impact(room,{...arrow,heroKind:'explosive'},a,null,10001);assert.ok(b.hp<before);
 });
+test('every ranged primary projectile carries triple-knockback provenance while ability projectiles do not',()=>{
+ const C=require('../shared/combat');
+ for(const [weapon,def]of Object.entries(C.weapons).filter(([id,w])=>w.projectile||['staff','launcher'].includes(id))){
+  const {combat,h,room,a}=setup();a.weapon=weapon;a.nextAttack=0;a.drawAt=def.charge?9000:0;
+  assert.equal(combat.attack(room,a,def.charge?'release':'attack',10000),true,weapon);
+  assert.equal(combat.projectiles.length,1,weapon);assert.equal(combat.projectiles[0].rangedWeapon,true,weapon);
+  h.projectile(a,'frost',16,11000);assert.equal(combat.projectiles.at(-1).rangedWeapon,undefined);
+ }
+});

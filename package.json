@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
+    "test:settings-browser": "node scripts/settings-smoke.cjs",
     "test:health-packs-browser": "node scripts/health-packs-smoke.cjs",
     "test:enemy-health-browser": "node scripts/enemy-health-smoke.cjs",
     "test:browser": "node scripts/browser-smoke.cjs",

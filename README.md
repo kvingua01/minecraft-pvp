@@ -329,3 +329,9 @@ See [the mode report](docs/game-modes.md) for files, policies and validation det
 ### Corner health packs
 
 Normal CTF and Random Kit matches have four health packs, one near each map corner on reachable ground. Walk into a pack while injured to restore up to 25 HP. Each pack disappears for 60 seconds after pickup; that cooldown is shared by all players and bots. Packs reset for a new match and are disabled in Duel and FFA. Run `npm run test:health-packs-browser` to check multiplayer pickups and respawning.
+
+### Player settings and ranged knockback
+
+Open **Settings** on the main menu or press Esc during a match and open **Settings**. Mouse sensitivity, sound volume, graphics quality, FPS/ping display, field of view (60–110), and inverted mouse look are saved in this browser and synchronized between both menus. Browser storage restrictions do not prevent changing settings for the current session.
+
+Ranged weapon hits apply three times the normal horizontal and upward knockback, including thrown tridents, class projectiles, and the TNT launcher's blast. Melee and ability knockback retain their existing behavior. Run `npm run test:settings-browser` to verify settings synchronization and persistence.

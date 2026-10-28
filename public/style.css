@@ -34,3 +34,5 @@
 #lobby .bot-choice{display:flex;gap:10px;align-items:center;text-align:left;font-size:12px;letter-spacing:0;margin-top:15px}#balance-bots{width:18px;height:18px;accent-color:#a5cc77}#bot-balance-info{font-size:11px;line-height:1.6;color:#e5dfbd}
 
 #round-countdown{position:fixed;left:50%;top:28%;transform:translateX(-50%);font: bold 28px monospace;text-align:center;background:#161616cc;border:2px solid #999;padding:18px;color:#f5edbd;text-shadow:2px 2px #000;z-index:15}#mode-match-info{text-align:center;font-size:12px}#mode-timer{font-size:24px;margin:6px}#mode-scoreboard{font-size:11px;white-space:pre-wrap;margin:5px}#lobby-mode{display:block;width:100%;margin-top:6px}#lobby-mode-note{font-size:11px}
+
+.settings-menu{margin:14px 0;padding:12px;border:1px solid #78947b55;text-align:left}.settings-menu summary{cursor:pointer;color:#d1e696;font-weight:bold}.settings-menu>label{margin:14px 0;letter-spacing:0}.settings-menu input[type=range]{width:100%;display:block}.settings-menu input[type=checkbox]{width:auto}

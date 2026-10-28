@@ -54,3 +54,11 @@ test('rewind uses bounded authoritative history and cannot bypass cover',()=>{
  const other=setup();other.engine.history=[{time:9000,poses:new Map([[other.a.id,{x:0,y:0,z:10,life:0}],[other.b.id,{x:0,y:0,z:7,life:0}]])},{time:9900,poses:new Map([[other.a.id,{x:0,y:0,z:10,life:0}],[other.b.id,{x:5,y:0,z:7,life:0}]])}];other.b.x=5;
  other.engine.attack(other.room,other.a,'attack',10000,-100000);assert.equal(other.b.hp,100);
 });
+test('ranged weapon hits triple knockback without sprint amplification or melee changes',()=>{
+ for(const weapon of ['bow','crossbow','trident','frost','enchanted','blazefire']){
+  const {engine,room,a,b}=setup();a.input={forward:true,sprint:true};
+  engine.damage(room,b,a,1,10000,{weapon,origin:{rangedWeapon:true}});
+  assert.equal(Math.hypot(b.kx,b.kz),15,weapon);assert.equal(b.vy,8.1,weapon);
+ }
+ const {engine,room,a,b}=setup();engine.damage(room,b,a,1,10000,{weapon:'sword'});assert.equal(Math.hypot(b.kx,b.kz),5);assert.equal(b.vy,2.7);
+});

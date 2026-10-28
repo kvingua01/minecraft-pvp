@@ -5,7 +5,8 @@ export function createRuntime({renderer,socket,getSelf,isActive,syncClock}){
  function choose(mode){quality.set(mode);$('#quality').value=quality.mode;$('#pause-quality').value=quality.mode;apply();}
  $('#quality').onchange=()=>choose($('#quality').value);$('#pause-quality').onchange=()=>choose($('#pause-quality').value);
  for(const node of [$('#show-stats'),$('#pause-stats')])node.onchange=()=>{$('#show-stats').checked=node.checked;$('#pause-stats').checked=node.checked;$('#runtime-stats').hidden=!node.checked;};
- choose('auto');
+ choose($('#quality').value);
+ $('#runtime-stats').hidden=!$('#show-stats').checked;
  setInterval(()=>{
   if(!getSelf()||!socket.connected||document.hidden)return;const start=performance.now(),wall=Date.now();
   socket.timeout(2500).emit('ping-check',{},(error,data)=>{if(error||!data||!Number.isFinite(data.serverTime))return;const rtt=performance.now()-start;if(rtt>2500)return;ping=Math.round(rtt);syncClock(data.serverTime-(wall+Date.now())/2);});
