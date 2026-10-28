@@ -335,3 +335,5 @@ Normal CTF and Random Kit matches have four health packs, one near each map corn
 Open **Settings** on the main menu or press Esc during a match and open **Settings**. Mouse sensitivity, sound volume, graphics quality, FPS/ping display, field of view (60–110), and inverted mouse look are saved in this browser and synchronized between both menus. Browser storage restrictions do not prevent changing settings for the current session.
 
 Ranged weapon hits apply three times the normal horizontal and upward knockback, including thrown tridents, class projectiles, and the TNT launcher's blast. Melee and ability knockback retain their existing behavior. Run `npm run test:settings-browser` to verify settings synchronization and persistence.
+
+Glass tunnel walls and roofs in Underwater Ruins, End City glass panels, and expanded-map windows have solid collision. Tunnel entrances stay open. `npm run test:wall-collision-browser` checks real client prediction and server movement against the underwater glass; the test suite audits solid wall faces on all 16 maps.
