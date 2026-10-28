@@ -33,7 +33,7 @@ renderer.autoClear=false;renderer.info.autoReset=false;
 const geometry=new THREE.BoxGeometry(1,1,1),voxelLook=createVoxelLook();
 const material=color=>voxelLook.material(color);
 let worldGroup=voxelLook.addWorld(scene,World.getMap('castle').boxes),activeMap='castle';voxelLook.sky(scene);
-function setMap(id){if(!window.ArenaMaps.has(id)||id===activeMap)return;scene.remove(worldGroup);worldGroup.traverse(o=>o.geometry?.dispose());worldGroup=voxelLook.addWorld(scene,World.getMap(id).boxes);activeMap=id;scene.background.setHex(window.ArenaMaps.definitions[id].sky);scene.fog.color.copy(scene.background);}
+function setMap(id){if(!window.ArenaMaps.has(id)||id===activeMap)return;scene.remove(worldGroup);worldGroup.traverse(o=>o.geometry?.dispose());worldGroup=voxelLook.addWorld(scene,World.getMap(id).boxes);activeMap=id;scene.background.setHex(window.ArenaMaps.definition(id).sky);scene.fog.color.copy(scene.background);}
 function cube(parent,w,h,d,color,x,y,z) {const m=new THREE.Mesh(geometry,material(color));m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
 const socket=io({autoConnect:false}), remotes=new Map(),keys=new Set();
 const unitsView=createUnitsView({scene,cube});

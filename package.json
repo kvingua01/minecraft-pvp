@@ -22,6 +22,7 @@
     "test:new-heroes-browser": "node scripts/new-heroes-smoke.cjs",
     "test:map-expansion-browser": "node scripts/map-expansion-smoke.cjs",
     "test:maps-browser": "node scripts/maps-smoke.cjs",
+    "test:payload-maps-browser": "node scripts/payload-maps-smoke.cjs",
     "test:manual-bots-browser": "node scripts/manual-bots-smoke.cjs",
     "test:extended-modes-browser": "node scripts/extended-modes-smoke.cjs",
     "test:modes-browser": "node scripts/game-modes-smoke.cjs",

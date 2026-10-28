@@ -7,6 +7,7 @@ export function createAudio({socket,getSelf,getPlayers,isActive}){
  }
  function level(id){const self=getSelf(),p=getPlayers().find(p=>p.id===id);if(!self||!p)return 0;return id===self.id?1:Math.max(0,1-Math.hypot(p.x-self.x,p.y-self.y,p.z-self.z)/18)*.5;}
  window.addEventListener('pointerdown',unlock);window.addEventListener('keydown',unlock);for(const control of [slider,document.querySelector('#pause-volume')])control.addEventListener('input',()=>{slider.value=control.value;document.querySelector('#pause-volume').value=control.value;unlock();if(master)master.gain.value=(Number(slider.value)/100)**2*.2;tone(640,.07);});
+ socket.on('mode',e=>{if(e.type==='payload-checkpoint'&&getSelf()){tone(660,.12,'triangle');tone(880,.18,'triangle',1,.14);}});
  socket.on('combat',e=>{if(!getSelf())return;const volume=e.target===getSelf().id?1:level(e.source||e.target);if(!volume)return;
   if(e.type==='attack')tone(e.weapon==='bow'||e.weapon==='crossbow'?420:e.weapon==='mace'?90:e.weapon==='axe'?130:210,.11,'triangle',volume);
 

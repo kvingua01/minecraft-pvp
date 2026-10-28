@@ -1,8 +1,12 @@
 (function(root){
  const Extra=typeof module!=='undefined'?require('./extra-maps'):root.ExtraArenaMaps;
+ const Payload=typeof module!=='undefined'?require('./payload-maps'):root.PayloadArenaMaps;
  const definitions={castle:{name:'Castle Siege',description:'Battlements, tower and a sunken dungeon',sky:0x91bfff},sky:{name:'Sky Islands',description:'Floating islands, waterfalls and narrow crossings',sky:0x95cfff},lava:{name:'Lava Mines',description:'Mineshafts, rivers of lava and a forge',sky:0x372d30},frozen:{name:'Frozen Village',description:'Snow lodges, a frozen lake and ice fortress',sky:0xc5d9e7},jungle:{name:'Jungle Temple',description:'Canopy routes, mossy ruins and a hidden cave',sky:0x9dc9b4},desert:{name:'Desert Outpost',description:'Sandstone streets, market stalls and an oasis',sky:0xe4d5b3},...Extra.definitions};
- const has=id=>typeof id==='string'&&Object.hasOwn(definitions,id);
- function build(id,base=[]){if(Extra.has(id))return Extra.build(id);id=has(id)?id:'castle';const boxes=[],hazards=[],ice=[],points=[{id:'A',x:0,y:.24,z:-18,radius:3.7},{id:'B',x:0,y:.24,z:0,radius:4},{id:'C',x:0,y:.24,z:18,radius:3.7}];
+ const has=id=>typeof id==='string'&&(Object.hasOwn(definitions,id)||Payload.has(id));
+ const definition=id=>definitions[id]||Payload.definitions[id];
+ const forMode=mode=>mode==='payload_escort'?{...definitions,...Payload.definitions}:definitions;
+ const compatible=(id,mode)=>has(id)&&(!Payload.has(id)||mode==='payload_escort');
+ function build(id,base=[]){if(Payload.has(id))return Payload.build(id);if(Extra.has(id))return Extra.build(id);id=has(id)?id:'castle';const boxes=[],hazards=[],ice=[],points=[{id:'A',x:0,y:.24,z:-18,radius:3.7},{id:'B',x:0,y:.24,z:0,radius:4},{id:'C',x:0,y:.24,z:18,radius:3.7}];
  const add=(x,y,z,w,h,d,tile,solid=true)=>boxes.push({x,y,z,w,h,d,tile,solid,color:0x999999});
  const platform=(x,y,z,w=8,d=8,tile='bricks')=>add(x,y-.12,z,w,.24,d,tile);
  function stairs(x,z,top,axis='z',sign=1,tile='bricks'){const n=Math.round(top/.5);for(let i=0;i<n;i++){const h=(i+1)*.5;add(x+(axis==='x'?sign*i*.7:0),h/2,z+(axis==='z'?sign*i*.7:0),axis==='x'?.7:3,h,axis==='z'?.7:3,tile);}add(x+(axis==='x'?sign*n*.7:0),top-.12,z+(axis==='z'?sign*n*.7:0),axis==='x'?2.5:3,.24,axis==='z'?2.5:3,tile);}
@@ -38,5 +42,5 @@
  for(const side of [-1,1]){platform(side*25,.6,0,10,12,id==='frozen'?'snow':id==='desert'?'sandstone':'bricks');add(side*25,.63,0,6,.05,8,side<0?'roof':'ice',false);}
  return {id,...definitions[id],boxes,hazards,ice,points};
  }
- const api={definitions,has,build};if(typeof module!=='undefined')module.exports=api;else root.ArenaMaps=api;
+ const api={definitions,payloadDefinitions:Payload.definitions,definition,forMode,compatible,has,build};if(typeof module!=='undefined')module.exports=api;else root.ArenaMaps=api;
 })(globalThis);

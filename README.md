@@ -345,3 +345,7 @@ The existing lobby mode dropdown now also includes **Kit Ladder**, **Payload Esc
 ### Testing any mode with bots
 
 As host, choose a mode in the lobby, click **Add bot** as many times as you want, then start. **Remove bot** removes the last manually added bot. Team modes offer an Auto/Red/Blue bot-team choice. Rooms support 10 players including bots (five per team); 1v1 Duels supports one opponent and bots are ready automatically. Manually added bots stay when automatic balancing is switched off and persist across lobby/map changes; switching to a duel trims bots to the two-player limit. Bots fight in FFA and Kit Ladder, advance kits on kills, escort/contest the payload, and can become Juggernaut. Run `npm run test:manual-bots-browser` for all seven solo-host lobby flows.
+
+### Custom Payload Escort railways
+
+Choose **Payload Escort** in the lobby to access **Minecart Canyon**, **Nether Railway**, **Castle Supply Run**, **Frozen Express**, and **Jungle Expedition**, alongside the existing payload maps. Each new railway has a winding functional track, two synchronized checkpoints, protected spawns and alternate routes. Checkpoints mark progress without extending the five-minute timer. See [the custom map report](docs/custom-payload-maps.md) for routes, timings, changed files and validation. Run `npm run test:payload-maps-browser` for the two-client map/checkpoint check.
