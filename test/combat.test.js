@@ -55,10 +55,20 @@ test('rewind uses bounded authoritative history and cannot bypass cover',()=>{
  other.engine.attack(other.room,other.a,'attack',10000,-100000);assert.equal(other.b.hp,100);
 });
 test('ranged weapon hits triple knockback without sprint amplification or melee changes',()=>{
- for(const weapon of ['bow','crossbow','trident','frost','enchanted','blazefire']){
+ for(const weapon of ['crossbow','trident','frost','enchanted','blazefire']){
   const {engine,room,a,b}=setup();a.input={forward:true,sprint:true};
   engine.damage(room,b,a,1,10000,{weapon,origin:{rangedWeapon:true}});
   assert.equal(Math.hypot(b.kx,b.kz),15,weapon);assert.equal(b.vy,8.1,weapon);
  }
  const {engine,room,a,b}=setup();engine.damage(room,b,a,1,10000,{weapon:'sword'});assert.equal(Math.hypot(b.kx,b.kz),5);assert.equal(b.vy,2.7);
+});
+
+test('actual charged bow arrows apply six times a normal sword hit knockback',()=>{
+ const sword=setup();sword.engine.attack(sword.room,sword.a,'attack',10000);
+ for(const sprint of [false,true]){
+  const {engine,room,a,b}=setup();a.input={sprint,forward:sprint};engine.select(a,'bow');
+  assert.ok(engine.attack(room,a,'draw',10000));assert.ok(engine.attack(room,a,'release',11000));
+  let hit=false;for(let i=0;i<10;i++){engine.tick(room,11000+i*17,1/60);if(b.hp<100){hit=true;break;}}
+  assert.ok(hit);assert.equal(b.hp,74);assert.equal(Math.hypot(b.kx,b.kz),Math.hypot(sword.b.kx,sword.b.kz)*6);assert.ok(Math.abs(b.vy-sword.b.vy*6)<1e-10);
+ }
 });
