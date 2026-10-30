@@ -161,7 +161,7 @@ socket.on('state',state=>{
 document.addEventListener('visibilitychange',()=>{keys.clear();if(self)self.jumpQueued=false;if(document.hidden){document.exitPointerLock();if(self&&socket.connected&&!reconnecting)socket.emit('input',controls());}last=performance.now();accumulator=0;});
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();viewCamera.aspect=camera.aspect;viewCamera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 function frame(now){
- requestAnimationFrame(frame);const rawMs=now-last,dt=Math.min(rawMs/1000,.1);last=now;if(document.hidden)return;
+ requestAnimationFrame(frame);const rawMs=now-last,dt=Math.min(rawMs/1000,.1);last=now;if(document.hidden)return;if(self&&objective.match?.mode==='upgrade_wars'&&objective.match.modeState?.upgradeWars?.phase==='shopping'){upgradeView.frame();accumulator=0;return;}
  if(self){
   accumulator+=dt;const input=controls();while(accumulator>=1/60){if(self.hp>0&&!objective.finished&&!reconnecting)World.step(self,self.blocking?{...input,sprint:false}:input,1/60);accumulator-=1/60;}
   const factor=1-Math.exp(-8*dt);

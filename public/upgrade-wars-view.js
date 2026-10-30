@@ -1,5 +1,38 @@
 const Catalog=window.UpgradeItems,colors={green:'#7ed795',blue:'#79baf5',purple:'#c39af6'},icons=new Map();
-export function itemIcon(id){if(icons.has(id))return icons.get(id);const item=Catalog.items[id],canvas=document.createElement('canvas');canvas.width=canvas.height=16;const c=canvas.getContext('2d');c.fillStyle='#15232b';c.fillRect(0,0,16,16);c.fillStyle=colors[item.rarity];const n=item.icon;for(let y=2;y<14;y++)for(let x=2;x<14;x++){const dx=x-7.5,dy=y-7.5,shape=n%5;if((shape===0?Math.abs(dx)+Math.abs(dy)<6:shape===1?Math.abs(dx)<2||Math.abs(dy)<2:shape===2?dx*dx+dy*dy<29:shape===3?Math.abs(dx)<5&&Math.abs(dy)<5:Math.abs(dx-dy)<3)&&((x+y+n)%5!==0))c.fillRect(x,y,1,1);}c.fillStyle='#ffffff';for(let i=0;i<5;i++)if((n+1)&(1<<i))c.fillRect(3+i*2,13,1,1);const url=canvas.toDataURL();icons.set(id,url);return url;}
+export function itemIcon(id){if(icons.has(id))return icons.get(id);const item=Catalog.items[id],canvas=document.createElement('canvas');canvas.width=canvas.height=16;const c=canvas.getContext('2d');c.fillStyle='#15232b';c.fillRect(0,0,16,16);const tone=colors[item.rarity],white='#edf2d5',gold='#e6c36b',dark='#738a9d';const r=(x,y,w,h,color=tone)=>{c.fillStyle=color;c.fillRect(x,y,w,h);};const line=(x,y,dx,dy,n,color=tone)=>{for(let i=0;i<n;i++)r(x+i*dx,y+i*dy,1,1,color);};const gem=()=>{for(let y=2;y<14;y++)for(let x=2;x<14;x++)if(Math.abs(x-7.5)+Math.abs(y-7.5)<6)r(x,y,1,1);line(7,3,-1,1,4,white);};const plate=()=>{r(3,3,10,3);r(4,6,8,6);r(6,12,4,2);r(6,2,4,3,'#15232b');r(5,6,1,5,white);};const boots=()=>{for(const x of [2,9]){r(x,3,4,7);r(x,10,5,3);r(x,11,2,1,white);}};const cross=()=>{r(6,2,4,12);r(2,6,12,4);};const eye=()=>{for(let x=2;x<14;x++){const y=Math.round(Math.abs(x-7.5)*.55);r(x,4+y,1,1);r(x,11-y,1,1);}r(6,6,4,4,white);r(7,6,2,4,'#15232b');};const bolt=()=>{for(let i=0;i<5;i++)r(8-i,2+i,3,2);for(let i=0;i<5;i++)r(9-i,7+i,2,2,gold);};
+ switch(id){
+ case 'iron-plating':plate();r(7,7,3,3,dark);break;
+ case 'guardian-plate':plate();r(7,6,2,6,white);r(6,8,4,2,white);break;
+ case 'titan-armor':plate();r(1,2,3,4,gold);r(12,2,3,4,gold);r(7,7,2,3,gold);break;
+ case 'running-boots':boots();line(1,3,1,0,4,white);break;
+ case 'sturdy-boots':boots();r(1,13,6,1,gold);r(8,13,6,1,gold);break;
+ case 'swift-striker':boots();line(0,2,1,0,5,gold);line(0,5,1,0,3,white);break;
+ case 'sharp-edge':line(3,12,1,-1,10,white);line(4,12,1,-1,9);line(3,9,1,1,5,gold);r(1,13,3,2,gold);break;
+ case 'feather-charm':for(let i=0;i<10;i++){r(3+i,12-i,1,1,white);if(i<7)r(3+i,8-i,3,4);}break;
+ case 'quick-gloves':r(2,7,5,6);r(3,3,1,5,white);r(5,4,1,4,white);r(9,6,5,7);r(10,2,1,5,gold);r(12,3,1,4,gold);break;
+ case 'healing-band':for(let i=0;i<12;i++){const a=i*Math.PI/6;r(Math.round(7+Math.cos(a)*5),Math.round(7+Math.sin(a)*5),2,2);}r(7,5,2,6,white);r(5,7,6,2,white);break;
+ case 'mana-crystal':gem();break;
+ case 'vitality-seed':r(7,6,2,8,gold);r(3,3,5,4);r(9,5,5,4);r(5,14,7,1,white);break;
+ case 'battle-focus':eye();r(7,0,1,3,gold);r(7,13,1,3,gold);break;
+ case 'vampire-fang':r(3,3,4,3,white);r(9,3,4,3,white);for(let i=0;i<7;i++){r(4,6+i,Math.max(1,3-Math.floor(i/3)),1);r(9,6+i,Math.max(1,3-Math.floor(i/3)),1);}break;
+ case 'thunder-stone':gem();bolt();break;
+ case 'blast-core':r(4,5,8,8,dark);r(3,7,10,4);r(7,2,2,4,gold);r(9,1,3,2,white);r(5,6,2,2,white);break;
+ case 'recovery-gem':gem();r(7,5,2,6,gold);r(5,7,6,2,gold);break;
+ case 'battle-battery':r(5,1,6,2,white);r(3,3,10,11);r(5,5,6,2,white);r(5,9,6,2,gold);r(7,8,2,4,gold);break;
+ case 'medics-emblem':cross();r(7,3,2,10,white);break;
+ case 'frost-fang':for(let i=0;i<11;i++)r(3+Math.floor(i/3),2+i,Math.max(1,7-Math.floor(i/2)),1);line(5,3,0,1,7,white);break;
+ case 'emergency-armor':plate();r(8,5,2,5,gold);r(8,12,2,1,gold);break;
+ case 'phoenix-heart':r(4,4,8,5);r(6,9,4,3);r(7,12,2,1);line(1,2,1,1,4,gold);line(14,2,-1,1,4,gold);r(5,5,2,2,white);break;
+ case 'storm-bringer':r(2,3,12,4,dark);r(4,2,7,5,white);bolt();break;
+ case 'berserkers-fury':line(2,2,1,1,12,gold);line(13,2,-1,1,12,gold);r(2,3,4,4);r(10,3,4,4);break;
+ case 'echo-strike':line(2,11,1,-1,9);line(5,13,1,-1,9,white);r(1,12,3,2,gold);r(4,14,3,1,gold);break;
+ case 'gravity-core':for(let i=0;i<25;i++){const a=i*.45,rad=5-i*.15;r(Math.round(7+Math.cos(a)*rad),Math.round(7+Math.sin(a)*rad),2,2);}break;
+ case 'second-wind':for(const y of [4,8,12]){r(2,y,9,1);r(10,y-2,3,2,white);}break;
+ case 'ultimate-engine':r(3,3,10,10);r(5,5,6,6,'#15232b');r(7,7,2,2,gold);for(const x of [1,13])r(x,6,2,4,white);for(const y of [1,13])r(6,y,4,2,white);break;
+ case 'void-armor':plate();r(7,6,4,5,'#10121c');r(8,7,2,3,white);break;
+ case 'hunters-instinct':eye();line(2,1,1,1,4,gold);line(13,1,-1,1,4,gold);break;
+ }
+ const url=canvas.toDataURL();icons.set(id,url);return url;}
 export function createUpgradeWarsView({socket,getSelf,getMatch,serverNow,clearKeys}){
  const section=document.createElement('section');section.id='upgrade-armory';section.hidden=true;section.innerHTML=`<div class="armory-shell"><header><div><p class="eyebrow">UPGRADE WARS</p><h1>ITEM ARMORY</h1><p id="armory-context"></p></div><div class="armory-count"><b id="armory-timer">45</b><span>SECONDS TO ROUND START</span></div><div class="armory-wallet"><b id="armory-money">$1,000</b><p>PERSONAL FUNDS</p></div></header><p id="armory-result"></p><nav aria-label="Item rarity" id="armory-filters"></nav><div class="armory-body"><div id="armory-catalog" aria-label="Item catalog"></div><aside><div id="armory-detail"></div><p id="armory-error" role="alert"></p><h2>YOUR LOADOUT <small id="armory-count"></small></h2><p class="armory-help">Click an equipped item to inspect or sell. Drag between slots to rearrange.</p><div id="armory-equipped"></div><button id="armory-ready">READY</button><p id="armory-roster"></p><p class="armory-help">Ready never shortens shopping. Combat begins when the shared timer reaches zero.</p><button id="armory-leave" class="secondary">Leave match</button></aside></div></div>`;document.body.append(section);
  const hud=document.createElement('div');hud.id='upgrade-hud';hud.hidden=true;document.querySelector('#hud').append(hud);const rewards=document.createElement('div');rewards.id='upgrade-rewards';rewards.setAttribute('aria-live','polite');document.body.append(rewards);

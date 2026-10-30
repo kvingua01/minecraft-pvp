@@ -33,7 +33,8 @@
     "test:seven-kits-browser": "node scripts/seven-kits-smoke.cjs",
     "test:bot-abilities-browser": "node scripts/bot-abilities-smoke.cjs",
     "test:bots-browser": "node scripts/bots-smoke.cjs",
-    "test:specialized-browser": "node scripts/specialized-smoke.cjs"
+    "test:specialized-browser": "node scripts/specialized-smoke.cjs",
+    "test:upgrade-wars-browser": "node scripts/upgrade-wars-smoke.cjs"
   },
   "engines": {
     "node": ">=20"
