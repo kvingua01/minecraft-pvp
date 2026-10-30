@@ -27,6 +27,7 @@ export function createObjectiveView({scene,socket,getSelf,clearKeys}){
       const won=individual?state.winnerSides?.includes(self.soloSide):match.winner===self.team;$('#result-title').textContent=won?(state.winnerSides?.length>1?'SHARED VICTORY':'VICTORY'):'DEFEAT';$('#result-title').className=individual?(won?'blue':'red'):match.winner;
       $('#result-score').textContent=individual?(state.reason==='disconnect'?'Match awarded after disconnect':match.mode==='ffa'?'Time: 0:00':'First to two rounds'):`RED ${Math.floor(match.scores.red)} · BLUE ${Math.floor(match.scores.blue)}`;
       $('#result-players').textContent=individual?rows.map(p=>match.mode==='duel_1v1'?`${p.name} · ${state.roundWins?.[p.side]||0}/2 wins`:`${p.name} · ${p.kills} K / ${p.deaths} D`).join('\n'):['red','blue'].map(team=>team.toUpperCase()+' TEAM\n'+players.filter(p=>p.team===team).map(p=>`${p.name} · ${p.kills} K / ${p.deaths} D · ${Math.round(p.healingDone||0)} healed · ${Math.round(p.objectiveTime||0)}s objective`).join('\n')).join('\n\n');
+      if(match.mode==='upgrade_wars')$('#result-score').textContent=`ROUNDS · RED ${state.upgradeWars.wins.red} – ${state.upgradeWars.wins.blue} BLUE`;
       if(special)extra.results();
       $('#restart').textContent=match.lobbyEnabled?'Return to Lobby':'Start Rematch';$('#restart').hidden=match.lobbyEnabled?false:match.host!==self.id;$('#host-message').hidden=match.host===self.id;
     }else{
