@@ -1,6 +1,20 @@
 const Catalog=window.UpgradeItems,colors={green:'#7ed795',blue:'#79baf5',purple:'#c39af6'},icons=new Map();
 export function itemIcon(id){if(icons.has(id))return icons.get(id);const item=Catalog.items[id],canvas=document.createElement('canvas');canvas.width=canvas.height=16;const c=canvas.getContext('2d');c.fillStyle='#15232b';c.fillRect(0,0,16,16);const tone=colors[item.rarity],white='#edf2d5',gold='#e6c36b',dark='#738a9d';const r=(x,y,w,h,color=tone)=>{c.fillStyle=color;c.fillRect(x,y,w,h);};const line=(x,y,dx,dy,n,color=tone)=>{for(let i=0;i<n;i++)r(x+i*dx,y+i*dy,1,1,color);};const gem=()=>{for(let y=2;y<14;y++)for(let x=2;x<14;x++)if(Math.abs(x-7.5)+Math.abs(y-7.5)<6)r(x,y,1,1);line(7,3,-1,1,4,white);};const plate=()=>{r(3,3,10,3);r(4,6,8,6);r(6,12,4,2);r(6,2,4,3,'#15232b');r(5,6,1,5,white);};const boots=()=>{for(const x of [2,9]){r(x,3,4,7);r(x,10,5,3);r(x,11,2,1,white);}};const cross=()=>{r(6,2,4,12);r(2,6,12,4);};const eye=()=>{for(let x=2;x<14;x++){const y=Math.round(Math.abs(x-7.5)*.55);r(x,4+y,1,1);r(x,11-y,1,1);}r(6,6,4,4,white);r(7,6,2,4,'#15232b');};const bolt=()=>{for(let i=0;i<5;i++)r(8-i,2+i,3,2);for(let i=0;i<5;i++)r(9-i,7+i,2,2,gold);};
  switch(id){
+ case 'heavy-fists':r(3,5,10,7);for(let x=3;x<13;x+=3)r(x,3,2,4,white);r(5,12,6,2,gold);break;
+ case 'lucky-charm':for(const [x,y]of [[4,3],[8,3],[4,7],[8,7]])r(x,y,4,4);r(7,10,2,4,gold);r(5,4,1,1,white);break;
+ case 'quick-recovery':cross();line(1,2,1,0,5,gold);line(10,13,1,0,5,gold);break;
+ case 'long-reach':line(2,13,1,-1,12,white);r(1,7,1,5,gold);r(1,7,4,1,gold);r(11,14,4,1,gold);r(14,10,1,5,gold);break;
+ case 'lightweight-armor':plate();line(10,3,0,1,9,white);r(2,12,3,1,gold);break;
+ case 'executioners-blade':r(6,2,4,9,white);r(7,11,2,4,gold);r(3,10,10,2);r(8,3,2,3,'#d65b66');break;
+ case 'adrenaline-rush':bolt();r(2,7,3,5,'#e26b77');r(1,8,5,2,'#e26b77');break;
+ case 'reflective-shield':plate();line(7,4,1,1,5,white);line(7,10,1,-1,5,gold);break;
+ case 'combat-medic':r(2,4,12,9);r(5,2,6,2,gold);r(7,5,2,7,white);r(5,7,6,2,white);break;
+ case 'bounty-hunter':r(3,2,10,12,gold);r(5,4,6,5,'#15232b');r(6,5,1,2,white);r(9,5,1,2,white);r(5,11,6,1,white);break;
+ case 'blood-pact':for(let y=2;y<13;y++)r(8-Math.floor((y-2)/2),y,1+2*Math.floor((y-2)/2),1,'#d85870');r(6,8,2,3,white);break;
+ case 'chain-reaction':for(const [x,y]of [[2,2],[9,4],[4,10]]){r(x,y,5,4);r(x+1,y+1,2,1,white);}line(6,5,1,1,5,gold);break;
+ case 'time-warp':r(3,2,10,2,gold);r(3,12,10,2,gold);for(let i=0;i<4;i++){r(4+i,4+i,8-2*i,1);r(4+i,11-i,8-2*i,1,white);}break;
+ case 'overcharge':r(2,3,12,10);r(4,5,8,6,'#15232b');bolt();r(0,6,2,4,gold);r(14,6,2,4,gold);break;
  case 'iron-plating':plate();r(7,7,3,3,dark);break;
  case 'guardian-plate':plate();r(7,6,2,6,white);r(6,8,4,2,white);break;
  case 'titan-armor':plate();r(1,2,3,4,gold);r(12,2,3,4,gold);r(7,7,2,3,gold);break;
@@ -37,7 +51,7 @@ export function createUpgradeWarsView({socket,getSelf,getMatch,serverNow,clearKe
  const section=document.createElement('section');section.id='upgrade-armory';section.hidden=true;section.innerHTML=`<div class="armory-shell"><header><div><p class="eyebrow">UPGRADE WARS</p><h1>ITEM ARMORY</h1><p id="armory-context"></p></div><div class="armory-count"><b id="armory-timer">45</b><span>SECONDS TO ROUND START</span></div><div class="armory-wallet"><b id="armory-money">$1,000</b><p>PERSONAL FUNDS</p></div></header><p id="armory-result"></p><nav aria-label="Item rarity" id="armory-filters"></nav><div class="armory-body"><div id="armory-catalog" aria-label="Item catalog"></div><aside><div id="armory-detail"></div><p id="armory-error" role="alert"></p><h2>YOUR LOADOUT <small id="armory-count"></small></h2><p class="armory-help">Click an equipped item to inspect or sell. Drag between slots to rearrange.</p><div id="armory-equipped"></div><button id="armory-ready">READY</button><p id="armory-roster"></p><p class="armory-help">Ready never shortens shopping. Combat begins when the shared timer reaches zero.</p><button id="armory-leave" class="secondary">Leave match</button></aside></div></div>`;document.body.append(section);
  const hud=document.createElement('div');hud.id='upgrade-hud';hud.hidden=true;document.querySelector('#hud').append(hud);const rewards=document.createElement('div');rewards.id='upgrade-rewards';rewards.setAttribute('aria-live','polite');document.body.append(rewards);
  const $=s=>document.querySelector(s);let filter='all',selected=Catalog.ids[0],stamp='',wasShopping=false,pending=false,players=[];
- for(const value of ['all','green','blue','purple']){const b=document.createElement('button');b.textContent=value.toUpperCase();b.dataset.filter=value;b.onclick=()=>{filter=value;stamp='';paint();};$('#armory-filters').append(b);}
+ for(const value of ['all','green','blue','purple']){const b=document.createElement('button');b.textContent=value.toUpperCase()+' ('+(value==='all'?Catalog.ids.length:Object.values(Catalog.items).filter(i=>i.rarity===value).length)+')';b.dataset.filter=value;b.onclick=()=>{filter=value;stamp='';paint();};$('#armory-filters').append(b);}
  function send(action,data){pending=true;paint();socket.timeout(4000).emit('upgrade-'+action,data,(error,result)=>{pending=false;$('#armory-error').textContent=error?'Connection timed out. Check your balance before retrying.':result?.error||'';stamp='';paint();});}
  function image(id){const img=document.createElement('img');img.src=itemIcon(id);img.alt=Catalog.items[id].name;return img;}
  function paint(){const p=getSelf(),u=p?.upgradeWars;if(!u||!wasShopping)return;const signature=JSON.stringify([filter,selected,u.money,u.items,u.ready,pending]);if(signature===stamp)return;stamp=signature;
