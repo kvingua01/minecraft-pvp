@@ -3,7 +3,12 @@
 export function animateWeapon(group,key,phase){
  const a=Math.sin(Math.PI*Math.max(0,Math.min(1,phase)));
  group.rotation.set(0,0,-.22);
- if(['sword','katana','dagger'].includes(key)){group.rotation.z+=a*1.4;group.rotation.x=-a*.6;}
+ if(['chainscythe','obsidianclaws'].includes(key)){group.rotation.z+=a*1.5;group.rotation.y=-a*.5;}
+ else if(['shellgauntlets','icegauntlets','coilarms','portalgauntlet'].includes(key)){group.position.z-=a*.3;group.rotation.x=-a*.45;}
+ else if(key==='boomerang'){group.rotation.y=-a*1.6;group.position.z-=a*.25;}
+ else if(key==='moltenhammer'){group.rotation.x=-a*1.5;group.position.y-=a*.1;}
+ else if(['mortar','fireworklauncher','potioncannon'].includes(key)){group.rotation.x=-a*.6;group.position.z+=a*.16;}
+ else if(['sword','katana','dagger'].includes(key)){group.rotation.z+=a*1.4;group.rotation.x=-a*.6;}
  else if(['axe','pickaxe'].includes(key)){group.rotation.z+=a*.9;group.rotation.x=-a*1.1;}
  else if(key==='mace'){group.rotation.x=-a*1.6;group.position.y-=a*.08;}
  else if(key==='trident'){group.rotation.x=-a*.75;group.rotation.y=-a*.2;group.position.z-=a*.32;}

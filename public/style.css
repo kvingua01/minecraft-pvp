@@ -40,3 +40,5 @@
 #mode-progress,#boss-health progress{display:block;width:100%;height:12px;accent-color:#d1e696}#boss-health{color:#ffda77;font-size:12px;margin:8px 0}#mode-scoreboard{white-space:pre-wrap}
 
 .lobby-bot-controls{margin:12px 0;padding:10px;border:1px solid #78947b55}.bot-buttons{display:flex;gap:8px}.bot-buttons button{flex:1}#manual-bot-info{font-size:11px;color:#c4d6cc}
+
+.kit-heading{grid-column:1/-1;margin:12px 0 4px;padding:8px 4px;border-bottom:2px solid #8199a4;text-align:left;letter-spacing:.08em}.kit-heading.healers{color:#9ee6b7}.kit-heading.damage{color:#efa39c}.kit-heading.tanks{color:#a3d7f2}#overhealth-label{color:#f2cc87;font-size:12px}#hero-description,#lobby-class-info{white-space:pre-line}

@@ -1,4 +1,5 @@
 import * as THREE from '/vendor/three.module.js';
+import {buildSpecialWeapon} from '/specialized-view.js';
 import {pixelTool} from '/pixel-items.js';
 import {paintVitals} from '/hud-icons.js';
 import {animateWeapon} from '/weapon-animation.js';
@@ -11,12 +12,13 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
   // Keep the offhand bright and unmistakable independently of world lighting.
   core.material=new THREE.MeshBasicMaterial({color:0xe6fbff});band.material=new THREE.MeshBasicMaterial({color:0x78cde8});cap.material=new THREE.MeshBasicMaterial({color:0xffffff});
   hand.position.set(.4,-.36,-.65);hand.scale.setScalar(.65);
+  let primaryHeld=false,lastPrimary=0;
   let hotbarStamp='',weapon='',blocking=false,clockOffset=0,clockSynced=false,swing=0,flash=0,hit=0,drawHeld=false,windNoticeAt=0,windThrownAt=0;
   const bursts=new Set(),arrows=new Map(),feed=document.querySelector('#kill-feed');
   function buildWeapon(group,key,remote=false){
     if(remote)group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();});group.clear();const scale=remote ? .8 : 1;group.userData.string=null;group.userData.arrow=null;
     if(!remote)cube(group,.16,.34,.18,0xc8916e,0,-.12,0);
-    if(key.startsWith('flask:')){cube(group,.18,.25,.18,window.PotionRules.items[key.slice(6)].color,0,.18,0);cube(group,.08,.13,.08,0xc5dcd6,0,.36,0);cube(group,.09,.05,.09,0xb18f61,0,.45,0);
+    if(buildSpecialWeapon(group,key,cube)){}else if(key.startsWith('flask:')){cube(group,.18,.25,.18,window.PotionRules.items[key.slice(6)].color,0,.18,0);cube(group,.08,.13,.08,0xc5dcd6,0,.36,0);cube(group,.09,.05,.09,0xb18f61,0,.45,0);
     }else if(['sword','axe','mace','katana','dagger','pickaxe'].includes(key)){
       pixelTool(group,key);
 
@@ -44,14 +46,14 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
       if(result?.ok){p.windReady=result.readyAt;windThrownAt=performance.now();}
     });
   }
-  function release(){if(drawHeld&&getSelf())socket.volatile.emit('action',{kind:'cancel'});drawHeld=false;blocking=false;}
+  function release(){primaryHeld=false;if(drawHeld&&getSelf())socket.volatile.emit('action',{kind:'cancel'});drawHeld=false;blocking=false;}
   window.addEventListener('mousedown',e=>{
     if(!isLocked()||!getSelf()||getSelf().hp<=0)return;
     if(e.button===2){throwWind();return;}
     if(e.button===0&&getSelf().hasItemSlots&&getSelf().heldItem?.kind!=='weapon'){const item=getSelf().heldItem;if(item?.kind==='potion'){socket.emit('input',getInput());socket.timeout(4000).emit('potion-use',{id:item.id},(error,result)=>{document.querySelector('#combat-note').textContent=error?'Potion request timed out.':result?.error||'POTION USED';windNoticeAt=performance.now();});}return;}
-    if(e.button===0){if(C.weapons[getSelf().weapon].charge){drawHeld=true;action('draw');}else action('attack');}
+    if(e.button===0){if(getSelf().hero==='cleric'&&getSelf().weapon==='holystaff'){primaryHeld=true;lastPrimary=performance.now();}if(C.weapons[getSelf().weapon].charge){drawHeld=true;action('draw');}else action('attack');}
   });
-  window.addEventListener('mouseup',e=>{if(e.button===0&&drawHeld){action('release');drawHeld=false;}if(e.button===2){blocking=false;if(getSelf())socket.volatile.emit('input',getInput());}});
+  window.addEventListener('mouseup',e=>{if(e.button===0)primaryHeld=false;if(e.button===0&&drawHeld){action('release');drawHeld=false;}if(e.button===2){blocking=false;if(getSelf())socket.volatile.emit('input',getInput());}});
   window.addEventListener('blur',release);
   document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement){release();if(getSelf())socket.volatile.emit('input',{...getInput(),block:false});}});
 
@@ -75,6 +77,7 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
         if(['tnt','tnt-toss','barrage-tnt'].includes(a.kind)){cube(m,.3,.3,.3,0xc74b39,0,0,0);cube(m,.31,.08,.31,0xeadbc6,0,0,0);cube(m,.03,.1,.03,0x332f2a,0,.2,0);}
         else if(a.kind==='trident'){cube(m,.05,.05,.9,0x62bcb8,0,0,0);cube(m,.4,.05,.06,0x9be5df,0,0,.4);for(const x of [-.17,0,.17])cube(m,.05,.05,.22,0x9be5df,x,0,.52);}
         else if(['skull','barrage-skull'].includes(a.kind)){cube(m,.28,.26,.25,0x45414f,0,0,0);for(const x of [-.07,.07])cube(m,.05,.04,.02,0xb7a1d7,x,.04,.13);}
+        else if(a.kind?.startsWith('special:')){const kind=a.kind.slice(8),healing=['healing-vial','time-orb','warm-feather'].includes(kind);if(kind==='boomerang'){for(const side of [-1,1]){const b=cube(m,.25,.06,.1,0xb497ee,side*.1,0,0);b.rotation.y=side*.5;}}else if(kind==='warm-feather'){for(let i=0;i<4;i++)cube(m,.08,.04,.1,0xffc16f,i*.04,0,i*.04);}else {cube(m,.2,.2,.2,healing?0x8ff4b2:kind==='firework'?0xf692df:0xb3a0e8,0,0,0);cube(m,.08,.08,.3,0xf1e3c4,0,0,0);}}
         else if(['blazefire','witherbolt','sticky','totem'].includes(a.kind))cube(m,.2,.2,.2,({blazefire:0xffa736,witherbolt:0x675a7d,sticky:0x88cb5b,totem:0xb5ce88})[a.kind],0,0,0);
         else cube(m,size,size,flask ? .22 : .65,color,0,0,0);scene.add(m);arrows.set(a.id,m);
       }
@@ -87,6 +90,8 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     for(const b of bursts){const age=(now-b.start)/500;b.mesh.scale.setScalar(1+age*3);b.mesh.material.opacity=Math.max(0,.8*(1-age));if(age>=1){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();bursts.delete(b);}}
     const p=getSelf();hand.visible=wind.visible=!!p;if(!p)return;
     const time=Date.now()+clockOffset,w=C.weapons[p.weapon];
+    if(primaryHeld&&now-lastPrimary>=250){lastPrimary=now;action('attack');}
+    if(!isLocked()||p.hp<=0||p.weapon!=='holystaff')primaryHeld=false;
     if(weapon!==p.weapon){weapon=p.weapon;buildWeapon(hand,weapon);}
     const duration=w.animationDuration||(['crossbow','toxicbow'].includes(weapon)?w.cooldown:Math.min(w.cooldown,800)),phase=Math.min(1,(now-swing)/duration);
     hand.position.set(.4,-.36,-.65);animateWeapon(hand,weapon,swing?phase:0);if(weapon==='trident'&&p.status?.riptide>time)hand.rotation.z=now*.04;
@@ -97,7 +102,8 @@ export function createCombatView({camera,scene,cube,socket,getSelf,getInput,isLo
     if(windNoticeAt&&now-windNoticeAt>2400){document.querySelector('#combat-note').textContent='';windNoticeAt=0;}
     hand.visible=!(p.weapon==='trident'&&p.status?.tridentOut>time)&&p.hp>0&&(!p.hasItemSlots||p.heldItem?.kind==='weapon');
     paintVitals(p);
-    document.querySelector('#health').max=p.maxHp||100;document.querySelector('#health').value=p.hp;document.querySelector('#health-label').textContent=`${Math.ceil(p.hp)} / ${p.maxHp||100}`;
+    document.querySelector('#health').max=p.maxHp||100;document.querySelector('#health').value=p.hp;document.querySelector('#health-label').textContent=`${Math.ceil(p.hp)} / ${p.maxHp||100} HP`;
+    document.querySelector('#overhealth-label').textContent=p.overhealth>0&&p.overhealthUntil>time?`+${Math.ceil(p.overhealth)} TEMP HP · ${Math.max(0,(p.overhealthUntil-time)/1000).toFixed(1)}s`:'';
     document.querySelector('#armor-label').textContent=`ARMOR ${Math.round(p.armor*100)}% · 4 PIECES`;
     const remaining=Math.max(0,p.nextAttack-time);document.querySelector('#attack-ready').value=w.cooldown?1-remaining/(w.cooldown/(p.attackSpeed||1)):1;
     document.querySelector('#weapon-status').textContent=p.hasItemSlots&&p.heldItem?.kind!=='weapon'?(p.heldItem?.kind==='potion'?window.PotionRules.items[p.heldItem.id].name.toUpperCase()+' · CLICK / F TO USE':'EMPTY HOTBAR SLOT'):p.drawAt?`DRAW ${Math.min(100,Math.round((time-p.drawAt)/10))}%`:remaining>0?(['crossbow','toxicbow'].includes(weapon)?'RELOADING ':'READY IN ')+(remaining/1000).toFixed(1)+'s':C.inSpawn(p)?'SPAWN SANCTUARY':p.protectedUntil>time?'SPAWN PROTECTION':'READY';

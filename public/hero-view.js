@@ -1,3 +1,4 @@
+import {buildSpecialEffect,updateSpecialEffect} from '/specialized-view.js';
 import * as THREE from '/vendor/three.module.js';
 import {portrait} from '/skins.js';
 import {buildKitEffect,updateKitEffect} from '/extra-kit-view.js';
@@ -11,7 +12,8 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   $(selector).value=value;grid.dataset.selected=value;
   for(const button of $(selector+'-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.hero===value));
  }
- function describe(){const h=H.heroes[$('#hero').value];$('#hero-description').textContent=`${h.health} HP · ${Math.round(h.armor*100)}% armor · ${h.weapon} · backups: ${h.melee} / ${h.ranged}\nQ — ${h.q.name}: ${h.q.description}\nE — ${h.e.name}: ${h.e.description}\nR — ${h.r.name}: ${h.r.description}`;}
+ function describe(){const h=H.heroes[$('#hero').value];$('#hero-description').textContent=window.kitDescription(h);}
+
  function queueHero(id){
   if(getSelf()?.classLocked){$('#class-note').textContent='Kit selection is locked for this mode.';return;}
   if(!socket.connected||!getSelf()){$('#class-note').textContent='Reconnect before choosing your next hero.';return;}
@@ -22,7 +24,9 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
  }
  for(const selector of ['#hero','#next-hero']){
   const select=$(selector),grid=$(selector+'-options');
+  let category='';
   for(const [id,h]of Object.entries(H.heroes)){
+   const next=h.category||'Normal Kits';if(category!==next){category=next;if(h.specialized&&!grid.querySelector('[data-specialized-heading]')){const title=document.createElement('h2');title.textContent='SPECIALIZED KITS';title.className='kit-heading';title.dataset.specializedHeading='true';grid.append(title);}const heading=document.createElement('h3');heading.className='kit-heading '+(h.category||'normal').toLowerCase();heading.textContent=(h.category?({Healers:'✚ ',Damage:'⚔ ',Tanks:'▣ '}[h.category]):'')+category.toUpperCase();grid.append(heading);}
    const option=document.createElement('option');option.value=id;option.textContent=`${h.name} · ${h.role}`;select.append(option);
    const button=document.createElement('button');button.type='button';button.dataset.hero=id;button.className='hero-card';button.setAttribute('aria-pressed','false');
    const name=document.createElement('strong'),role=document.createElement('span'),stats=document.createElement('small');name.textContent=h.name;role.textContent=h.role;stats.textContent=`${h.health} HP · ${Math.round(h.armor*100)}% armor`;
@@ -41,7 +45,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   if(e.source===getSelf()?.id&&(e.type==='ability'||e.type==='slam')){flashedAt=performance.now();$('#ability-message').textContent=e.name||'GROUND SLAM';flash.style.background=e.hero==='frost'?'#83cfff22':'#d5e58a22';}
  });
  function build(e){const group=new THREE.Group();group.position.set(e.x,e.y,e.z);
-  const color=e.extra?(['tnt-barrage','fused-tnt'].includes(e.kind)?0xee7148:['wither-barrage','soul-flight'].includes(e.kind)?0x8c74a5:['wave','riptide'].includes(e.kind)?0x72bfe4:e.kind==='fang'?0xe4d7b3:['fire-spin','flame-rise','blaze-trail'].includes(e.kind)?0xf9ad40:0x87c463):e.kind==='wall'?e.color:['inferno','firetrail'].includes(e.kind)?0xf59a42:['plague','vines'].includes(e.kind)?0x78a63b:e.kind==='splash'?window.PotionRules.items[e.potionKind].color:e.kind==='poison'?0x94c661:e.kind==='blizzard'?0x9cdbff:e.kind==='storm'?0xe1bb8d:0x9ce4bd;
+  const color=e.specialized?(e.color||0xa5dfc2):e.extra?(['tnt-barrage','fused-tnt'].includes(e.kind)?0xee7148:['wither-barrage','soul-flight'].includes(e.kind)?0x8c74a5:['wave','riptide'].includes(e.kind)?0x72bfe4:e.kind==='fang'?0xe4d7b3:['fire-spin','flame-rise','blaze-trail'].includes(e.kind)?0xf9ad40:0x87c463):e.kind==='wall'?e.color:['inferno','firetrail'].includes(e.kind)?0xf59a42:['plague','vines'].includes(e.kind)?0x78a63b:e.kind==='splash'?window.PotionRules.items[e.potionKind].color:e.kind==='poison'?0x94c661:e.kind==='blizzard'?0x9cdbff:e.kind==='storm'?0xe1bb8d:0x9ce4bd;
   if(e.kind==='wall'){
    const alongX=e.w>e.d,cols=Math.round(alongX?e.w:e.d),rows=Math.round(e.h),mesh=new THREE.InstancedMesh(blockGeometry,new THREE.MeshLambertMaterial({color}),cols*rows),dummy=new THREE.Object3D();
    mesh.userData.ownedMaterial=true;
@@ -55,7 +59,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
    const column=new THREE.Mesh(new THREE.CylinderGeometry(e.radius,e.radius,1.5,20,1,true),mat.clone());column.material.opacity=.07;column.position.y=.75;group.add(column);
    if(['storm','blizzard','inferno','plague','roots','firetrail','vines'].includes(e.kind)){const rain=new THREE.InstancedMesh(blockGeometry,new THREE.MeshLambertMaterial({color}),12);rain.userData.ownedMaterial=true;rain.userData.radius=e.radius;rain.instanceMatrix.setUsage(THREE.DynamicDrawUsage);group.userData.rain=rain;group.add(rain);}
   }
-  buildKitEffect(e,group,cube);scene.add(group);return {group,kind:e.kind,state:e};
+  buildSpecialEffect(e,group,cube);buildKitEffect(e,group,cube);scene.add(group);return {group,kind:e.kind,state:e};
  }
  function remove(effect){scene.remove(effect.group);effect.group.traverse(m=>{if(m.userData.ownedMaterial)m.material.dispose();if(m.isMesh&&m.geometry!==undefined&&!m.isInstancedMesh){if(m.geometry.type!=='BoxGeometry')m.geometry.dispose();if(['RingGeometry','CylinderGeometry'].includes(m.geometry.type))m.material.dispose();}});}
  function snapshot(state){const ids=new Set();for(const e of state.effects||[]){ids.add(e.id);let effect=effects.get(e.id);if(!effect){effect=build(e);effects.set(e.id,effect);}effect.group.position.set(e.x,e.y,e.z);effect.state=e;}
@@ -70,7 +74,7 @@ export function createHeroView({scene,camera,cube,socket,getSelf,getInput,isLock
   const active=Object.entries(p.status||{}).filter(([_,end])=>end>time).map(([name])=>({slowPotion:'SLOWED',fireResistance:'FIRE RESISTANCE',regeneration:'REGENERATION'}[name]||name.toUpperCase()));$('#hero-status').textContent=active.join(' · ');
   $('#next-hero').disabled=!!p.classLocked;for(const button of $('#next-hero-options').querySelectorAll('button'))button.disabled=!!p.classLocked;if(p.classLocked){queuedHero=null;$('#class-note').dataset.modeLocked='1';$('#class-note').textContent=p.mode==='random_kit'?'Your next kit is chosen automatically on respawn.':p.mode==='kit_ladder'?'Earn a confirmed elimination to advance to the next kit.':'Duel kits are locked until the match ends.';}else if($('#class-note').dataset.modeLocked){$('#class-note').textContent='';delete $('#class-note').dataset.modeLocked;}
   if(queuedHero===p.pendingHero)queuedHero=null;paintPicker('#next-hero',queuedHero||p.pendingHero||p.hero);
-  for(const e of effects.values()){updateKitEffect(e.state,e,now,time);const rain=e.group.userData.rain;if(!rain)continue;for(let i=0;i<12;i++){rainDummy.position.set(Math.sin(i*2.4)*rain.userData.radius*.8,1+((now*.004+i*.5)%5),Math.cos(i*2.4)*rain.userData.radius*.8);rainDummy.scale.set(.05,e.kind==='storm'?.65:.15,.05);rainDummy.updateMatrix();rain.setMatrixAt(i,rainDummy.matrix);}rain.instanceMatrix.needsUpdate=true;}
+  for(const e of effects.values()){updateSpecialEffect(e.state,e,now,time);updateKitEffect(e.state,e,now,time);const rain=e.group.userData.rain;if(!rain)continue;for(let i=0;i<12;i++){rainDummy.position.set(Math.sin(i*2.4)*rain.userData.radius*.8,1+((now*.004+i*.5)%5),Math.cos(i*2.4)*rain.userData.radius*.8);rainDummy.scale.set(.05,e.kind==='storm'?.65:.15,.05);rainDummy.updateMatrix();rain.setMatrixAt(i,rainDummy.matrix);}rain.instanceMatrix.needsUpdate=true;}
  }
  function clear(){queuedHero=null;solidsKey='';cachedSolids=[];for(const e of effects.values())remove(e);effects.clear();dagger.visible=false;burst.visible=false;$('#hero-hud').hidden=true;$('#class-note').textContent='';flashedAt=0;}
  return {snapshot,frame,clear,diagnostics:()=>[...effects.values()].map(e=>e.kind)};

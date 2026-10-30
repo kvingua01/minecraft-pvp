@@ -349,3 +349,14 @@ As host, choose a mode in the lobby, click **Add bot** as many times as you want
 ### Custom Payload Escort railways
 
 Choose **Payload Escort** in the lobby to access **Minecart Canyon**, **Nether Railway**, **Castle Supply Run**, **Frozen Express**, and **Jungle Expedition**, alongside the existing payload maps. Each new railway has a winding functional track, two synchronized checkpoints, protected spawns and alternate routes. Checkpoints mark progress without extending the five-minute timer. See [the custom map report](docs/custom-payload-maps.md) for routes, timings, changed files and validation. Run `npm run test:payload-maps-browser` for the two-client map/checkpoint check.
+
+## Fifteen Specialized Kits
+
+All 21 Normal Kits remain above the new Healers, Damage and Tanks groups in the
+same exclusive kit selector. Healers use slot 1 to heal teammates (Life Aura is
+passive; hold left-click for Cleric) and slot 2 + left-click for their weak ranged
+attack. Right-click remains wind charge. Healers retain Healing and Regeneration
+potions; their primary, Q and R never heal themselves. Tanks have 252 HP and
+specified defensive abilities; temporary overhealth is a separate 72 HP buffer.
+See [specialized-kits.md](docs/specialized-kits.md) for mechanics, controls and
+testing. Run `npm test` and `npm run test:specialized-browser` for this update.
