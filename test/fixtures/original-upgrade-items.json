@@ -1,0 +1,308 @@
+{
+  "iron-plating": {
+    "id": "iron-plating",
+    "name": "Iron Plating",
+    "price": 250,
+    "rarity": "green",
+    "description": "Maximum HP +15.",
+    "stats": {
+      "hp": 15
+    },
+    "icon": 0
+  },
+  "running-boots": {
+    "id": "running-boots",
+    "name": "Running Boots",
+    "price": 300,
+    "rarity": "green",
+    "description": "Movement speed +8%.",
+    "stats": {
+      "speed": 0.08
+    },
+    "icon": 1
+  },
+  "sharp-edge": {
+    "id": "sharp-edge",
+    "name": "Sharp Edge",
+    "price": 400,
+    "rarity": "green",
+    "description": "Primary weapon damage +8%.",
+    "stats": {
+      "damage": 0.08
+    },
+    "icon": 2
+  },
+  "feather-charm": {
+    "id": "feather-charm",
+    "name": "Feather Charm",
+    "price": 200,
+    "rarity": "green",
+    "description": "Jump height +15%.",
+    "stats": {
+      "jump": 0.15
+    },
+    "icon": 3
+  },
+  "quick-gloves": {
+    "id": "quick-gloves",
+    "name": "Quick Gloves",
+    "price": 350,
+    "rarity": "green",
+    "description": "Primary attack speed +8%.",
+    "stats": {
+      "attack": 0.08
+    },
+    "icon": 4
+  },
+  "healing-band": {
+    "id": "healing-band",
+    "name": "Healing Band",
+    "price": 250,
+    "rarity": "green",
+    "description": "Healing received +10%.",
+    "stats": {
+      "received": 0.1
+    },
+    "icon": 5
+  },
+  "mana-crystal": {
+    "id": "mana-crystal",
+    "name": "Mana Crystal",
+    "price": 350,
+    "rarity": "green",
+    "description": "Q/E cooldowns reduced 7%; R unchanged.",
+    "stats": {
+      "cooldown": 0.07
+    },
+    "icon": 6
+  },
+  "sturdy-boots": {
+    "id": "sturdy-boots",
+    "name": "Sturdy Boots",
+    "price": 250,
+    "rarity": "green",
+    "description": "Fall damage and incoming knockback reduced 8%.",
+    "stats": {
+      "fall": 0.08,
+      "knock": 0.08
+    },
+    "icon": 7
+  },
+  "vitality-seed": {
+    "id": "vitality-seed",
+    "name": "Vitality Seed",
+    "price": 300,
+    "rarity": "green",
+    "description": "Regenerate 1 HP/s after six seconds without enemy damage.",
+    "stats": {},
+    "icon": 8
+  },
+  "battle-focus": {
+    "id": "battle-focus",
+    "name": "Battle Focus",
+    "price": 350,
+    "rarity": "green",
+    "description": "Ultimate charge generation +8%.",
+    "stats": {
+      "ult": 0.08
+    },
+    "icon": 9
+  },
+  "guardian-plate": {
+    "id": "guardian-plate",
+    "name": "Guardian Plate",
+    "price": 900,
+    "rarity": "blue",
+    "description": "Maximum HP +30.",
+    "stats": {
+      "hp": 30
+    },
+    "icon": 10
+  },
+  "vampire-fang": {
+    "id": "vampire-fang",
+    "name": "Vampire Fang",
+    "price": 850,
+    "rarity": "blue",
+    "description": "Restore 8 HP on an elimination.",
+    "stats": {},
+    "icon": 11
+  },
+  "thunder-stone": {
+    "id": "thunder-stone",
+    "name": "Thunder Stone",
+    "price": 1100,
+    "rarity": "blue",
+    "description": "Every fifth damaging primary hit chains 8 lightning damage to one other visible enemy within 5 blocks. One-second internal cooldown.",
+    "stats": {},
+    "icon": 12
+  },
+  "swift-striker": {
+    "id": "swift-striker",
+    "name": "Swift Striker",
+    "price": 1050,
+    "rarity": "blue",
+    "description": "Movement speed +10%; primary attack speed +5%.",
+    "stats": {
+      "speed": 0.1,
+      "attack": 0.05
+    },
+    "icon": 13
+  },
+  "blast-core": {
+    "id": "blast-core",
+    "name": "Blast Core",
+    "price": 950,
+    "rarity": "blue",
+    "description": "Eligible explosive weapon/ability radius +20%; damage unchanged.",
+    "stats": {
+      "blast": 0.2
+    },
+    "icon": 14
+  },
+  "recovery-gem": {
+    "id": "recovery-gem",
+    "name": "Recovery Gem",
+    "price": 1000,
+    "rarity": "blue",
+    "description": "Regenerate 3 HP/s after five seconds without enemy damage.",
+    "stats": {},
+    "icon": 15
+  },
+  "battle-battery": {
+    "id": "battle-battery",
+    "name": "Battle Battery",
+    "price": 1100,
+    "rarity": "blue",
+    "description": "Ultimate charge generation +15%.",
+    "stats": {
+      "ult": 0.15
+    },
+    "icon": 16
+  },
+  "medics-emblem": {
+    "id": "medics-emblem",
+    "name": "Medic’s Emblem",
+    "price": 850,
+    "rarity": "blue",
+    "description": "Healing dealt and received +15%.",
+    "stats": {
+      "healing": 0.15,
+      "received": 0.15
+    },
+    "icon": 17
+  },
+  "frost-fang": {
+    "id": "frost-fang",
+    "name": "Frost Fang",
+    "price": 1150,
+    "rarity": "blue",
+    "description": "Every fourth damaging primary hit slows its target 20% for 1.5 seconds. DoT does not count.",
+    "stats": {},
+    "icon": 18
+  },
+  "emergency-armor": {
+    "id": "emergency-armor",
+    "name": "Emergency Armor",
+    "price": 1050,
+    "rarity": "blue",
+    "description": "Crossing below 30% HP grants 20% resistance for four seconds. 30-second cooldown.",
+    "stats": {},
+    "icon": 19
+  },
+  "titan-armor": {
+    "id": "titan-armor",
+    "name": "Titan Armor",
+    "price": 2700,
+    "rarity": "purple",
+    "description": "Maximum HP +50; damage resistance +8%.",
+    "stats": {
+      "hp": 50,
+      "resist": 0.08
+    },
+    "icon": 20
+  },
+  "phoenix-heart": {
+    "id": "phoenix-heart",
+    "name": "Phoenix Heart",
+    "price": 3000,
+    "rarity": "purple",
+    "description": "Once per round, survive lethal damage at 20 HP with one second of protection.",
+    "stats": {},
+    "icon": 21
+  },
+  "storm-bringer": {
+    "id": "storm-bringer",
+    "name": "Storm Bringer",
+    "price": 2900,
+    "rarity": "purple",
+    "description": "Every fourth damaging primary hit deals 12 lightning damage to visible enemies within 4 blocks. One-second internal cooldown.",
+    "stats": {},
+    "icon": 22
+  },
+  "berserkers-fury": {
+    "id": "berserkers-fury",
+    "name": "Berserker’s Fury",
+    "price": 2100,
+    "rarity": "purple",
+    "description": "Deal 20% more player damage while below 40% HP. Item damage is not amplified.",
+    "stats": {},
+    "icon": 23
+  },
+  "echo-strike": {
+    "id": "echo-strike",
+    "name": "Echo Strike",
+    "price": 2500,
+    "rarity": "purple",
+    "description": "Every fifth primary hit repeats 50% of its damage without triggering other weapon items.",
+    "stats": {},
+    "icon": 24
+  },
+  "gravity-core": {
+    "id": "gravity-core",
+    "name": "Gravity Core",
+    "price": 2400,
+    "rarity": "purple",
+    "description": "Direct damage slows an enemy 15% for two seconds. Six-second cooldown.",
+    "stats": {},
+    "icon": 25
+  },
+  "second-wind": {
+    "id": "second-wind",
+    "name": "Second Wind",
+    "price": 2300,
+    "rarity": "purple",
+    "description": "Eliminations restore 20 HP and grant +15% movement speed for three seconds.",
+    "stats": {},
+    "icon": 26
+  },
+  "ultimate-engine": {
+    "id": "ultimate-engine",
+    "name": "Ultimate Engine",
+    "price": 2800,
+    "rarity": "purple",
+    "description": "Ultimate charge generation +25% (combined item bonus capped at 35%).",
+    "stats": {
+      "ult": 0.25
+    },
+    "icon": 27
+  },
+  "void-armor": {
+    "id": "void-armor",
+    "name": "Void Armor",
+    "price": 2600,
+    "rarity": "purple",
+    "description": "Taking 25 HP damage within two seconds grants 25% resistance for three seconds. 20-second cooldown.",
+    "stats": {},
+    "icon": 28
+  },
+  "hunters-instinct": {
+    "id": "hunters-instinct",
+    "name": "Hunter’s Instinct",
+    "price": 2200,
+    "rarity": "purple",
+    "description": "Direct damage grants +15% movement speed for two seconds. Five-second cooldown.",
+    "stats": {},
+    "icon": 29
+  }
+}

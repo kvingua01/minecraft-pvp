@@ -29,7 +29,21 @@
  ['second-wind','Second Wind',2300,'purple','Eliminations restore 20 HP and grant +15% movement speed for three seconds.',{}],
  ['ultimate-engine','Ultimate Engine',2800,'purple','Ultimate charge generation +25% (combined item bonus capped at 35%).',{ult:.25}],
  ['void-armor','Void Armor',2600,'purple','Taking 25 HP damage within two seconds grants 25% resistance for three seconds. 20-second cooldown.',{}],
- ['hunters-instinct',"Hunter’s Instinct",2200,'purple','Direct damage grants +15% movement speed for two seconds. Five-second cooldown.',{}]
+ ['hunters-instinct',"Hunter’s Instinct",2200,'purple','Direct damage grants +15% movement speed for two seconds. Five-second cooldown.',{}],
+ ['heavy-fists','Heavy Fists',350,'green','Primary weapon knockback +15%. Abilities unchanged.',{outKnock:.15}],
+ ['lucky-charm','Lucky Charm',300,'green','Eliminations grant $10 extra; assists grant $5 extra. Stacks additively with Bounty Hunter.',{}],
+ ['quick-recovery','Quick Recovery',300,'green','Enemy slow durations reduced 15%.',{slowDuration:.15}],
+ ['long-reach','Long Reach',400,'green','Primary melee reach +10%; walls still block attacks.',{reach:.1}],
+ ['lightweight-armor','Lightweight Armor',350,'green','Maximum HP +10; movement speed +4%.',{hp:10,speed:.04}],
+ ['executioners-blade',"Executioner's Blade",1150,'blue','Primary weapon damage +15% against enemies below 30% maximum HP.',{}],
+ ['adrenaline-rush','Adrenaline Rush',1050,'blue','Eliminations grant +20% primary attack speed for four seconds; refreshes without stacking.',{}],
+ ['reflective-shield','Reflective Shield',1100,'blue','Reflect 10% of direct enemy damage, up to 10 HP per hit. One-second cooldown; cannot reflect item damage.',{}],
+ ['combat-medic','Combat Medic',950,'blue','Actual teammate healing restores 5 HP to yourself. Five-second cooldown.',{}],
+ ['bounty-hunter','Bounty Hunter',1000,'blue','Confirmed eliminations grant $50 extra. Lucky Charm does not multiply this bonus.',{}],
+ ['blood-pact','Blood Pact',2600,'purple','Heal for 12% of actual primary weapon HP damage dealt to enemy players.',{}],
+ ['chain-reaction','Chain Reaction',2800,'purple','Eliminations explode for 20 damage to visible enemies within four blocks. Item explosions cannot chain.',{}],
+ ['time-warp','Time Warp',2700,'purple','Successful Q/E grants +20% movement speed for three seconds. Ten-second cooldown.',{}],
+ ['overcharge','Overcharge',3000,'purple','Successful R grants +15% primary weapon damage for six seconds.',{}]
  ];
  const items=Object.fromEntries(rows.map(([id,name,price,rarity,description,stats],index)=>[id,{id,name,price,rarity,description,stats,icon:index}]));
  const rules={shopMs:45000,roundGoal:150,wins:2,startMoney:1000,assistMs:10000,captureMs:1000,slots:6,resistCap:.3,ultCap:.35,procMs:1000};
