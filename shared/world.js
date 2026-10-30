@@ -112,7 +112,7 @@
     const onIce=getMap(p.map).ice.some(a=>p.y<1.2&&Math.abs(p.x-a.x)<a.w/2&&Math.abs(p.z-a.z)<a.d/2);
     if(onIce){const alpha=1-Math.exp(-5*dt);p.iceVX=(p.iceVX||0)+(dx/dt-(p.iceVX||0))*alpha;p.iceVZ=(p.iceVZ||0)+(dz/dt-(p.iceVZ||0))*alpha;if(p.speedScale===0)p.iceVX=p.iceVZ=0;dx=p.iceVX*dt;dz=p.iceVZ*dt;}else p.iceVX=p.iceVZ=0;
     p.kx=(p.kx||0)*Math.exp(-(onIce?3:8)*dt);p.kz=(p.kz||0)*Math.exp(-(onIce?3:8)*dt);
-    if((input.jump||p.jumpQueued) && p.grounded) {p.vy=8;p.grounded=false;}
+    if((input.jump||p.jumpQueued) && p.grounded) {p.vy=8*(p.mode==='upgrade_wars'?(p.itemJumpScale||1):1);p.grounded=false;}
     p.jumpQueued=false;
     // Only the new timed flight abilities set flightLift; normal movement is unchanged.
     if(p.flightLift!==undefined&&p.flightLift!==null){dx=Math.max(-30.6-p.x,Math.min(30.6-p.x,dx));dz=Math.max(-30.6-p.z,Math.min(30.6-p.z,dz));}
