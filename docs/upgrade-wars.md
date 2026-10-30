@@ -155,3 +155,14 @@ browser smoke passed all 44 catalog entries, 15/15/14 filters, 14 distinct new
 pixel icons, buy/sell, six slots, Ready/deadline, round carryover and match reset
 with zero browser runtime errors. Production container build and
 `npm run test:production` both passed. Live Railway deployment was not inspected.
+
+## Earnings bonus
+
+All earned rewards now receive a global 1.5× multiplier after item reward
+bonuses: eliminations $150, assists $75, captures $150, each healing/defense
+reward $75, round completion $750 and round wins $375. Lucky Charm and Bounty
+Hunter together pay $240 per elimination and $82.50 per assist. Fractional
+rewards are retained exactly, without rounding away the 50% increase. Reward
+notifications and synchronized balances use the final multiplied amount.
+Starting funds remain $1,000; item prices and 100% sale refunds are unchanged.
+The base reward values and catalog descriptions above precede this multiplier.
