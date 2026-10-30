@@ -98,3 +98,11 @@ replica. No new secrets, database, services or deployment configuration are
 needed. Verify the newest Railway deployment becomes Active and compare `/health`
 revision with the final commit. Local production checks and a Git push do not
 verify the live Railway deployment.
+
+Completed validation: all 658 automated tests passed, with no failures or skips.
+The Upgrade Wars two-client Chromium smoke and original gameplay browser smoke
+passed with no browser runtime errors. The pinned production Docker build and
+container smoke passed, including Upgrade Wars funds, shopping, duplicate-item
+rejection and kit locks. Charged bows honor item attack speed, explicit ability
+knockback honors Sturdy Boots, and overlapping defensive buffs credit only the
+active protecting ability. Live Railway deployment was not verified.
