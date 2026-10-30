@@ -31,6 +31,6 @@
  for(const h of Object.values(specialized.heroes))if(h.category==='Tanks'){h.health=Math.round(standardHealth*1.4);if(['Magma Heart','Overcharge Armor'].includes(h.e.name))h.e.description=`Grant ${Math.round(standardHealth*.4)} temporary HP to yourself and visible teammates for six seconds; does not stack.`;}
  Object.assign(heroes,specialized.heroes);
  const has=id=>typeof id==='string'&&Object.hasOwn(heroes,id);
- const loadout=id=>{const hero=heroes[has(id)?id:'knight'];return hero.specialized?(hero.healer?[hero.weapon,hero.ranged]:[hero.weapon]):[hero.weapon,hero.melee,hero.ranged];};
+ const loadout=id=>{const hero=heroes[has(id)?id:'knight'];return [hero.weapon,hero.melee,hero.ranged].filter(Boolean);};
  const api={heroes,has,loadout};if(typeof module!=='undefined')module.exports=api;else root.HeroRules=api;
 })(globalThis);

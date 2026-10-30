@@ -360,8 +360,9 @@ Choose **Payload Escort** in the lobby to access **Minecart Canyon**, **Nether R
 ## Fifteen Specialized Kits
 
 All 21 Normal Kits remain above the new Healers, Damage and Tanks groups in the
-same exclusive kit selector. Healers use slot 1 to heal teammates (Life Aura is
-passive; hold left-click for Cleric) and slot 2 + left-click for their weak ranged
+same exclusive kit selector. Every kit has its personal weapon, one melee backup
+and one ranged backup in slots 1–3; Healers use daggers as their melee backup. Healers use slot 1 to heal teammates (Life Aura is
+passive; hold left-click for Cleric) and slot 3 + left-click for their weak ranged
 attack. Right-click remains wind charge. Healers retain Healing and Regeneration
 potions; their primary, Q and R never heal themselves. Tanks have 252 HP and
 specified defensive abilities; temporary overhealth is a separate 72 HP buffer.

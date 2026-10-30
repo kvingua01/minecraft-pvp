@@ -26,11 +26,11 @@ test('bots choose every available kit before repeating and retain their kit afte
 });
 test('every bot kit uses its personal weapon at the correct distance and its own backup otherwise',()=>{
  const H=require('../shared/heroes'),C=require('../shared/combat');
- for(const hero of Object.keys(H.heroes).filter(id=>!H.heroes[id].specialized))for(const distance of [1.8,8]){
+ for(const hero of Object.keys(H.heroes))for(const distance of [1.8,8]){
   const {c,room,match}=fixture();c.bots.kits=[hero];c.bots.reconcile(room,match,10000);match.phase='playing';
   const bot=bots(room)[0],human=room.get('human-red-0');Object.assign(bot,{x:0,y:0,z:10,protectedUntil:0});Object.assign(human,{x:0,y:0,z:10-distance,protectedUntil:0});
   const attacks=[];c.bots.aiming.random=()=>.5;c.bots.abilities.tick=()=>false;bot.yaw=0;c.attack=(room,p,kind)=>attacks.push(kind);c.bots.tick(room,match,15000);assert.deepEqual(attacks,[],'new targets require reaction time');for(let i=1;i<150&&!attacks.length;i++)c.bots.tick(room,match,15000+i*17);
-  const h=H.heroes[hero],expected=distance<2?(C.weapons[h.weapon].range?h.weapon:h.melee):(C.weapons[h.weapon].range?h.ranged:h.weapon);
+  const h=H.heroes[hero],expected=distance<2?(C.weapons[h.weapon].range?h.weapon:h.melee):(h.healer?h.ranged:C.weapons[h.weapon].range?h.ranged:h.weapon);
   assert.equal(bot.weapon,expected,hero+' distance '+distance);assert.deepEqual(attacks,[C.weapons[expected].charge?'draw':'attack']);
  }
 });

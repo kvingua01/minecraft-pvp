@@ -1,6 +1,6 @@
 import * as THREE from '/vendor/three.module.js';
 const colors={holystaff:0xffdf85,potioncannon:0x82edb5,clockstaff:0x80dcf2,featherwand:0xffb25a,lifeaura:0x68e993,chainscythe:0xd0c4e1,boomerang:0xaf8cf3,mortar:0x7d878e,fireworklauncher:0xf488c9,portalgauntlet:0x9e78eb,moltenhammer:0xf28c43,shellgauntlets:0x66aa87,icegauntlets:0x9be1fa,obsidianclaws:0x796285,coilarms:0xd8a369};
-export function buildSpecialWeapon(group,key,cube){const h=Object.values(window.HeroRules.heroes).find(h=>h.specialized&&(h.weapon===key||h.ranged===key));if(!h)return false;const color=colors[h.weapon];
+export function buildSpecialWeapon(group,key,cube){const h=Object.values(window.HeroRules.heroes).find(h=>h.specialized&&(h.weapon===key||h.healer&&h.ranged===key));if(!h)return false;const color=colors[h.weapon];
  const block=(w,ht,d,x,y,z,c=color)=>cube(group,w,ht,d,c,x,y,z);
  if(h.healer&&key===h.ranged){block(.18,.22,.32,0,.22,0);for(let i=0;i<4;i++)block(.06,.06,.06,Math.cos(i*Math.PI/2)*.17,.36,Math.sin(i*Math.PI/2)*.17);}
  else if(['holystaff','clockstaff','featherwand'].includes(key)){block(.07,.9,.07,0,.25,0,0x997854);if(key==='holystaff'){block(.08,.38,.08,0,.8,0);block(.32,.08,.08,0,.8,0);}else if(key==='clockstaff'){for(let i=0;i<8;i++)block(.1,.1,.08,Math.cos(i*Math.PI/4)*.18,.78+Math.sin(i*Math.PI/4)*.18,0);block(.04,.16,.09,0,.84,0,0xf5e1b7);block(.13,.04,.09,.05,.76,0,0xf5e1b7);}else for(let i=0;i<5;i++)block(.12,.1,.05,i*.035,.6+i*.08,0);}

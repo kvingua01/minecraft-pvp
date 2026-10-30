@@ -1,7 +1,7 @@
 import * as THREE from '/vendor/three.module.js';
 const cache=new Map(),colors={'#':0x344149,I:0xd7e7e7,H:0xf7ffff,B:0x96633b,G:0xc6a65e,P:0x819caf,R:0xc64c3d,S:0x7bc35d};
 export function itemPixels(key){const grid=Array.from({length:16},()=>Array(16).fill('.')),put=(x,y,c)=>{if(x>=0&&x<16&&y>=0&&y<16)grid[y][x]=c;};
- const kit=Object.values(window.HeroRules.heroes).find(h=>h.specialized&&(h.weapon===key||h.ranged===key));
+ const kit=Object.values(window.HeroRules.heroes).find(h=>h.specialized&&(h.weapon===key||h.healer&&h.ranged===key));
  if(kit){const box=(x,y,w,h,c)=>{for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++)put(i,j,c);};
   if(kit.healer&&key===kit.ranged){box(6,5,5,5,'P');box(8,3,1,9,'H');box(4,7,9,1,'G');}
   else if(key==='lifeaura'){for(let i=0;i<20;i++){const a=i*Math.PI/10;put(Math.round(8+Math.cos(a)*6),Math.round(8+Math.sin(a)*6),'S');}box(7,5,2,6,'H');box(5,7,6,2,'H');}
