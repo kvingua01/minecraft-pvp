@@ -293,6 +293,13 @@ fix, validation and deployment notes are in [the expansion report](docs/map-expa
 
 ## Bot abilities
 
+Bots have imperfect combat aim: 350–600 ms reactions to new targets, delayed
+position tracking, limited turning speed, and aim variation. Melee attacks have
+220–360 ms windups with occasional wide swings, and weapon attacks have extra
+pauses. Strafing and breaking line of sight can make them miss. Successful hits
+keep the same weapon damage as human hits; navigation and objective rules remain
+unchanged.
+
 All 21 bot classes can use Q, E and earned R ultimates automatically. Healing and
 support skills look for injured allies, offensive casts aim at enemies or valid
 ground, and summons are not repeatedly recreated while already alive. Mobility
