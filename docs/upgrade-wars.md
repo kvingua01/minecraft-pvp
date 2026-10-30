@@ -84,7 +84,7 @@ npm run build:production -- --environment-proxy # managed proxy environment
 npm run test:production
 ```
 
-Unit tests exercise deadlines, round flow, all thirty catalog transactions,
+Unit tests exercise deadlines, round flow, all 44 catalog transactions,
 stacking, rewards, proc classification, caps, expiry, inventory restrictions and
 all registered kits. Socket tests cover independent balances, synchronized
 phases, forged messages, late transactions and transport reconnects. The browser
@@ -106,3 +106,52 @@ container smoke passed, including Upgrade Wars funds, shopping, duplicate-item
 rejection and kit locks. Charged bows honor item attack speed, explicit ability
 knockback honors Sturdy Boots, and overlapping defensive buffs credit only the
 active protecting ability. Live Railway deployment was not verified.
+
+## Fourteen-item expansion
+
+The catalog contains 44 items: 15 green, 15 blue and 14 purple. The original
+30 definitions, prices, icons and effects are preserved; the regression fixture
+records every original field. No Colossus was added. Every kit uses the same
+six slots, duplicate protection, full refunds, 45-second shop and Ready behavior.
+
+New green items: Heavy Fists ($350), Lucky Charm ($300), Quick Recovery ($300),
+Long Reach ($400), Lightweight Armor ($350). New blue items: Executioner's Blade
+($1,150), Adrenaline Rush ($1,050), Reflective Shield ($1,100), Combat Medic
+($950), Bounty Hunter ($1,000). New purple items: Blood Pact ($2,600), Chain
+Reaction ($2,800), Time Warp ($2,700), Overcharge ($3,000). Exact numerical
+behavior is displayed in the Armory and defined in the shared catalog.
+
+Lucky Charm adds $10 per elimination and $5 per assist; Bounty Hunter separately
+adds $50 per elimination. Together they pay $160/$55. Base rewards for capture,
+healing, prevention and round completion/wins remain unchanged. Kill-life guards
+also apply to these bonuses. No retroactive bonuses are awarded.
+
+Executioner and Overcharge add to primary weapon damage percentages. Adrenaline
+adds to primary attack speed, refreshes rather than stacks, and affects bow draw.
+Time Warp adds to item movement speed only after successful Q/E. All timed
+states reset each round and disappear on sale or match end. Blood Pact uses
+actual HP removed (excluding absorbed overhealth), without healing on protected
+hits, abilities, periodic ticks or item effects. Combat Medic accepts real
+teammate weapon/ability healing, including auras, but excludes self/overhealing.
+
+Reflective Shield uses actual HP damage and emits at most 10 raw reflected
+damage per second through normal defenses; it may retaliate on a lethal hit.
+Chain Reaction uses a four-block explosion with line of sight and normal armor,
+excluding allies. Both are classified as item damage, cannot trigger weapon
+passives or reflect, and item kills cannot produce another Chain Reaction.
+
+Small shared-system compatibility changes route existing enemy slow application
+through a duration helper (unchanged without Quick Recovery), pass authoritative
+pre-hit target data and kill source metadata to item hooks, and allow a server-only
+reflection to retaliate after its owner dies. Existing item slows remain exactly
+the same unless the target equips Quick Recovery. Melee reach still uses the
+existing server wall raycast and bounded pose rewind; projectile ranges and
+ability knockback remain unchanged. No Railway configuration change is needed;
+the connected service must deploy the pushed commit through its normal flow.
+
+Expansion release validation: `npm test` passed 732/732 tests, including 59
+expansion tests and the new two-client transaction test. The updated Upgrade Wars
+browser smoke passed all 44 catalog entries, 15/15/14 filters, 14 distinct new
+pixel icons, buy/sell, six slots, Ready/deadline, round carryover and match reset
+with zero browser runtime errors. Production container build and
+`npm run test:production` both passed. Live Railway deployment was not inspected.

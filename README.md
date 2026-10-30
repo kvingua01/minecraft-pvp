@@ -373,7 +373,7 @@ testing. Run `npm test` and `npm run test:specialized-browser` for this update.
 
 Choose **Upgrade Wars** in the existing lobby: best of three control-point rounds
 to 150, with a fixed 45-second Item Armory before every round. Kits stay locked;
-personal money and up to six purchased items carry between rounds. All 30 items
+personal money and up to six purchased items carry between rounds. All 44 items
 are available to every kit, with full-refund sales. Ready never skips the timer.
 See [Upgrade Wars](docs/upgrade-wars.md) for economy, item rules and controls.
 Run `npm test` and `npm run test:upgrade-wars-browser` for this mode.
