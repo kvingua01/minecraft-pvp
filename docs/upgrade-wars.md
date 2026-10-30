@@ -8,12 +8,13 @@ modes retain their original rules.
 ## Match and armory
 
 Select a kit in the lobby. It is locked for the entire match, including shopping
-between rounds. Each round is a race to 150 points; two round wins wins the match.
+between rounds. Each round is a race to 150 points. The host chooses best of
+3, 5 or 7; the first team to 2, 3 or 4 round wins wins the match.
 Ownership, capture progress, combat effects, health, potion charges, ultimate
 charge and ability cooldowns reset for each round. Money and purchased items
 carry between rounds. At match end the economy and all item bonuses are removed.
 
-Every round begins with an exactly 45-second server-timed shopping phase. Ready
+Every round begins with an exactly 70-second server-timed shopping phase. Ready
 is informational and can be canceled; it never shortens the timer. Players are
 frozen and cannot attack, cast, capture or earn combat income in the armory. When
 the deadline expires the armory closes automatically. Click the normal Resume
@@ -112,7 +113,7 @@ active protecting ability. Live Railway deployment was not verified.
 The catalog contains 44 items: 15 green, 15 blue and 14 purple. The original
 30 definitions, prices, icons and effects are preserved; the regression fixture
 records every original field. No Colossus was added. Every kit uses the same
-six slots, duplicate protection, full refunds, 45-second shop and Ready behavior.
+six slots, duplicate protection, full refunds, 70-second shop and Ready behavior.
 
 New green items: Heavy Fists ($350), Lucky Charm ($300), Quick Recovery ($300),
 Long Reach ($400), Lightweight Armor ($350). New blue items: Executioner's Blade
@@ -166,3 +167,12 @@ rewards are retained exactly, without rounding away the 50% increase. Reward
 notifications and synchronized balances use the final multiplied amount.
 Starting funds remain $1,000; item prices and 100% sale refunds are unchanged.
 The base reward values and catalog descriptions above precede this multiplier.
+
+## Match length
+
+The host can select **Best of 3**, **Best of 5**, or **Best of 7** in the Upgrade
+Wars lobby. These require 2, 3, or 4 round wins respectively; the match can end
+early when a team reaches that target. Best of 3 remains the default. Settings
+are synchronized to everyone, stay with the room for rematches, and cannot change
+after starting. Every round now has a fixed **70-second** shop; Ready remains
+informational. Currency rewards and the 50% earnings bonus are unchanged.

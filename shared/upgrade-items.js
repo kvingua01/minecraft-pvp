@@ -46,6 +46,6 @@
  ['overcharge','Overcharge',3000,'purple','Successful R grants +15% primary weapon damage for six seconds.',{}]
  ];
  const items=Object.fromEntries(rows.map(([id,name,price,rarity,description,stats],index)=>[id,{id,name,price,rarity,description,stats,icon:index}]));
- const rules={shopMs:45000,roundGoal:150,wins:2,startMoney:1000,rewardMultiplier:1.5,assistMs:10000,captureMs:1000,slots:6,resistCap:.3,ultCap:.35,procMs:1000};
+ const rules={shopMs:70000,roundGoal:150,wins:2,startMoney:1000,rewardMultiplier:1.5,assistMs:10000,captureMs:1000,slots:6,resistCap:.3,ultCap:.35,procMs:1000};
  const api={items,ids:Object.keys(items),rules};if(typeof module!=='undefined')module.exports=api;else root.UpgradeItems=api;
 })(globalThis);
