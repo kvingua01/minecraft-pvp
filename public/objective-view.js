@@ -16,7 +16,7 @@ export function createObjectiveView({scene,socket,getSelf,clearKeys}){
     for(const p of match.points||[]){if(!markers.has(p.id))markers.set(p.id,marker(p));const m=markers.get(p.id),color=colors[p.control||'neutral'];m.group.position.set(p.x,p.y+.02,p.z);m.ring.material.color.setHex(color);m.flag.material.color.setHex(color);m.ring.material.opacity=p.contested?.35+Math.abs(Math.sin(Date.now()*.007))*.55:.75;}
     $('#points-strip').replaceChildren(...(match.points||[]).map(p=>{const el=document.createElement('div');el.className='point-card '+(p.control||'neutral')+(p.contested?' contested':'');el.textContent=`${p.id} · ${p.name} · ${p.contested?'CONTESTED':p.control?.toUpperCase()||'NEUTRAL'} ${Math.round(Math.abs(p.meter))}%`;return el;}));
     $('#objective-hud').hidden=false;
-    for(const team of ['red','blue']){$('#'+team+'-score').textContent=Math.floor(match.scores[team])+' / 300';$('#'+team+'-bar').value=match.scores[team];}
+    for(const team of ['red','blue']){$('#'+team+'-score').textContent=Math.floor(match.scores[team])+' / '+(match.goal||300);$('#'+team+'-bar').max=match.goal||300;$('#'+team+'-bar').value=match.scores[team];}
     const progress=Math.round(Math.abs(match.meter));$('#capture-bar').value=progress;$('#capture-bar').className=match.meter>=0?'red':'blue';
     $('#point-status').textContent=match.status==='waiting'?'WAITING FOR BOTH TEAMS':match.winner?'MATCH COMPLETE':match.contested?'CONTESTED':match.control?match.control.toUpperCase()+' CONTROLS THE POINT':'CAPTURE THE POINT';
     $('#capture-status').textContent=`${match.meter>0?'RED':match.meter<0?'BLUE':'NEUTRAL'} ${progress}% · ON POINT ${match.occupants.red} R / ${match.occupants.blue} B`;
