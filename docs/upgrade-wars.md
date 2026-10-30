@@ -176,3 +176,12 @@ early when a team reaches that target. Best of 3 remains the default. Settings
 are synchronized to everyone, stay with the room for rematches, and cannot change
 after starting. Every round now has a fixed **70-second** shop; Ready remains
 informational. Currency rewards and the 50% earnings bonus are unchanged.
+
+## Maps between rounds
+
+Round one uses the map chosen in the lobby. After each non-final round, the
+server picks a random compatible map, excluding the map just played. The next
+70-second shop shows the new map name, and all players and bots respawn there.
+Capture points, collision, effects and rewind history reset for the new map.
+Money, items, locked kits and round wins carry over. Payload-only railway maps
+are excluded. The map stays in place when the match ends.
