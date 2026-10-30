@@ -147,6 +147,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
       }
       ack({ok:true});
     });
+    socket.on('upgrade-ready',(value,ack=()=>{})=>{if(typeof ack!=='function')return;const p=rooms.get(socket.data.room)?.get(socket.id),uw=matches.get(socket.data.room)?.modes.upgrade;if(!p||!uw?.active)return ack({error:'Join Upgrade Wars first.'});ack(uw.ready(p,value,Date.now()));});
     socket.on('leave',()=>leave(socket));
     socket.on('disconnect',reason=>{
       const room=rooms.get(socket.data.room),p=room?.get(socket.id);
@@ -163,7 +164,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
   const timer=setInterval(()=>clock.advance(performance.now(),dt=>{
     if(draining)return;
     for(const [code,room] of rooms){
-      const now=Date.now(),combat=combats.get(code),match=matches.get(code);match.modes.beforeTick(room,now);combat.bots.reconcile(room,match,now);combat.bots.tick(room,match,now);combat.tick(room,now,dt);if(match.modes.capture)match.tick(room,dt);else match.modes.afterTick(room,now);
+      const now=Date.now(),combat=combats.get(code),match=matches.get(code);match.modes.beforeTick(room,now);combat.bots.reconcile(room,match,now);combat.bots.tick(room,match,now);combat.tick(room,now,dt);if(match.modes.capture)match.tick(room,dt,now);else match.modes.afterTick(room,now);
       combat.healthPacks.tick(room,match,now);
       if(match.modes.capture&&!combat.inLobby&&!match.winner&&match.status!=='waiting')for(const p of room.values())if(p.connected!==false&&p.hp>0&&match.points.some(point=>match.inside(p,point)))combat.heroes.charge(p,3*dt,now);
       if(match.winner&&!combat.matchOver){combat.heroes.clear();combat.projectiles=[];for(const p of room.values()){p.overhealth=0;p.overhealthUntil=0;p.dash=null;}}
