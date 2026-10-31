@@ -377,3 +377,15 @@ personal money and up to six purchased items carry between rounds. All 44 items
 are available to every kit, with full-refund sales. Ready never skips the timer.
 See [Upgrade Wars](docs/upgrade-wars.md) for economy, item rules and controls.
 Run `npm test` and `npm run test:upgrade-wars-browser` for this mode.
+
+## Developer codes
+
+Open **Developer codes** in the multiplayer lobby, pause menu (Esc), or Upgrade
+Wars armory. Enter your developer code, choose a bot and any of the 36 kits,
+then click **Apply kit · respawn bot**. The change applies immediately and all
+players see the new kit. Bot scores, teams and Upgrade Wars items remain intact;
+previous kit effects are cleaned up. Only bots in your current room can change.
+The code is checked on the server and unlocks only this connection. Re-enter it
+after leaving or reconnecting. Automatic game-mode kit changes (such as Random
+Kit respawns or Ladder progression) still apply. Run `npm test` and
+`npm run test:dev-codes-browser` to verify authorization and the controls.

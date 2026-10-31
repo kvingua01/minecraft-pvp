@@ -1,3 +1,4 @@
+import {createDevCodes} from '/dev-codes.js';
 import {createSettings} from '/settings.js';
 import * as THREE from '/vendor/three.module.js';
 import {createCombatView} from '/combat-view.js';
@@ -52,6 +53,7 @@ const runtime=createRuntime({renderer,socket,getSelf:()=>self,isActive:()=>locke
 const objective=createObjectiveView({scene,socket,getSelf:()=>self,clearKeys:()=>keys.clear()});
 const lobby=createLobby({socket,getSelf:()=>self,onStarted:()=>{pause.hidden=false;$('#pause-error').textContent='Match started. Click resume to play.';}});
 const upgradeView=createUpgradeWarsView({socket,getSelf:()=>self,getMatch:()=>objective.match,serverNow:combat.serverNow,clearKeys:()=>{keys.clear();combat.cancelInput();}});
+const devCodes=createDevCodes({socket});
 const inventoryView=createInventoryView({socket,getSelf:()=>self,isAvailable:()=>!!self&&!self.roundLocked&&self.hp>0&&!reconnecting&&!objective.finished,onOpen:()=>{keys.clear();combat.cancelInput();pause.hidden=true;document.exitPointerLock();if(socket.connected)socket.emit('input',controls());},onClose:resume=>{if(!self||objective.match?.phase==='lobby'||objective.finished)return;if(resume&&!reconnecting)requestLock();else pause.hidden=false;},onSelect:()=>combat.cancelInput()});
 function controls(){const active=!inventoryView.open&&objective.match?.phase!=='lobby'&&locked&&!document.hidden&&!reconnecting&&socket.connected&&self?.hp>0&&!self?.roundLocked;return {forward:active&&keys.has('KeyW'),back:active&&keys.has('KeyS'),left:active&&keys.has('KeyA'),right:active&&keys.has('KeyD'),jump:active&&keys.has('Space'),sprint:active&&(keys.has('ShiftLeft')||keys.has('ShiftRight')),yaw,pitch,block:active&&combat.isBlocking()};}
 function acceptSession(result,recovered=false){
@@ -100,7 +102,7 @@ window.addEventListener('keyup',e=>{keys.delete(e.code);if(self&&locked&&movemen
 window.addEventListener('blur',()=>{keys.clear();tab=false;updateRoster();if(self)socket.volatile.emit('input',controls());});
 canvas.oncontextmenu=e=>e.preventDefault();
 function removeRemote(remote){remote.healthBar.dispose();scene.remove(remote.group);remote.group.traverse(m=>{if(m.userData.avatarMaterial)m.material.dispose();if(m.userData.avatarGeometry)m.geometry.dispose();});}
-function clearPlayers(){upgradeView.clear();healthPacksView.clear();inventoryView.clear();unitsView.clear();particles.clear();audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
+function clearPlayers(){devCodes.clear();upgradeView.clear();healthPacksView.clear();inventoryView.clear();unitsView.clear();particles.clear();audio.clear();potionView.clear();heroView.clear();objective.clear();combat.clear();for(const remote of remotes.values())removeRemote(remote);remotes.clear();}
 $('#leave').onclick=()=>{if(socket.connected)socket.emit('leave');endSession();};
 socket.on('server-restarting',()=>{serverUpdating=true;endSession('The game server is restarting for an update. Create or join a new arena shortly.');});
 socket.on('connect',()=>{if(self&&resumeToken)resumeSession();});
