@@ -14,8 +14,8 @@ test('death and disconnect interrupt drinking; respawn refills charges and remov
  f.a.connected=true;f.a.hp=0;f.a.deadUntil=18001;f.a.status.strength=99999;f.combat.tick(f.room,18002,1/60);assert.equal(f.a.hp,180);assert.equal(f.a.inventory.healing,2);assert.equal(f.a.status.strength,undefined);
 });
 test('speed changes movement only while active; slowness uses the strongest slow',()=>{
- const f=fixture();drink(f,'speed');assert.equal(f.a.speedScale,.9*1.25);f.combat.heroes.before(f.room,40649);assert.equal(f.a.speedScale,.9*1.25);f.combat.heroes.before(f.room,40650);assert.equal(f.a.speedScale,.9);
- f.a.status.slowPotion=50000;f.combat.heroes.before(f.room,40651);assert.equal(f.a.speedScale,.9*.65);f.a.status.slow=50000;f.combat.heroes.before(f.room,40652);assert.equal(f.a.speedScale,.9*.55);
+ const f=fixture();drink(f,'speed');assert.equal(f.a.speedScale,.9*1.2*1.25);f.combat.heroes.before(f.room,40649);assert.equal(f.a.speedScale,.9*1.2*1.25);f.combat.heroes.before(f.room,40650);assert.equal(f.a.speedScale,.9*1.2);
+ f.a.status.slowPotion=50000;f.combat.heroes.before(f.room,40651);assert.equal(f.a.speedScale,.9*1.2*.65);f.a.status.slow=50000;f.combat.heroes.before(f.room,40652);assert.equal(f.a.speedScale,.9*1.2*.55);
 });
 test('strength increases validated weapon damage without boosting hero spells',()=>{
  const f=fixture();drink(f,'strength');f.a.nextAttack=0;f.combat.attack(f.room,f.a,'attack',11000);assert.equal(f.b.hp,180-16);

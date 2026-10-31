@@ -99,3 +99,20 @@ inventory persistence, and bot weapon selection for all 36 kits.
 The updated two-client browser check passed all 30 backup selections and bow
 charging with zero runtime errors. All 45 loadout weapon models and 16×16 icons
 were checked. The updated production build and container smoke also passed.
+
+## Melee balance
+
+All five tank primaries now exceed Daggers' sustained raw damage (54.5 HP/s):
+Molten Hammer deals 42 damage every 700 ms with 3.5-block reach (60 HP/s).
+Shell Gauntlets, Ice Gauntlets, Obsidian Claws and Copper Coil Arms each deal
+30 every 500 ms with 3.2-block reach (60 HP/s). Tank base movement increases
+from 0.85 to 0.95, while base health remains 180.
+
+Kits whose personal weapon is melee gain 20% movement speed and take 60% less
+ranged weapon knockback while holding a melee weapon. Switching to ranged,
+using consumables or opening inventory removes this stance. Ranged-focused kits
+cannot acquire it by selecting melee backups. This multiplies existing kit/item
+movement and knockback modifiers, respects roots and slows, and leaves melee and
+ability knockback unchanged. TNT primary blasts use the same ranged reduction.
+Tank melee speed is now 1.14, allowing them to catch an unbuffed Archer (1.05).
+Mobility abilities still provide an escape window, with their existing cooldowns.
