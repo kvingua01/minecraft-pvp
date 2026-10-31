@@ -116,3 +116,9 @@ movement and knockback modifiers, respects roots and slows, and leaves melee and
 ability knockback unchanged. TNT primary blasts use the same ranged reduction.
 Tank melee speed is now 1.14, allowing them to catch an unbuffed Archer (1.05).
 Mobility abilities still provide an escape window, with their existing cooldowns.
+
+Melee reach subsequently increased by 60% across all primary and backup melee
+weapons. Sword and tank fists now reach 5.12 blocks, Daggers 3.84, Katana 5.2,
+Molten Hammer 5.6 and Chain Scythe 8. Long Reach still adds its separate 10%
+Upgrade Wars item bonus. Server raycasts, wall blocking and rewind limits remain
+in force; projectile ranges and Q/E/R ability radii are unchanged.
