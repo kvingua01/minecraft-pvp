@@ -400,7 +400,8 @@ Enter **`bobhard1234`** in Developer codes to restore the original bot AI in you
 current room: instant live aim, no deliberate wide swings, no reaction/windup or
 extra weapon recovery delays, and the original 950 ms bow release with gravity
 compensation. It affects existing and newly added bots and persists through
-rounds/rematches in that room. The unlocked **Bot strength** selector can restore
+rounds/rematches in that room. The **Bot strength** selector is always visible under Developer codes, with a
+locked explanation until the bot-strength code is accepted. Once unlocked it can restore
 **Normal** (the current weaker AI). Other rooms start with Normal bots.
 This code grants only bot-strength controls; the existing kit code is separate.
 Current weapon stats, HP, maps and collision rules remain in force.
