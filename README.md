@@ -406,3 +406,10 @@ The selector is always visible, with a locked explanation before code entry.
 Strength affects current and newly added bots and persists through rounds and
 rematches in that room. Other rooms start with Normal bots. Current weapon
 stats, HP, maps and collision rules remain in force. No separate codes are needed.
+
+The same developer unlock enables **Map → Change map now**, including during
+active matches and Upgrade Wars shops. Everyone moves to the chosen compatible
+map. HP, kits, inventories, money, scores, round wins and timers are preserved;
+old-map effects and capture-point ownership reset. Dead players stay dead.
+Payload keeps its percentage progress on the new track; incompatible or
+unavailable routes are rejected. Normal players still cannot change maps mid-game.
