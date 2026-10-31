@@ -413,3 +413,10 @@ map. HP, kits, inventories, money, scores, round wins and timers are preserved;
 old-map effects and capture-point ownership reset. Dead players stay dead.
 Payload keeps its percentage progress on the new track; incompatible or
 unavailable routes are rejected. Normal players still cannot change maps mid-game.
+
+In Upgrade Wars, the developer menu also has **Player balance → Set money**.
+After unlocking with the same code, choose a player (including yourself or a bot)
+and set an exact balance from $0 to $1,000,000,000 with up to two decimal places.
+It works during shopping and combat, updates everyone’s view, and preserves
+purchased items. Developer edits do not receive the earned-money multiplier.
+Balances still carry between rounds and reset at match end.
