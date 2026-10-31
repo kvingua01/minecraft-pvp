@@ -31,7 +31,7 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
     clearTimeout(disconnectTimers.get(socket.id));disconnectTimers.delete(socket.id);
     const code=socket.data.room,room=rooms.get(code),match=matches.get(code),combat=combats.get(code);
     if(room){const leaving=room.get(socket.id);if(leaving)match?.modes?.disconnected(room,leaving);room.delete(socket.id);socket.leave(code);if(![...room.values()].some(p=>!p.isBot)){for(const bot of [...room.values()])combat?.bots.remove(room,bot);rooms.delete(code);combats.delete(code);matches.delete(code);}else{if(match?.host===socket.id)match.host=[...room.values()].find(p=>!p.isBot&&p.connected!==false)?.id||null;combat?.bots.reconcile(room,match,Date.now());}}
-    socket.data.room=null;socket.data.devRoom=null;
+    socket.data.room=null;socket.data.devRoom=null;socket.data.devBotRoom=null;
   }
   io.on('connection',socket=> {
     socket.on('join',(data,ack=()=>{})=> {
@@ -125,8 +125,9 @@ function createGameServer({reconnectGrace=30000,drainDelay=500,autoStart=false}=
     });
     function lobbyContext(ack){const code=socket.data.room,room=rooms.get(code),match=matches.get(code),combat=combats.get(code);if(!room||!match){ack({error:'Join a lobby first.'});return null;}return {room,match,combat};}
     function resetRoom(room,match,combat){match.locations=World.getMap(match.mapId).points;match.reset();combat.map=match.mapId;combat.matchOver=false;combat.projectiles=[];combat.history=[];combat.heroes.clear();for(const p of room.values()){Object.assign(p,World.spawn(p.spawnIndex),{map:match.mapId,input:{},lastInput:0,life:p.life+1});combat.init(p,p.spawnIndex,Date.now());}match.modes?.lobby(room,Date.now());}
-    socket.on('dev-unlock',(code,ack=()=>{})=>{if(typeof ack==='function')ack(require('./lib/dev-codes').unlock(socket,code));});
+    socket.on('dev-unlock',(code,ack=()=>{})=>{if(typeof ack==='function')ack(require('./lib/dev-codes').unlock(socket,code,matches.get(socket.data.room),combats.get(socket.data.room)));});
     socket.on('dev-player-kit',(data,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(ctx)ack(require('./lib/dev-codes').changePlayerKit(socket,ctx.room,ctx.match,ctx.combat,data));});
+    socket.on('dev-bot-strength',(original,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(ctx)ack(require('./lib/dev-codes').setBotStrength(socket,ctx.match,ctx.combat,original));});
     socket.on('dev-bot-kit',(data,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(ctx)ack(require('./lib/dev-codes').changeBotKit(socket,ctx.room,ctx.match,ctx.combat,data));});
     socket.on('lobby-mode',(id,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(match.host!==socket.id||match.phase!=='lobby')return ack({error:'Only the host can change the game mode in the lobby.'});if(!ModeRules.has(id))return ack({error:'Choose a valid game mode.'});match.mode=id;if(!Maps.compatible(match.mapId,id))match.mapId=match.generalMap||'castle';match.modes.teamsFor(room);combat.bots.reconcile(room,match,Date.now());resetRoom(room,match,combat);combat.bots.reconcile(room,match,Date.now());ack({ok:true});});
     socket.on('lobby-add-bot',(data,ack=()=>{})=>{if(typeof ack!=='function')return;const ctx=lobbyContext(ack);if(!ctx)return;const {room,match,combat}=ctx;if(match.host!==socket.id||match.phase!=='lobby')return ack({error:'Only the host can add bots before the match starts.'});if(data?.team!==undefined&&!['auto','red','blue'].includes(data.team))return ack({error:'Choose Auto, Red or Blue for the bot team.'});ack(combat.bots.add(room,match,data?.team,Date.now()));});
