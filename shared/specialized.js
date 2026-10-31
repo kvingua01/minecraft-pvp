@@ -11,11 +11,11 @@
  ['bombardier','Bombardier','Damage','mortar','Handheld Mortar',120,.18,.95,'Cluster Shell','A shell splits into three smaller explosives.','Recoil Jump','Artillery Strike','Arcing mortar shells explode with distance falloff.'],
  ['fireworkraider','Firework Raider','Damage','fireworklauncher','Firework Launcher',115,.14,1,'Rocket Burst','Fire five small rockets in a spread.','Rocket Boost','Grand Finale','Colorful rockets explode on impact.'],
  ['portalstriker','Portal Striker','Damage','portalgauntlet','Portal Gauntlet',115,.14,1,'Rift Blast','Create a short damaging rift on visible ground.','Portal Blink','Void Collapse','Unstable spheres explode on contact.'],
- ['lavaguardian','Lava Guardian','Tanks','moltenhammer','Molten Hammer',null,.2,.85,'Lava Slam','Create a short damaging molten ring.','Magma Heart','Volcanic Eruption','Slow, heavy hammer strikes.'],
- ['turtleknight','Turtle Knight','Tanks','shellgauntlets','Shell Gauntlets',null,.2,.85,'Shell Spin','Spin for two seconds, striking nearby enemies.','Shell Dome','Tidal Crash','Close-range shell gauntlet punches.'],
- ['frostwarden','Frost Warden','Tanks','icegauntlets','Ice Gauntlets',null,.2,.85,'Frost Burst','Damage and slow nearby enemies.','Glacier Wall','Frozen Fortress','Close-range icy punches.'],
- ['obsidiansentinel','Obsidian Sentinel','Tanks','obsidianclaws','Obsidian Claws',null,.2,.85,'Obsidian Spikes','Erupt spikes around you.','Obsidian Barrier','Blackstone Cataclysm','Close-range obsidian claw strikes.'],
- ['copperautomaton','Copper Automaton','Tanks','coilarms','Copper Coil Arms',null,.2,.85,'Electric Pulse','Damage nearby enemies with electricity.','Overcharge Armor','Thunder Reactor','Electrically charged mechanical punches.']
+ ['lavaguardian','Lava Guardian','Tanks','moltenhammer','Molten Hammer',180,.2,.85,'Lava Slam','Create a short damaging molten ring.','Magma Heart','Volcanic Eruption','Slow, heavy hammer strikes.'],
+ ['turtleknight','Turtle Knight','Tanks','shellgauntlets','Shell Gauntlets',180,.2,.85,'Shell Spin','Spin for two seconds, striking nearby enemies.','Shell Dome','Tidal Crash','Close-range shell gauntlet punches.'],
+ ['frostwarden','Frost Warden','Tanks','icegauntlets','Ice Gauntlets',180,.2,.85,'Frost Burst','Damage and slow nearby enemies.','Glacier Wall','Frozen Fortress','Close-range icy punches.'],
+ ['obsidiansentinel','Obsidian Sentinel','Tanks','obsidianclaws','Obsidian Claws',180,.2,.85,'Obsidian Spikes','Erupt spikes around you.','Obsidian Barrier','Blackstone Cataclysm','Close-range obsidian claw strikes.'],
+ ['copperautomaton','Copper Automaton','Tanks','coilarms','Copper Coil Arms',180,.2,.85,'Electric Pulse','Damage nearby enemies with electricity.','Overcharge Armor','Thunder Reactor','Electrically charged mechanical punches.']
  ];
  const heroes={},weapons={};
  for(const [id,name,category,weapon,weaponName,health,armor,speed,q,qd,e,r,description]of rows){

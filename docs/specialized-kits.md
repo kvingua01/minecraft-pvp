@@ -28,11 +28,11 @@ Regeneration potion controls and cooldowns are unchanged. Healers do not consume
 corner health packs, avoiding another passive self-heal route.
 
 Weak healer projectiles deal 8 raw HP, half the existing Fire Staff's 16. Tank
-maximum HP is 252, computed as 140% of the default Normal Kit Knight’s actual
+maximum HP is 180, matching the default Normal Kit Knight’s actual
 180 HP (the combat layer’s 100 HP fallback is overridden when kits spawn);
 existing Normal Kits retain their individual 95–180 HP values and armor. All
 health is displayed as numerical HP and bars, with no heart display. Juggernaut
-multiplies the kit's base HP by three (756 for a specialized tank).
+multiplies the kit's base HP by three (540 for a specialized tank).
 
 Magma Heart and Overcharge Armor grant 72 temporary HP for six seconds. Damage
 consumes it before regular HP. A second grant cannot refresh/refill active bonus

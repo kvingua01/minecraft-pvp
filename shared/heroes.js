@@ -28,7 +28,7 @@
  for(const [id,[melee,ranged]]of Object.entries(kits))Object.assign(heroes[id],{melee,ranged});
  const specialized=typeof module!=='undefined'?require('./specialized'):root.SpecializedKits;
  const standardHealth=heroes.knight.health;
- for(const h of Object.values(specialized.heroes))if(h.category==='Tanks'){h.health=Math.round(standardHealth*1.4);if(['Magma Heart','Overcharge Armor'].includes(h.e.name))h.e.description=`Grant ${Math.round(standardHealth*.4)} temporary HP to yourself and visible teammates for six seconds; does not stack.`;}
+ for(const h of Object.values(specialized.heroes))if(h.category==='Tanks'){h.health=180;if(['Magma Heart','Overcharge Armor'].includes(h.e.name))h.e.description=`Grant ${Math.round(standardHealth*.4)} temporary HP to yourself and visible teammates for six seconds; does not stack.`;}
  Object.assign(heroes,specialized.heroes);
  const has=id=>typeof id==='string'&&Object.hasOwn(heroes,id);
  const loadout=id=>{const hero=heroes[has(id)?id:'knight'];return [hero.weapon,hero.melee,hero.ranged].filter(Boolean);};
