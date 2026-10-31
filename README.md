@@ -384,8 +384,14 @@ Open **Developer codes** in the multiplayer lobby, pause menu (Esc), or Upgrade
 Wars armory. Enter your developer code, choose a bot and any of the 36 kits,
 then click **Apply kit · respawn bot**. The change applies immediately and all
 players see the new kit. Bot scores, teams and Upgrade Wars items remain intact;
-previous kit effects are cleaned up. Only bots in your current room can change.
+previous kit effects are cleaned up. Controls affect only your current room.
 The code is checked on the server and unlocks only this connection. Re-enter it
 after leaving or reconnecting. Automatic game-mode kit changes (such as Random
 Kit respawns or Ladder progression) still apply. Run `npm test` and
 `npm run test:dev-codes-browser` to verify authorization and the controls.
+
+In **Upgrade Wars**, the unlocked menu lists **Player or bot**, including you.
+Choose anyone in your current room and apply a kit to respawn them immediately.
+Their money, purchased items, team, scores and normal kit lock carry over; the
+chosen kit also persists into the next round. Human changes work in the lobby,
+shop and active rounds, while other game modes retain bot-only developer controls.
