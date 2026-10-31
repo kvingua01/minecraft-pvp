@@ -381,7 +381,7 @@ Run `npm test` and `npm run test:upgrade-wars-browser` for this mode.
 ## Developer codes
 
 Open **Developer codes** in the multiplayer lobby, pause menu (Esc), or Upgrade
-Wars armory. Enter your developer code, choose a bot and any of the 36 kits,
+Wars armory. Enter **`bobabcd1234`** once to unlock all developer controls, choose a bot and any of the 36 kits,
 then click **Apply kit · respawn bot**. The change applies immediately and all
 players see the new kit. Bot scores, teams and Upgrade Wars items remain intact;
 previous kit effects are cleaned up. Controls affect only your current room.
@@ -396,12 +396,13 @@ Their money, purchased items, team, scores and normal kit lock carry over; the
 chosen kit also persists into the next round. Human changes work in the lobby,
 shop and active rounds, while other game modes retain bot-only developer controls.
 
-Enter **`bobhard1234`** in Developer codes to restore the original bot AI in your
-current room: instant live aim, no deliberate wide swings, no reaction/windup or
-extra weapon recovery delays, and the original 950 ms bow release with gravity
-compensation. It affects existing and newly added bots and persists through
-rounds/rematches in that room. The **Bot strength** selector is always visible under Developer codes, with a
-locked explanation until the bot-strength code is accepted. Once unlocked it can restore
-**Normal** (the current weaker AI). Other rooms start with Normal bots.
-This code grants only bot-strength controls; the existing kit code is separate.
-Current weapon stats, HP, maps and collision rules remain in force.
+The same **`bobabcd1234`** code unlocks **Bot strength** as well as all kit
+controls. Choose **Original** to restore instant live aim, no deliberate wide
+swings, no reaction/windup or extra weapon recovery delays, and the original
+950 ms bow release with gravity compensation. Choose **Normal** to restore the
+current weaker AI. Unlocking alone never changes the selected strength.
+
+The selector is always visible, with a locked explanation before code entry.
+Strength affects current and newly added bots and persists through rounds and
+rematches in that room. Other rooms start with Normal bots. Current weapon
+stats, HP, maps and collision rules remain in force. No separate codes are needed.
